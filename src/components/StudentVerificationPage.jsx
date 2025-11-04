@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const progressSteps = ['Upload Document', 'Review Pending', 'Verification Complete'];
 
@@ -126,6 +127,7 @@ const FileUpload = ({ onFileSelect }) => {
 };
 
 const StudentVerificationPage = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -139,8 +141,7 @@ const StudentVerificationPage = () => {
       return;
     }
     console.log('Submitting file:', selectedFile.name);
-    setCurrentStep(2);
-    setTimeout(() => setCurrentStep(3), 2000);
+    navigate('/verification-pending');
   };
 
   return (

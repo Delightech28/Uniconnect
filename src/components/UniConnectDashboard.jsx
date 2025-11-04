@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = ['Dashboard', 'Marketplace', 'Study Hub',
 'CampusFeed', 'Wallet'];
@@ -45,6 +47,48 @@ comments: 9,
 },
 ];
 // --- Sub-components for better organization ---
+const Greeting = () => {
+  const [userData, setUserData] = useState(null);
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    const setTimeBasedGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) {
+        setGreeting('Good morning');
+      } else if (hour < 18) {
+        setGreeting('Good afternoon');
+      } else {
+        setGreeting('Good evening');
+      }
+    };
+
+    fetchUserData();
+    setTimeBasedGreeting();
+  }, []);
+
+  return (
+    <h1 className="text-secondary dark:text-white tracking-light
+text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
+      {greeting}, {userData?.firstname || 'there'}!
+    </h1>
+  );
+};
+
 const Logo = () => (
 <div className="flex items-center gap-4 text-secondary
 dark:text-white">
@@ -197,10 +241,7 @@ dark:hover:bg-slate-800 rounded">{link}</a>
 {/* --- Main Content --- */}
 <main className="flex-1 px-4 sm:px-10 py-8">
 <div className="flex flex-col max-w-7xl mx-auto">
-<h1 className="text-secondary dark:text-white tracking-light
-text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
-Good morning, Adekunle!
-</h1>
+<Greeting />
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4">
 {/* --- Left Column --- */}
 <div className="lg:col-span-1 flex flex-col gap-6">

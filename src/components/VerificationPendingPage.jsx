@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 // --- Data for Links and Icons (Cleaner than hardcoding in JSX) ---
 const footerLinks = [
 { name: 'Terms of Service', href: '#' },
@@ -111,17 +112,21 @@ dark:text-text-secondary-dark text-sm">
 );
 // --- Main Page Component ---
 const VerificationPendingPage = () => {
-const [darkMode, setDarkMode] = useState(false);
-// Effect to toggle dark mode class on the html element
+const navigate = useNavigate();
+const [darkMode, setDarkMode] = useState(true);
+// Effect to set dark mode by default and handle changes
 useEffect(() => {
 const root = window.document.documentElement;
-if (darkMode) {
+// Set dark mode by default
 root.classList.add('dark');
-} else {
+// Update when darkMode state changes
+if (!darkMode) {
 root.classList.remove('dark');
 }
 }, [darkMode]);
+
 const toggleDarkMode = () => setDarkMode(!darkMode);
+const handleDashboardClick = () => navigate('/dashboard');
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 <div className="flex flex-1 justify-center py-5 px-4 sm:px-8
@@ -154,7 +159,9 @@ currently reviewing it. This usually takes 24-48 hours. We'll notify you via
 email once the process is complete.
 </p>
 </div>
-<button className="flex min-w-[84px] cursor-pointer
+<button 
+onClick={handleDashboardClick}
+className="flex min-w-[84px] cursor-pointer
 items-center justify-center rounded-lg h-12 px-6 bg-primary text-white
 text-base font-bold w-full sm:w-auto mt-3 hover:bg-primary/90">
 Go to Dashboard

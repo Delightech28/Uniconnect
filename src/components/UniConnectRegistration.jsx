@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import { auth, db } from '../firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 // --- Data for select options ---
 const institutions = [
 'University of Lagos',
@@ -8,6 +12,7 @@ const institutions = [
 'University of Nigeria, Nsukka',
 ];
 const UniConnectRegistration = () => {
+const navigate = useNavigate();
 const [step, setStep] = useState(1);
 const [formData, setFormData] = useState({
 email: '',
@@ -18,27 +23,162 @@ documentType: 'University ID',
 file: null,
 });
 const [showPassword, setShowPassword] = useState(false);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState(null);
 // --- Event Handlers ---
 const handleInputChange = (e) => {
-const { id, value, type, files } = e.target;
-setFormData((prevData) => ({
-...prevData,
-[id]: type === 'file' ? files[0] : value,
-}));
+  const { id, value, type, files } = e.target;
+  if (type === 'file') {
+    const file = files[0];
+    if (!file) return;
+    
+    // Read file as Data URL (base64)
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      // Check for Firestore document size limit (1MB), leave headroom
+      const maxDataUrlLength = 900000; // ~900KB
+      if (dataUrl && dataUrl.length > maxDataUrlLength) {
+        setError('Selected file is too large. Please choose a smaller file (max ~900KB).');
+        setFormData((prevData) => ({
+          ...prevData,
+          file: null,
+          fileDataUrl: null,
+        }));
+      } else {
+        setError(null);
+        setFormData((prevData) => ({
+          ...prevData,
+          file,
+          fileDataUrl: dataUrl,
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  } else {
+    setFormData((prevData) => ({
+      ...prevData,
+      [id]: value,
+    }));
+  }
 };
-const handleNext = (e) => {
-e.preventDefault();
-if (formData.registerAs === 'student') {
-setStep(2);
-} else {
-// If registering as a guest, skip step 2 and go to success
-setStep('success');
-}
+const handleNext = async (e) => {
+	e.preventDefault();
+	// If registering as a student, continue to step 2 for verification.
+	if (formData.registerAs === 'student') {
+		setStep(2);
+		return;
+	}
+
+	// For guests, create the Firebase Auth user immediately and save a user doc.
+	setLoading(true);
+	setError(null);
+	try {
+		const userCredential = await createUserWithEmailAndPassword(
+			auth,
+			formData.email,
+			formData.password
+		);
+		const user = userCredential.user;
+				// If a file was selected, upload it to Storage under users/{uid}/
+				let fileStoragePath = null;
+				let fileDownloadUrl = null;
+				let fileDataUrlToStore = formData.fileDataUrl || null;
+				if (formData.file) {
+					try {
+						fileStoragePath = `users/${user.uid}/${Date.now()}_${formData.file.name}`;
+						await uploadBytes(storageRef(storage, fileStoragePath), formData.file);
+						fileDownloadUrl = await getDownloadURL(storageRef(storage, fileStoragePath));
+					} catch (uploadErr) {
+						console.warn('Storage upload failed:', uploadErr);
+						// If upload fails, we still continue and save metadata without storage URL
+					}
+				}
+				// If the dataUrl is too large we set fileDataUrlToStore=null to avoid Firestore limits
+				const maxDataUrlLength = 900000;
+				if (fileDataUrlToStore && fileDataUrlToStore.length > maxDataUrlLength) {
+					fileDataUrlToStore = null;
+				}
+				await setDoc(doc(db, 'users', user.uid), {
+					email: formData.email,
+					registerAs: formData.registerAs,
+					institution: formData.institution || null,
+					documentType: formData.documentType || null,
+					documentFileName: formData.file ? formData.file.name : null,
+					fileDataUrl: fileDataUrlToStore,
+					verified: false,
+					createdAt: serverTimestamp(),
+				});
+		navigate('/guest-dashboard');
+	} catch (err) {
+		console.error('Error creating guest user:', err);
+		setError(err.message || 'Failed to create account');
+		alert(`Error: ${err.message}`);
+	} finally {
+		setLoading(false);
+	}
 };
-const handleSubmit = (e) => {
-e.preventDefault();
-console.log('Final form data:', formData);
-setStep('success');
+
+const handleSubmit = async (e) => {
+	e.preventDefault();
+	setLoading(true);
+	setError(null);
+	try {
+		console.log('Starting user registration...');
+		
+		// Create the user in Firebase Auth
+		const userCredential = await createUserWithEmailAndPassword(
+			auth,
+			formData.email,
+			formData.password
+		);
+		const user = userCredential.user;
+		console.log('User created in Auth:', user.uid);
+
+		// Handle file data if present
+		let fileDataUrlToStore = formData.fileDataUrl || null;
+		
+		// Check file size for Firestore limits (1MB limit with some headroom)
+		const maxDataUrlLength = 900000; // ~900KB
+		if (fileDataUrlToStore && fileDataUrlToStore.length > maxDataUrlLength) {
+			console.warn('File too large for base64 storage in Firestore (max ~900KB)');
+			setError('Selected file is too large. Please choose a smaller file (max ~900KB).');
+			setLoading(false);
+			return;
+		}
+
+		const userData = {
+			email: formData.email,
+			registerAs: formData.registerAs,
+			institution: formData.institution || null,
+			documentType: formData.documentType || null,
+			documentFileName: formData.file ? formData.file.name : null,
+			fileDataUrl: fileDataUrlToStore,
+			verified: false,
+			createdAt: serverTimestamp(),
+		};
+
+		console.log('Saving user data to Firestore...', userData);
+		
+		// Save user data to Firestore
+		const userDocRef = doc(db, 'users', user.uid);
+		await setDoc(userDocRef, userData);
+		console.log('User data saved successfully to Firestore');
+
+		// Redirect to verification-pending page for students
+		if (formData.registerAs === 'student') {
+			navigate('/verification-pending');
+		} else {
+			// For guests, redirect to guest dashboard or appropriate page
+			navigate('/guest-dashboard');
+		}
+	} catch (err) {
+		console.error('Error creating student user:', err);
+		setError(err.message || 'Failed to create account');
+		alert(`Error: ${err.message}`);
+	} finally {
+		setLoading(false);
+	}
 };
 // --- Progress Bar Logic ---
 const progressPercentage = step === 1 ? (formData.registerAs ===
@@ -235,30 +375,7 @@ Submit
 </form>
 </div>
 )}
-{/* --- Success Message --- */}
-{step === 'success' && (
-<div className="text-center">
-<div className="mb-4">
-<span className="material-symbols-outlined text-6xl
-text-green-500">check_circle</span>
-</div>
-<h1 className="text-3xl font-black text-slate-900
-dark:text-white">Welcome to UniConnect!</h1>
-<p className="mt-2 text-base text-slate-600
-dark:text-slate-400">
-{formData.registerAs === 'student'
-? 'Your account has been created and is pending verification.' : 'Your guest account has been successfully created.'
-}
-</p>
-</div>
-)}
-<div className="mt-6 text-center text-sm text-slate-500
-dark:text-slate-400">
-<p>By creating an account, you agree to our <a
-className="font-medium text-primary hover:underline" href="#">Terms
-of Service</a> and <a className="font-medium text-primary
-hover:underline" href="#">Privacy Policy</a>.</p>
-</div>
+
 </div>
 </div>
 </div>

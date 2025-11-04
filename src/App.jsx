@@ -19,6 +19,9 @@ import StudyHubPage from "./components/StudyHubPage";
 import QuizPage from "./components/QuizPage";
 import DocumentInfo from "./components/DocumentInfo";
 import ChatInterface from "./components/ChatInterface";
+import QuizResultsPage from "./components/QuizResultsPage";
+import UniWalletPage from "./components/UniWalletPage";
+import WalletPage from "./components/WalletPage";
 function App() {
   return (
     <Router>
@@ -43,6 +46,9 @@ function App() {
         <Route path="/quiz" element={<QuizPage />} />
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/chat-interface" element={<ChatInterface />} />
+        <Route path="/quiz-results" element={<QuizResultsPage />} />
+        <Route path="/uni-wallet" element={<UniWalletPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
       </Routes>
     </Router>
   );

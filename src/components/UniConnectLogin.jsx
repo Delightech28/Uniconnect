@@ -5,7 +5,7 @@ email: '',
 password: '',
 });
 const [showPassword, setShowPassword] = useState(false);
-const [darkMode, setDarkMode] = useState(false);
+const [darkMode, setDarkMode] = useState(true);
 // Effect to toggle dark mode class on the html element
 useEffect(() => {
 const root = window.document.documentElement;

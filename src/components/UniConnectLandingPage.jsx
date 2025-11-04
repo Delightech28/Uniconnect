@@ -117,13 +117,13 @@ aria-label="Toggle dark mode"
 'light_mode' : 'dark_mode'}</span>
 </button>
 <div className='hidden sm:flex items-center gap-2'>
-<button className="flex min-w-[84px] cursor-pointer
+<Link to="/login" className="flex min-w-[84px] cursor-pointer
 items-center justify-center overflow-hidden rounded-full h-10 px-4
 bg-transparent border border-secondary dark:border-primary
 text-secondary dark:text-primary text-sm font-bold tracking-wide
 hover:bg-secondary/10 dark:hover:bg-primary/10">
 Login
-</button>
+</Link>
 <Link to="/signup" className="flex min-w-[84px] cursor-pointer
 items-center justify-center overflow-hidden rounded-full h-10 px-4
 bg-primary text-white text-sm font-bold tracking-wide
@@ -152,12 +152,12 @@ setIsMenuOpen(false)}>
 </a>
 ))}
 <div className='flex sm:hidden items-center gap-4 mt-4'>
-<button className="flex min-w-[100px] cursor-pointer
+<Link to="/login" className="flex min-w-[100px] cursor-pointer
 items-center justify-center overflow-hidden rounded-full h-10 px-4
 bg-transparent border border-secondary dark:border-primary
 text-secondary dark:text-primary font-bold">
 Login
-</button>
+</Link>
 <Link to="/signup" className="flex min-w-[100px] cursor-pointer
 items-center justify-center overflow-hidden rounded-full h-10 px-4
 bg-primary text-white font-bold">
@@ -302,8 +302,7 @@ border-t border-gray-200 dark:border-gray-700">
 <div className="max-w-7xl mx-auto px-4 lg:px-10 py-8">
 <div className="flex flex-col md:flex-row justify-between
 items-center gap-6">
-<div className="text-sm text-gray-500 dark:text-gray-400">©
-2024 UniConnect. All Rights Reserved.</div>
+<div className="text-sm text-gray-500 dark:text-gray-400">© {new Date().getFullYear()} UniConnect. All Rights Reserved.</div>
 <div className="flex gap-6">
 <a className="text-sm hover:text-primary" href="#">About
 Us</a>
