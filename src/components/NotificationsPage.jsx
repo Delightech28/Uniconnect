@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 // --- Initial Data for Notifications ---
 const initialNotificationsData = [
 {
@@ -68,22 +71,33 @@ unread: false,
 const navLinks = ['Dashboard', 'Marketplace', 'Study Hub', 'Wallet'];
 // --- Sub-components for better organization ---
 const Header = ({ darkMode, toggleDarkMode, hasUnread }) => {
+const navigate = useNavigate();
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
 return (
 <header className="sticky top-0 z-20 flex items-center
 justify-between whitespace-nowrap border-b border-solid
 border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white
 dark:bg-secondary">
 <div className="flex items-center gap-4 lg:gap-8">
-<div className="flex items-center gap-4 text-secondary
-dark:text-white">
-
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"><path d="M44
+<div 
+  onClick={() => navigate('/dashboard')}
+  className="flex items-center gap-4 text-secondary dark:text-white cursor-pointer hover:text-primary transition-colors">
+  <div className="size-6 text-primary">
+    <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44
 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
-</div>
-<h2 className="text-xl font-bold leading-tight
+  </div>
+  <h2 className="text-xl font-bold leading-tight
 tracking-tight">UniConnect</h2>
 </div>
 <nav className="hidden lg:flex items-center gap-6">
@@ -123,9 +137,12 @@ dark:hover:bg-slate-800">Profile</a>
 <a href="#" className="block px-4 py-2 text-sm
 text-secondary dark:text-white hover:bg-background-light
 dark:hover:bg-slate-800">Settings</a>
-<a href="#" className="block px-4 py-2 text-sm
-text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800">Logout</a>
+<button
+  onClick={handleLogout}
+  className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+>
+  Logout
+</button>
 </div>
 )}
 </div>

@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
 email: '',
@@ -6,6 +9,9 @@ password: '',
 });
 const [showPassword, setShowPassword] = useState(false);
 const [darkMode, setDarkMode] = useState(true);
+const [loading, setLoading] = useState(false);
+const [errorMessage, setErrorMessage] = useState('');
+const navigate = useNavigate();
 // Effect to toggle dark mode class on the html element
 useEffect(() => {
 const root = window.document.documentElement;
@@ -25,11 +31,34 @@ setFormData((prevData) => ({
 const togglePasswordVisibility = () => {
 setShowPassword(!showPassword);
 };
-const handleSubmit = (e) => {
-e.preventDefault();
-// No backend, so we'll just log the data and show an alert
-console.log('Login attempt with:', formData);
-alert(`Login submitted with email: ${formData.email}`);
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
+    try {
+        const { email, password } = formData;
+        // Do NOT log credentials
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // successful login
+        setLoading(false);
+        // Redirect to dashboard
+        navigate('/dashboard');
+    } catch (error) {
+        setLoading(false);
+        // Map common Firebase Auth errors to friendly messages
+        const code = error?.code || '';
+        if (code === 'auth/wrong-password') {
+            setErrorMessage('Incorrect password. Please try again.');
+        } else if (code === 'auth/user-not-found') {
+            setErrorMessage("No account found for this email.");
+        } else if (code === 'auth/invalid-email') {
+            setErrorMessage('Please enter a valid email address.');
+        } else {
+            setErrorMessage('Login failed. Please check your credentials and try again.');
+        }
+        // Avoid logging sensitive info; log minimal error for debugging
+        console.error('Login error code:', error?.code || error?.message || error);
+    }
 };
 return (
 <div className="relative flex min-h-screen w-full flex-col items-center
@@ -97,6 +126,7 @@ type="email"
 value={formData.email}
 onChange={handleChange}
 required
+disabled={loading}
 />
 </div>
 <div>
@@ -117,6 +147,7 @@ type={showPassword ? 'text' : 'password'}
 value={formData.password}
 onChange={handleChange}
 required
+disabled={loading}
 />
 <div
 onClick={togglePasswordVisibility}
@@ -135,10 +166,15 @@ className="material-symbols-outlined">{showPassword ? 'visibility_off'
 pt-1 px-0 text-right underline cursor-pointer">
 Forgot Password?
 </a>
-<button type="submit" className="flex items-center justify-center
-w-full h-14 rounded-lg bg-primary text-white text-base font-bold
-transition-colors hover:bg-primary/90">
-Login
+{errorMessage && (
+    <div className="text-sm text-red-500 mb-2">{errorMessage}</div>
+)}
+<button
+    type="submit"
+    disabled={loading}
+    className={`flex items-center justify-center w-full h-14 rounded-lg text-white text-base font-bold transition-colors ${loading ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
+>
+    {loading ? 'Logging in...' : 'Login'}
 </button>
 
 <p className="text-text-primary dark:text-gray-300 text-sm

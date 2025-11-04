@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for Links and Icons (Cleaner than hardcoding in JSX) ---
 const footerLinks = [
 { name: 'Terms of Service', href: '#' },
@@ -72,7 +73,7 @@ xmlns="http://www.w3.org/2000/svg">
 text-xl font-bold tracking-tight">UniConnect</h2>
 </div>
 <button
-onClick={toggleDarkMode}
+onClick={toggleTheme}
 className="flex cursor-pointer items-center justify-center
 rounded-full h-10 w-10 bg-background-light dark:bg-background-dark
 text-text-primary-light dark:text-text-primary-dark"
@@ -113,19 +114,7 @@ dark:text-text-secondary-dark text-sm">
 // --- Main Page Component ---
 const VerificationPendingPage = () => {
 const navigate = useNavigate();
-const [darkMode, setDarkMode] = useState(true);
-// Effect to set dark mode by default and handle changes
-useEffect(() => {
-const root = window.document.documentElement;
-// Set dark mode by default
-root.classList.add('dark');
-// Update when darkMode state changes
-if (!darkMode) {
-root.classList.remove('dark');
-}
-}, [darkMode]);
-
-const toggleDarkMode = () => setDarkMode(!darkMode);
+const { darkMode, toggleTheme } = useTheme();
 const handleDashboardClick = () => navigate('/dashboard');
 return (
 <div className="relative flex min-h-screen w-full flex-col">

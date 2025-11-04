@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { useTheme } from '../hooks/useTheme';
+import { useNavigate } from 'react-router-dom';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = ['Dashboard', 'Marketplace', 'Study Hub',
 'CampusFeed', 'Wallet'];
@@ -46,6 +49,8 @@ likes: 28,
 comments: 9,
 },
 ];
+// --- Sub-components for better organization ---
+
 // --- Sub-components for better organization ---
 const Greeting = () => {
   const [userData, setUserData] = useState(null);
@@ -128,17 +133,20 @@ text-primary">{percentage}%</span>
 );
 // --- Main Dashboard Component ---
 const UniConnectDashboard = () => {
-const [isMenuOpen, setIsMenuOpen] = useState(false);
-const [isProfileOpen, setIsProfileOpen] = useState(false);
-const [marketplaceTab, setMarketplaceTab] = useState('listings');
-const [darkMode, setDarkMode] = useState(true);
-useEffect(() => {
-if (darkMode) {
-document.documentElement.classList.add('dark');
-} else {
-document.documentElement.classList.remove('dark');
-}
-}, [darkMode]);
+  const navigate = useNavigate();
+  const { darkMode, toggleTheme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+  const [marketplaceTab, setMarketplaceTab] = useState('listings');
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 {/* --- Header --- */}
@@ -178,18 +186,18 @@ placeholder="Search"
 </div>
 </label>
 {/* --- Header Icons --- */}
-<button onClick={() => setDarkMode(!darkMode)}
+<button onClick={toggleTheme}
 className="flex cursor-pointer items-center justify-center rounded-lg
 h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
 dark:text-white" aria-label="Toggle dark mode">
 <span className="material-symbols-outlined">{darkMode ?
 'light_mode' : 'dark_mode'}</span>
 </button>
-<button className="flex cursor-pointer items-center justify-center
-rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800
-text-secondary dark:text-white">
-<span
-className="material-symbols-outlined">notifications</span>
+<button 
+onClick={() => navigate('/notifications')}
+className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+>
+<span className="material-symbols-outlined">notifications</span>
 </button>
 {/* --- Profile Dropdown --- */}
 <div className="relative">
@@ -211,9 +219,12 @@ href="#">Profile</a>
 <a className="block px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
 href="#">Settings</a>
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Logout</a>
+<button
+  onClick={handleLogout}
+  className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+>
+  Logout
+</button>
 </div>
 )}
 </div>
