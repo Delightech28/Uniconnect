@@ -73,7 +73,7 @@ xmlns="http://www.w3.org/2000/svg">
 text-xl font-bold tracking-tight">UniConnect</h2>
 </div>
 <button
-onClick={toggleTheme}
+onClick={toggleDarkMode}
 className="flex cursor-pointer items-center justify-center
 rounded-full h-10 w-10 bg-background-light dark:bg-background-dark
 text-text-primary-light dark:text-text-primary-dark"
@@ -122,7 +122,7 @@ return (
 md:px-20 lg:px-40">
 <div className="flex flex-col max-w-[960px] flex-1">
 <Header darkMode={darkMode}
-toggleDarkMode={toggleDarkMode} />
+toggleDarkMode={toggleTheme} />
 <main className="flex-grow flex items-center justify-center
 py-10">
 <div className="flex flex-col items-center gap-8 w-full max-w-lg

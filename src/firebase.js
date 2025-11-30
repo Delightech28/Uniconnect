@@ -7,13 +7,23 @@ import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage } from 'firebase/storage';
 
+// Load config from Vite environment variables. Require a real API key to avoid
+// sending a placeholder to the Firebase REST endpoints (causes 400 / invalid key).
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+if (!apiKey) {
+  throw new Error(
+    'Missing VITE_FIREBASE_API_KEY. Add your Firebase API key to the project .env as VITE_FIREBASE_API_KEY.'
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '<YOUR_API_KEY>',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '<YOUR_AUTH_DOMAIN>',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '<YOUR_PROJECT_ID>',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '<YOUR_STORAGE_BUCKET>',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '<YOUR_MESSAGING_SENDER_ID>',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '<YOUR_APP_ID>'
+  apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
 // Initialize Firebase

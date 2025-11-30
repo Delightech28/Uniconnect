@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 // --- Data for select options ---
 const institutions = [
@@ -174,8 +175,17 @@ const handleSubmit = async (e) => {
 		}
 	} catch (err) {
 		console.error('Error creating student user:', err);
-		setError(err.message || 'Failed to create account');
-		alert(`Error: ${err.message}`);
+		// Provide a clearer message for common network/API issues
+		if (err && err.code === 'auth/network-request-failed') {
+			setError('Network request failed. Check your internet connection and browser extensions that may block requests (adblocker, privacy plugins).');
+			alert('Network error: could not reach Firebase. Check your connection and API key restrictions in the Firebase console.');
+		} else if (err && err.code && err.code.includes('api-key')) {
+			setError('Invalid or restricted API key. Ensure VITE_FIREBASE_API_KEY is correct and not restricted to the wrong origins.');
+			alert('API key error: please verify your Firebase API key and restrictions.');
+		} else {
+			setError(err.message || 'Failed to create account');
+			alert(`Error: ${err.message}`);
+		}
 	} finally {
 		setLoading(false);
 	}

@@ -22,6 +22,16 @@ import ChatInterface from "./components/ChatInterface";
 import QuizResultsPage from "./components/QuizResultsPage";
 import UniWalletPage from "./components/UniWalletPage";
 import WalletPage from "./components/WalletPage";
+import CreatePostPage from "./components/CreatePostPage";
+import TransactionHistory from "./components/TransactionHistory";
+import ProductDetailsPage from "./components/ProductDetailsPage";
+import InboxPage from "./components/InboxPage";
+import Header from "./components/Header";
+import EditProfilePage from "./components/EditProfilePage";
+import SettingsPage from "./components/SettingsPage";
+import ChangePasswordPage from "./components/ChangePasswordPage";
+import ChangeEmailPage from "./components/ChangeEmailPage";
+
 function App() {
   return (
     <Router>
@@ -49,6 +59,15 @@ function App() {
         <Route path="/quiz-results" element={<QuizResultsPage />} />
         <Route path="/uni-wallet" element={<UniWalletPage />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/create-post" element={<CreatePostPage />} />
+        <Route path="/transaction-history" element={<TransactionHistory />} />
+        <Route path="/product-details" element={<ProductDetailsPage />} /> 
+        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/header" element={<Header />} />
+        <Route path="/edit-profile" element={<EditProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} /> 
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/change-email" element={<ChangeEmailPage />} />
       </Routes>
     </Router>
   );
