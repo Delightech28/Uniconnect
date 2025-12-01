@@ -31,6 +31,9 @@ import EditProfilePage from "./components/EditProfilePage";
 import SettingsPage from "./components/SettingsPage";
 import ChangePasswordPage from "./components/ChangePasswordPage";
 import ChangeEmailPage from "./components/ChangeEmailPage";
+import StudentReferral from "./components/StudentReferral";
+import ReferralReward from "./components/ReferralReward";
+import UniConnectWelcome from "./components/UniConnectWelcome";
 
 function App() {
   return (
@@ -68,6 +71,9 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} /> 
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="/change-email" element={<ChangeEmailPage />} />
+        <Route path="/student-referral" element={<StudentReferral />} />
+        <Route path="/referral-reward" element={<ReferralReward />} />
+        <Route path="/welcome" element={<UniConnectWelcome />} />
       </Routes>
     </Router>
   );
