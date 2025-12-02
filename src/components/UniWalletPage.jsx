@@ -1,11 +1,15 @@
    import React, { useState, useEffect } from 'react'; 
- 
-// --- Data for UI elements --- 
+import { Link, useNavigate } from 'react-router-dom';
+import { useTheme } from '../hooks/useTheme';// --- Data for UI elements --- 
+  import { auth, db } from '../firebase';
+  import { doc, getDoc } from 'firebase/firestore';
+  // --- Data for UI elements --- 
 const navLinks = [ 
-    { name: 'Dashboard', href: '#', active: false }, { name: 'Marketplace', 
-href: '#', active: false }, { name: 'Study Hub', href: '#', active: false }, { 
-name: 'CampusFeed', href: '#', active: false }, { name: 'Wallet', href: '#', 
-active: true }, 
+    { name: 'Dashboard', path: '/dashboard', active: false }, 
+    { name: 'Marketplace', path: '/unimarket', active: false }, 
+    { name: 'Study Hub', path: '/study-hub', active: false }, 
+    { name: 'CampusFeed', path: '#campusfeed', active: false }, 
+    { name: 'Wallet', path: '/uni-wallet', active: true }, 
 ]; 
  
 const actionButtons = [ 
@@ -29,7 +33,27 @@ date: 'June 12, 2024', amount: '- ₦18,500.00', color: 'blue' },
 const Header = ({ darkMode, toggleDarkMode }) => { 
     const [isMenuOpen, setIsMenuOpen] = useState(false); 
     const [isProfileOpen, setIsProfileOpen] = useState(false); 
+    const navigate = useNavigate();
+  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+
+  // Fetch current user's avatar from Firestore
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().avatarUrl) {
+            setUserAvatar(userDoc.data().avatarUrl);
+          }
+        } catch (err) {
+          console.error('Error fetching user avatar:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
     return ( 
+     <>
      <header className="sticky top-0 z-20 flex items-center 
 justify-between whitespace-nowrap border-b border-solid 
 border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white 
@@ -45,9 +69,9 @@ viewBox="0 0 48 48"><path d="M44
 font-display">UniConnect</h2> 
             </div> 
             <nav className="hidden lg:flex items-center gap-6"> 
-                {navLinks.map(link => <a key={link.name} href={link.href} 
+                {navLinks.map(link => <Link key={link.name} to={link.path} 
 className={`text-sm font-medium ${link.active ? 'text-primary font-bold' 
-: 'text-secondary dark:text-white'}`}>{link.name}</a>)} 
+: 'text-secondary dark:text-white'}`}>{link.name}</Link>)} 
             </nav> 
         </div> 
         <div className="flex flex-1 justify-end items-center gap-3 
@@ -57,19 +81,21 @@ items-center justify-center rounded-lg h-10 w-10 bg-background-light
 dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle 
 dark mode"><span className="material-symbols-outlined">{darkMode 
 ? 'light_mode' : 'dark_mode'}</span></button> 
-            <button className="flex items-center justify-center rounded-lg 
+            <button onClick={() => navigate('/notifications')} className="flex items-center justify-center rounded-lg 
 h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"><span 
 className="material-symbols-outlined">notifications</span></button> 
+            <button onClick={() => navigate('/inbox')} className="flex items-center justify-center rounded-lg 
+h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"><span 
+className="material-symbols-outlined">mail</span></button> 
             <div className="relative"> 
                 <button onClick={() => setIsProfileOpen(!isProfileOpen)}><div 
 className="bg-center bg-no-repeat aspect-square bg-cover 
 rounded-full size-10" style={{backgroundImage: 
-'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")'}}></div></button> 
+  `url("${userAvatar}")`}}></div></button> 
                 {isProfileOpen && (<div className="absolute right-0 mt-2 
-w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10"><a 
-href="#" className="block px-4 py-2 text-sm text-secondary 
+w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10"><button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary 
 dark:text-white hover:bg-background-light 
-dark:hover:bg-slate-800">Profile</a><a href="#" className="block px-4 
+dark:hover:bg-slate-800">Profile</button><a href="#" className="block px-4 
 py-2 text-sm text-secondary dark:text-white hover:bg-background-light 
 dark:hover:bg-slate-800">Settings</a><a href="#" className="block 
 px-4 py-2 text-sm text-secondary dark:text-white 
@@ -80,7 +106,17 @@ setIsMenuOpen(!isMenuOpen)} className="text-secondary
 dark:text-white"><span className="material-symbols-outlined 
 text-3xl">{isMenuOpen ? 'close' : 'menu'}</span></button></div> 
         </div> 
-     </header> 
+     </header>
+     {isMenuOpen && (
+        <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
+        {navLinks.map(link => (
+        <Link key={link.name} to={link.path} className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
+        {link.name}
+        </Link>
+        ))}
+        </nav>
+     )}
+     </>
     ); 
 } 
  
@@ -146,15 +182,11 @@ dark:text-slate-400">{transaction.date}</p>
  
 // --- Main Page Component --- 
 const UniWalletPage = () => { 
-  const [darkMode, setDarkMode] = useState(false); 
-  useEffect(() => { if (darkMode) 
-document.documentElement.classList.add('dark'); else 
-document.documentElement.classList.remove('dark'); }, [darkMode]); 
+  const { darkMode, toggleTheme } = useTheme();
  
   return ( 
     <div className="relative flex min-h-screen w-full flex-col"> 
-      <Header darkMode={darkMode} toggleDarkMode={() => 
-setDarkMode(!darkMode)} /> 
+      <Header darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
       <main className="flex-1 px-4 sm:px-10 py-8"> 
         <div className="max-w-4xl mx-auto"> 
           <h1 className="text-secondary dark:text-white text-3xl font-bold 

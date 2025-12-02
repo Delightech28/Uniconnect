@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 const UniConnectLogin = () => {
@@ -180,9 +180,9 @@ Forgot Password?
 <p className="text-text-primary dark:text-gray-300 text-sm
 text-center">
 Don't have an account?{' '}
-<a className="text-primary font-bold underline" href="#">
+<Link to="/signup" className="text-primary font-bold underline">
 Sign Up
-</a>
+</Link>
 </p>
 </form>
 </div>

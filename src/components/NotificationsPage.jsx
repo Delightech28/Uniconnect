@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
+import { useTheme } from '../hooks/useTheme';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 // --- Initial Data for Notifications ---
 const initialNotificationsData = [
 {
@@ -68,12 +71,35 @@ time: '3 days ago',
 unread: false,
 },
 ];
-const navLinks = ['Dashboard', 'Marketplace', 'Study Hub', 'Wallet'];
+const navLinks = [
+{ label: 'Dashboard', path: '/dashboard' },
+{ label: 'Marketplace', path: '/unimarket' },
+{ label: 'Study Hub', path: '/study-hub' },
+{ label: 'Wallet', path: '/uni-wallet' }
+];
 // --- Sub-components for better organization ---
 const Header = ({ darkMode, toggleDarkMode, hasUnread }) => {
 const navigate = useNavigate();
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
+const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+
+// Fetch current user's avatar from Firestore
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().avatarUrl) {
+          setUserAvatar(userDoc.data().avatarUrl);
+        }
+      } catch (err) {
+        console.error('Error fetching user avatar:', err);
+      }
+    }
+  });
+  return () => unsubscribe();
+}, []);
 
   const handleLogout = async () => {
     try {
@@ -85,6 +111,7 @@ const [isProfileOpen, setIsProfileOpen] = useState(false);
   };
 
 return (
+<>
 <header className="sticky top-0 z-20 flex items-center
 justify-between whitespace-nowrap border-b border-solid
 border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white
@@ -101,9 +128,9 @@ dark:bg-secondary">
 tracking-tight">UniConnect</h2>
 </div>
 <nav className="hidden lg:flex items-center gap-6">
-{navLinks.map(link => <a key={link} href="#"
+{navLinks.map(link => <Link key={link.label} to={link.path}
 className="text-secondary dark:text-white text-sm
-font-medium">{link}</a>)}
+font-medium hover:text-primary">{link.label}</Link>)}
 </nav>
 </div>
 <div className="flex flex-1 justify-end items-center gap-3
@@ -122,18 +149,23 @@ className="material-symbols-outlined">notifications</span>
 {hasUnread && <div className="absolute top-1.5 right-1.5
 size-2 bg-red-500 rounded-full"></div>}
 </button>
+<button onClick={() => navigate('/inbox')} className="flex items-center justify-center rounded-lg
+h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
+dark:text-white">
+<span className="material-symbols-outlined">mail</span>
+</button>
 <div className="relative">
 <button onClick={() => setIsProfileOpen(!isProfileOpen)}>
 <div className="bg-center bg-no-repeat aspect-square
 bg-cover rounded-full size-10" style={{backgroundImage:
-'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")'}}></div>
+`url("${userAvatar}")`}}></div>
 </button>
 {isProfileOpen && (
 <div className="absolute right-0 mt-2 w-48 bg-white
 dark:bg-secondary rounded-md shadow-lg py-1 z-10">
-<a href="#" className="block px-4 py-2 text-sm
+<button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm
 text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800">Profile</a>
+dark:hover:bg-slate-800">Profile</button>
 <a href="#" className="block px-4 py-2 text-sm
 text-secondary dark:text-white hover:bg-background-light
 dark:hover:bg-slate-800">Settings</a>
@@ -155,6 +187,16 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 </div>
 </div>
 </header>
+{isMenuOpen && (
+<nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
+{navLinks.map(link => (
+<Link key={link.label} to={link.path} className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
+{link.label}
+</Link>
+))}
+</nav>
+)}
+</>
 );
 }
 const NotificationItem = ({ notification, onClick }) => (
@@ -183,13 +225,9 @@ mt-1.5" title="Unread"></div>
 );
 // --- Main Page Component ---
 const NotificationsPage = () => {
+const { darkMode, toggleTheme } = useTheme();
 const [notifications, setNotifications] =
 useState(initialNotificationsData);
-const [darkMode, setDarkMode] = useState(false);
-useEffect(() => {
-if (darkMode) document.documentElement.classList.add('dark');
-else document.documentElement.classList.remove('dark');
-}, [darkMode]);
 const markAsRead = (id) => {
 setNotifications(
 notifications.map((n) => (n.id === id ? { ...n, unread: false } : n))
@@ -201,8 +239,7 @@ setNotifications(notifications.map((n) => ({ ...n, unread: false })));
 const hasUnread = notifications.some(n => n.unread);
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-<Header darkMode={darkMode} toggleDarkMode={() =>
-setDarkMode(!darkMode)} hasUnread={hasUnread}/>
+<Header darkMode={darkMode} toggleDarkMode={toggleTheme} hasUnread={hasUnread}/>
 <main className="flex-1 px-4 sm:px-10 py-8">
 <div className="flex flex-col max-w-4xl mx-auto">
 <div className="flex flex-col sm:flex-row sm:items-center

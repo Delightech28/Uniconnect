@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '../hooks/useTheme';
+import { auth, db } from '../firebase';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 // --- Data for UI elements ---
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
@@ -17,7 +22,27 @@ months: { max: 12, fee: 1000 },
 const Header = ({ darkMode, toggleDarkMode }) => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
+const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+
+// Fetch current user's avatar from Firestore
+useEffect(() => {
+	const unsubscribe = auth.onAuthStateChanged(async (user) => {
+		if (user) {
+			try {
+				const userDoc = await getDoc(doc(db, 'users', user.uid));
+				if (userDoc.exists() && userDoc.data().avatarUrl) {
+					setUserAvatar(userDoc.data().avatarUrl);
+				}
+			} catch (err) {
+				console.error('Error fetching user avatar:', err);
+			}
+		}
+	});
+	return () => unsubscribe();
+}, []);
+
 return (
+<>
 <header className="sticky top-0 z-20 flex items-center
 justify-between whitespace-nowrap border-b border-solid
 
@@ -60,7 +85,7 @@ className="material-symbols-outlined">notifications</span>
 <button onClick={() => setIsProfileOpen(!isProfileOpen)}><div
 className="bg-center bg-no-repeat aspect-square bg-cover
 rounded-full size-10" style={{backgroundImage:
-'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")'}}></div></button>
+`url("${userAvatar}")`}}></div></button>
 {isProfileOpen && (
 <div className="absolute right-0 mt-2 w-48 bg-white
 dark:bg-secondary rounded-md shadow-lg py-1 z-10">
@@ -82,6 +107,16 @@ dark:text-white"><span className="material-symbols-outlined
 text-3xl">{isMenuOpen ? 'close' : 'menu'}</span></button></div>
 </div>
 </header>
+{isMenuOpen && (
+<nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
+{navLinks.map(link => (
+<a key={link.name} href={link.href} className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
+{link.name}
+</a>
+))}
+</nav>
+)}
+</>
 );
 }
 const ImageUploader = ({ uploadedFiles, setUploadedFiles }) => {
@@ -194,7 +229,7 @@ type="button">Top Up Wallet</button>
 
 // --- Main Page Component ---
 const SellItemPage = () => {
-const [darkMode, setDarkMode] = useState(false);
+const { darkMode, toggleTheme } = useTheme();
 const [formData, setFormData] = useState({ productName: '', price: '',
 category: '', description: '' });
 const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -213,24 +248,83 @@ setDurationType(e.target.value);
 setDurationValue(1); // Reset slider on type change
 };
 const listingFee = durationOptions[durationType].fee * durationValue;
-const handleSubmit = (e) => {
-e.preventDefault();
-const finalData = { ...formData, duration: `${durationValue}
-${durationType}`, fee: listingFee, images: uploadedFiles.map(f =>
-f.file.name) };
-if (walletBalance < listingFee) {
-alert("Cannot submit: Insufficient balance.");
-return;
-}
+const navigate = useNavigate();
 
-console.log("Form Submitted:", finalData);
-alert("Listing posted successfully!");
-// Here you would typically send data to a backend
+const readFileAsDataURL = (file) => new Promise((resolve, reject) => {
+	const reader = new FileReader();
+	reader.onload = () => resolve(reader.result);
+	reader.onerror = (err) => reject(err);
+	reader.readAsDataURL(file);
+});
+
+const handleSubmit = async (e) => {
+	e.preventDefault();
+	if (walletBalance < listingFee) {
+		toast.error('Cannot submit: Insufficient balance.');
+		return;
+	}
+
+	const user = auth.currentUser;
+	if (!user) {
+		toast.error('You must be logged in to post a listing');
+		navigate('/login');
+		return;
+	}
+
+	try {
+		toast.loading('Posting listing...', { id: 'posting' });
+
+		// convert up to 3 images to base64 (keep payload small)
+		const images = [];
+		for (let i = 0; i < Math.min(uploadedFiles.length, 3); i++) {
+			const f = uploadedFiles[i];
+			if (f?.file) {
+				try {
+					const dataUrl = await readFileAsDataURL(f.file);
+					images.push(dataUrl);
+				} catch (err) {
+					console.warn('Failed to read file', err);
+				}
+			}
+		}
+
+		// attempt to get seller display name from users collection
+		let sellerName = '';
+		try {
+			const userDoc = await getDoc(doc(db, 'users', user.uid));
+			if (userDoc.exists()) sellerName = userDoc.data().displayName || '';
+		} catch (err) {
+			console.warn('Failed to fetch seller name', err);
+		}
+
+		const listing = {
+			name: formData.productName,
+			price: Number(formData.price) || formData.price,
+			category: formData.category,
+			description: formData.description,
+			images,
+			sellerId: user.uid,
+			sellerName,
+			createdAt: serverTimestamp(),
+		};
+
+		await addDoc(collection(db, 'listings'), listing);
+
+		toast.dismiss('posting');
+		toast.success('Listing posted successfully!');
+		// reset form
+		setFormData({ productName: '', price: '', category: '', description: '' });
+		setUploadedFiles([]);
+		navigate('/unimarket');
+	} catch (err) {
+		console.error('Failed to post listing', err);
+		toast.dismiss('posting');
+		toast.error('Failed to post listing. Please try again.');
+	}
 };
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-<Header darkMode={darkMode} toggleDarkMode={() =>
-setDarkMode(!darkMode)} />
+<Header darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-4xl mx-auto">
 <div className="mb-8">

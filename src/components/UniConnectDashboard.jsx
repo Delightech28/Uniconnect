@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
-const navLinks = ['Dashboard', 'Marketplace', 'Study Hub',
-'CampusFeed', 'Wallet'];
+const navLinks = [
+{ label: 'Dashboard', path: '/dashboard' },
+{ label: 'Marketplace', path: '/unimarket' },
+{ label: 'Study Hub', path: '/study-hub' },
+{ label: 'CampusFeed', path: '#campusfeed' },
+{ label: 'Wallet', path: '/uni-wallet' }
+];
 const marketplaceItems = [
 {
 id: 1,
@@ -57,19 +62,19 @@ const Greeting = () => {
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const user = auth.currentUser;
-        if (user) {
+    // Use onAuthStateChanged to wait for auth state to be loaded
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             setUserData(userDoc.data());
           }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
       }
-    };
+    });
 
     const setTimeBasedGreeting = () => {
       const hour = new Date().getHours();
@@ -82,14 +87,16 @@ const Greeting = () => {
       }
     };
 
-    fetchUserData();
     setTimeBasedGreeting();
+    
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   return (
     <h1 className="text-secondary dark:text-white tracking-light
 text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
-      {greeting}, {userData?.firstname || 'there'}!
+      {greeting}, {userData?.displayName || 'there'}!
     </h1>
   );
 };
@@ -137,6 +144,24 @@ const UniConnectDashboard = () => {
   const { darkMode, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+
+  // Fetch current user's avatar from Firestore
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().avatarUrl) {
+            setUserAvatar(userDoc.data().avatarUrl);
+          }
+        } catch (err) {
+          console.error('Error fetching user avatar:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -159,8 +184,8 @@ dark:bg-secondary">
 {/* Desktop Navigation */}
 <nav className="hidden lg:flex items-center gap-6">
 {navLinks.map((link) => (
-<a key={link} className="text-secondary dark:text-white
-text-sm font-medium leading-normal" href="#">{link}</a>
+<Link key={link.label} to={link.path} className="text-secondary dark:text-white
+text-sm font-medium leading-normal hover:text-primary">{link.label}</Link>
 ))}
 </nav>
 </div>
@@ -199,6 +224,12 @@ className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 
 >
 <span className="material-symbols-outlined">notifications</span>
 </button>
+<button 
+onClick={() => navigate('/inbox')}
+className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+>
+<span className="material-symbols-outlined">mail</span>
+</button>
 {/* --- Profile Dropdown --- */}
 <div className="relative">
 <button onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -206,16 +237,14 @@ className="block">
 <div
 className="bg-center bg-no-repeat aspect-square bg-cover
 rounded-full size-10"
-style={{ backgroundImage:
-'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")' }}
+style={{ backgroundImage: `url("${userAvatar}")` }}
 ></div>
 </button>
 {isProfileOpen && (
 <div className="absolute right-0 mt-2 w-48 bg-white
 dark:bg-secondary rounded-md shadow-lg py-1">
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Profile</a>
+<button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary
+dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
 <a className="block px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
 href="#">Settings</a>
@@ -243,9 +272,9 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 <div className="lg:hidden bg-white dark:bg-secondary border-b
 border-slate-200 dark:border-slate-700 p-4">
 {navLinks.map((link) => (
-<a key={link} href="#" className="block py-2 px-4
+<Link key={link.label} to={link.path} className="block py-2 px-4
 text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800 rounded">{link}</a>
+dark:hover:bg-slate-800 rounded" onClick={() => setIsMenuOpen(false)}>{link.label}</Link>
 ))}
 </div>
 )}

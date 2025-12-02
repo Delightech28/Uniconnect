@@ -15,7 +15,7 @@ export default {
         secondary: "#0A3D62",
         accent: "#FFD700",
         "background-light": "#f5f8f6",
-        "background-dark": "#102210",
+        "background-dark": "#000000",
         "text-light": "#333333",
         "text-dark": "#F5F5F5",
 

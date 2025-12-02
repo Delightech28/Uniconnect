@@ -72,8 +72,8 @@ document.documentElement.classList.remove('dark');
 }
 }, [darkMode]);
 const navLinks = [
-{ title: 'UniMarket', href: '#unimarket' },
-{ title: 'StudyHub', href: '#studyhub' },
+{ title: 'UniMarket', href: '/unimarket' },
+{ title: 'StudyHub', href: '/study-hub' },
 { title: 'CampusFeed', href: '#campusfeed' },
 ];
 return (
@@ -99,10 +99,10 @@ tracking-tight"><Link to="/">UniConnect</Link></h2>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-8">
 {navLinks.map(link => (
-<a key={link.title} className="text-sm font-medium
-hover:text-primary dark:hover:text-primary" href={link.href}>
+<Link key={link.title} to={link.href} className="text-sm font-medium
+hover:text-primary dark:hover:text-primary">
 {link.title}
-</a>
+</Link>
 ))}
 </nav>
 <div className="flex items-center gap-2">
@@ -145,11 +145,11 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 dark:bg-background-dark">
 <nav className="flex flex-col items-center gap-4 py-4">
 {navLinks.map(link => (
-<a key={link.title} className="text-lg font-medium
-hover:text-primary" href={link.href} onClick={() =>
+<Link key={link.title} to={link.href} className="text-lg font-medium
+hover:text-primary" onClick={() =>
 setIsMenuOpen(false)}>
 {link.title}
-</a>
+</Link>
 ))}
 <div className='flex sm:hidden items-center gap-4 mt-4'>
 <Link to="/login" className="flex min-w-[100px] cursor-pointer
@@ -233,10 +233,17 @@ experience.
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3
 gap-8">
-{featuresData.map((feature) => (
-<div key={feature.title} className="bg-background-light
+{featuresData.map((feature) => {
+const getLink = () => {
+if (feature.title === 'UniMarket') return '/unimarket';
+if (feature.title === 'StudyHub') return '/study-hub';
+return '#';
+};
+
+return (
+<Link key={feature.title} to={getLink()} className="bg-background-light
 dark:bg-background-dark p-8 rounded-xl shadow-lg hover:shadow-2xl
-transition-shadow duration-300" id={feature.id}>
+transition-shadow duration-300 cursor-pointer hover:transform hover:scale-105" id={feature.id}>
 <div className="flex items-center justify-center size-16
 rounded-full bg-primary/20 mb-6">
 <span className="material-symbols-outlined text-primary
@@ -246,8 +253,9 @@ text-4xl">{feature.icon}</span>
 dark:text-white">{feature.title}</h3>
 <p className="mt-2 text-text-light
 dark:text-gray-300">{feature.description}</p>
-</div>
-))}
+</Link>
+);
+})}
 </div>
 </div>
 </section>

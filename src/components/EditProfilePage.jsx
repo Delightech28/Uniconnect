@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
-// --- Data Layer (No Backend) --- 
-// In a real app, this data would be fetched from an API. 
+import React, { useState, useEffect } from 'react';
+import { auth, db } from '../firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useTheme } from '../hooks/useTheme'; 
 const initialProfileData = { 
-displayName: 'Adekunle Adebayo',
-bio: 'Computer Science student at UNILAG. Passionate about AI and building cool things. Coffee enthusiast and part-time foodie.',
-avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI',
-interests: ['computer-science', 'ai', 'food'], 
+displayName: '',
+bio: '',
+avatarUrl: 'https://via.placeholder.com/96',
+interests: [], 
 }; 
 const allInterests = [ 
  
@@ -53,8 +57,47 @@ selectedClasses : unselectedClasses}`}>
  
 // --- Main Page Component --- 
 function EditProfilePage() { 
+  const navigate = useNavigate();
+  const { darkMode } = useTheme();
   const [profileData, setProfileData] = useState(initialProfileData);
-  const [tempAvatar, setTempAvatar] = useState(null); // For previewing new image
+  const [tempAvatar, setTempAvatar] = useState(null);
+  const [tempAvatarFile, setTempAvatarFile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saveLoading, setSaveLoading] = useState(false);
+
+  // Fetch user data from Firestore on component mount
+  useEffect(() => {
+    // Use onAuthStateChanged to wait for auth state to be loaded
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (!user) {
+          navigate('/login');
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setProfileData(prev => ({
+            ...prev,
+            displayName: data.displayName || '',
+            bio: data.bio || '',
+            interests: data.interests || [],
+            avatarUrl: data.avatarUrl || 'https://via.placeholder.com/96'
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [navigate]);
  
   const handleInputChange = (e) => { 
     const { name, value } = e.target; 
@@ -73,27 +116,88 @@ function EditProfilePage() {
   const handleFileChange = (e) => { 
     const file = e.target.files[0]; 
     if (file) { 
-      setTempAvatar(URL.createObjectURL(file)); 
+      // Validate file size (max 2MB for Firestore)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image must be less than 2MB');
+        return;
+      }
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setTempAvatar(previewUrl);
+
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setTempAvatarFile(event.target.result); // Store base64 string
+      };
+      reader.readAsDataURL(file);
     } 
   }; 
  
   const handleRemoveAvatar = () => { 
- 
-
-    setTempAvatar(null); // Clear preview
-
-    setProfileData(prevData => ({ ...prevData, avatarUrl: '' })); // Clear actual avatar data
+    setTempAvatar(null);
+    setTempAvatarFile(null);
+    setProfileData(prevData => ({ ...prevData, avatarUrl: '' })); 
   }; 
  
-  const handleSubmit = (e) => { 
+  const handleSubmit = async (e) => { 
     e.preventDefault(); 
-    // In a real app, you would send this data to a server. 
-    // We'll merge the temp avatar if it exists. 
-    const finalData = { 
-        ...profileData, 
-        avatarUrl: tempAvatar || profileData.avatarUrl, 
-    }; 
-    alert("Profile Saved!\n" + JSON.stringify(finalData, null, 2)); 
+    setSaveLoading(true);
+    setError(null);
+    
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setError('User not authenticated');
+        toast.error('User not authenticated');
+        return;
+      }
+
+      // Prepare data to save
+      const dataToSave = {
+        displayName: profileData.displayName,
+        bio: profileData.bio,
+        interests: profileData.interests,
+        updatedAt: serverTimestamp()
+      };
+
+      // If new avatar was selected, save base64 string directly to Firestore
+      if (tempAvatarFile) {
+        toast.loading('Saving profile...', { id: 'avatar-save' });
+        // tempAvatarFile is already a base64 string from FileReader
+        dataToSave.avatarUrl = tempAvatarFile;
+        toast.dismiss('avatar-save');
+      }
+
+      // Update user document in Firestore
+      await updateDoc(doc(db, 'users', user.uid), dataToSave);
+      
+      toast.success('Profile updated successfully!', {
+        duration: 4000,
+        style: {
+          background: darkMode ? '#1f2937' : '#ffffff',
+          color: darkMode ? '#ffffff' : '#000000',
+          border: `2px solid #07bc0c`,
+        },
+      });
+      setTempAvatar(null);
+      setTempAvatarFile(null);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      const errorMessage = 'Failed to save profile. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        duration: 4000,
+        style: {
+          background: darkMode ? '#1f2937' : '#ffffff',
+          color: darkMode ? '#ffffff' : '#000000',
+          border: '2px solid #ef4444',
+        },
+      });
+    } finally {
+      setSaveLoading(false);
+    }
   }; 
    
   const handleCancel = () => { 
@@ -103,6 +207,16 @@ function EditProfilePage() {
    
   const displayAvatar = tempAvatar || profileData.avatarUrl; 
  
+  if (loading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-secondary dark:text-white">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
 font-display min-h-screen"> 
@@ -119,8 +233,11 @@ your profile information.</p>
 shadow-md p-6 sm:p-8"> 
             <form className="space-y-8" onSubmit={handleSubmit}> 
  
-
-              {/* Profile Picture Section */} 
+              {error && (
+                <div className="p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-red-700 dark:text-red-300">
+                  {error}
+                </div>
+              )} 
               <div> 
                 <label className="block text-sm font-medium text-slate-700 
 dark:text-slate-300 mb-2">Profile Picture</label> 
@@ -222,15 +339,15 @@ isSelected={profileData.interests.includes(interest.value)}
               {/* Form Actions */} 
               <div className="border-t border-slate-200 
 dark:border-slate-700 pt-6 flex justify-end gap-4"> 
-                <button type="button" onClick={handleCancel} 
+                <button type="button" onClick={handleCancel} disabled={saveLoading}
 className="px-6 py-2 text-sm font-semibold rounded-lg bg-slate-200 
 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-300 
-dark:hover:bg-slate-600"> 
+dark:hover:bg-slate-600 disabled:opacity-50"> 
                   Cancel 
                 </button> 
-                <button type="submit" className="px-6 py-2 text-sm 
-font-semibold rounded-lg bg-primary text-white hover:bg-primary/90"> 
-                  Save Changes 
+                <button type="submit" disabled={saveLoading} className="px-6 py-2 text-sm 
+font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50"> 
+                  {saveLoading ? 'Saving...' : 'Save Changes'}
                 </button> 
               </div> 
             </form> 

@@ -18,6 +18,9 @@ const [step, setStep] = useState(1);
 const [formData, setFormData] = useState({
 email: '',
 password: '',
+displayName: '',
+bio: '',
+interests: [],
 registerAs: 'student',
 institution: institutions[0], // Set default institution
 documentType: 'University ID',
@@ -102,6 +105,9 @@ const handleNext = async (e) => {
 				}
 				await setDoc(doc(db, 'users', user.uid), {
 					email: formData.email,
+					displayName: formData.displayName || '',
+					bio: formData.bio || '',
+					interests: formData.interests || [],
 					registerAs: formData.registerAs,
 					institution: formData.institution || null,
 					documentType: formData.documentType || null,
@@ -150,6 +156,9 @@ const handleSubmit = async (e) => {
 
 		const userData = {
 			email: formData.email,
+			displayName: formData.displayName || '',
+			bio: formData.bio || '',
+			interests: formData.interests || [],
 			registerAs: formData.registerAs,
 			institution: formData.institution || null,
 			documentType: formData.documentType || null,

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from 'react-hot-toast';
 import UniConnectLandingPage from "./components/UniConnectLandingPage";
 import UniConnectRegistration from "./components/UniConnectRegistration";
 import StudentVerificationPage from "./components/StudentVerificationPage";
@@ -37,7 +38,9 @@ import UniConnectWelcome from "./components/UniConnectWelcome";
 
 function App() {
   return (
-    <Router>
+    <>
+      <Toaster position="top-right" />
+      <Router>
       <Routes>
         <Route path="/" element={<UniConnectLandingPage />} />
         <Route path="/signup" element={<UniConnectRegistration />} />
@@ -75,7 +78,8 @@ function App() {
         <Route path="/referral-reward" element={<ReferralReward />} />
         <Route path="/welcome" element={<UniConnectWelcome />} />
       </Routes>
-    </Router>
+      </Router>
+    </>
   );
 }
 
