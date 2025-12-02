@@ -127,6 +127,7 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 }
 const ProductCard = ({ product }) => {
 const [sellerAvatar, setSellerAvatar] = useState('https://via.placeholder.com/40');
+const navigate = useNavigate();
 
 // Fetch seller's avatar from Firestore using sellerId
 useEffect(() => {
@@ -145,9 +146,14 @@ useEffect(() => {
 	}
 }, [product.sellerId]);
 
+const handleProductClick = () => {
+	navigate(`/product-details/${product.id}`);
+};
+
 return (
 <div className="bg-white dark:bg-secondary rounded-xl shadow-md
-overflow-hidden flex flex-col">
+overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-105"
+onClick={handleProductClick}>
 <img alt={product.name} className="w-full h-48 object-cover"
 src={product.imageUrl || (product.images && product.images[0]) || 'https://via.placeholder.com/400x300'} />
 <div className="p-4 flex-grow flex flex-col">
@@ -156,7 +162,7 @@ dark:text-slate-400">{product.category}</p>
 <h3 className="font-bold text-lg text-secondary dark:text-white
 mt-1 flex-grow">{product.name}</h3>
 <p className="text-primary font-bold text-xl
-mt-2">₦{product.price}</p>
+mt-2">₦{product.price.toLocaleString()}</p>
 <div className="flex items-center gap-2 mt-3 pt-3 border-t
 border-slate-200 dark:border-slate-700">
 <img alt={`${product.sellerName}'s profile`} className="w-6 h-6 rounded-full object-cover" src={sellerAvatar} />

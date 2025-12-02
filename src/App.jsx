@@ -69,7 +69,8 @@ function App() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/transaction-history" element={<TransactionHistory />} />
-        <Route path="/product-details" element={<ProductDetailsPage />} /> 
+        <Route path="/product-details" element={<ProductDetailsPage />} />
+        <Route path="/product-details/:productId" element={<ProductDetailsPage />} /> 
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/header" element={<Header />} />
         <Route path="/edit-profile" element={<EditProfilePage />} />

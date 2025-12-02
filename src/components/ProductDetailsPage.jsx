@@ -24,68 +24,173 @@ imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3PseYjpIvW1kpMj2
     long: 'Comes with original charger. Battery life is still great. Perfect for coding, assignments, and entertainment. Selling because I recently upgraded. Price is slightly negotiable. Meet-up on campus only.', 
   }, 
 }; 
+
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, getDoc, onAuthStateChanged } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { useTheme } from '../hooks/useTheme';
+import toast from 'react-hot-toast'; 
  
 // --- Helper Components --- 
  
 // A reusable header 
-const AppHeader = () => ( 
- 
+const AppHeader = ({ darkMode, toggleDarkMode }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+  const navigate = useNavigate();
 
-  <header className="flex items-center justify-between 
-whitespace-nowrap border-b border-solid border-slate-200 
-dark:border-slate-700 px-4 md:px-10 py-3 bg-white dark:bg-secondary"> 
-    <div className="flex items-center gap-8"> 
-      <div className="flex items-center gap-4 text-secondary 
-dark:text-white"> 
-        <div className="size-6 text-primary"> 
-          <svg fill="currentColor" viewBox="0 0 48 48" 
-xmlns="http://www.w3.org/2000/svg"><path d="M44 
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg> 
-        </div> 
-        <h2 className="text-xl font-bold leading-tight 
-tracking-[-0.015em]">UniSpace</h2> 
-      </div> 
-    </div> 
-    <div className="flex flex-1 justify-end items-center gap-2 
-md:gap-6"> 
-      <nav className="hidden lg:flex items-center gap-6"> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="#">Dashboard</a> 
-        <a className="text-primary dark:text-primary text-sm font-bold" 
-href="#">Marketplace</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="#">Study Hub</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="#">Wallet</a> 
-      </nav> 
-      <button className="flex items-center justify-center rounded-lg h-10 
-w-10 bg-background-light dark:bg-slate-800 text-secondary 
-dark:text-white"> 
-        <span 
-className="material-symbols-outlined">notifications</span> 
-      </button> 
-      <div className="relative group"> 
-        <div 
-          className="bg-center bg-no-repeat aspect-square bg-cover 
-rounded-full size-10" 
- 
- 
-          style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")` }} 
-        /> 
-        <div className="absolute right-0 mt-2 w-48 bg-white 
-dark:bg-secondary rounded-md shadow-lg py-1 hidden 
-group-hover:block z-10"> 
-          <a className="block px-4 py-2 text-sm text-secondary 
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800" 
-href="#">Profile</a> 
-        </div> 
-      </div> 
-    </div> 
-  </header> 
-); 
+  // Fetch current user's avatar from Firestore
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().avatarUrl) {
+            setUserAvatar(userDoc.data().avatarUrl);
+          }
+        } catch (err) {
+          console.error('Error fetching user avatar:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <>
+      <header className="sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
+        <div className="flex items-center gap-4 lg:gap-8">
+          <div className="flex items-center gap-4 text-secondary dark:text-white">
+            <div className="size-6 text-primary">
+              <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
+            </div>
+            <h2 className="text-xl font-bold leading-tight tracking-tight">UniConnect</h2>
+          </div>
+          <nav className="hidden lg:flex items-center gap-6">
+            <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Dashboard</button>
+            <button onClick={() => navigate('/unimarket')} className="text-sm font-bold text-primary">Marketplace</button>
+            <button onClick={() => navigate('/study-hub')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Study Hub</button>
+            <button onClick={() => navigate('/uni-wallet')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Wallet</button>
+          </nav>
+        </div>
+        <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
+          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle dark mode">
+            <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+          </button>
+          <button onClick={() => navigate('/notifications')} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+          <button onClick={() => navigate('/inbox')} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
+            <span className="material-symbols-outlined">mail</span>
+          </button>
+          <div className="relative">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style={{backgroundImage: `url("${userAvatar}")`}}></div>
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10">
+                <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
+                <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
+              </div>
+            )}
+          </div>
+          <div className="lg:hidden">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary dark:text-white">
+              <span className="material-symbols-outlined text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      {isMenuOpen && (
+        <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
+          <button onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Dashboard</button>
+          <button onClick={() => { navigate('/unimarket'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Marketplace</button>
+          <button onClick={() => { navigate('/study-hub'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Study Hub</button>
+          <button onClick={() => { navigate('/uni-wallet'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Wallet</button>
+        </nav>
+      )}
+    </>
+  );
+}; 
  
 // --- Main Page Component --- 
-function ProductDetailsPage() { 
+function ProductDetailsPage() {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const { darkMode, toggleTheme } = useTheme();
+  const [product, setProduct] = useState(productData);
+  const [seller, setSeller] = useState(productData.seller);
+  const [loading, setLoading] = useState(!!productId);
+
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [darkMode]);
+
+  useEffect(() {
+    if (productId) {
+      const fetchProduct = async () => {
+        try {
+          const docRef = doc(db, 'listings', productId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const productObj = {
+              id: docSnap.id,
+              name: data.productName || 'Product',
+              category: data.category || 'Uncategorized',
+              price: data.price || 0,
+              imageUrl: data.images?.[0] || 'https://via.placeholder.com/400x300',
+              description: {
+                short: data.description || 'No description available',
+                specs: [],
+                long: ''
+              }
+            };
+            
+            // Fetch seller info
+            if (data.sellerId) {
+              const sellerRef = doc(db, 'users', data.sellerId);
+              const sellerSnap = await getDoc(sellerRef);
+              if (sellerSnap.exists()) {
+                setSeller({
+                  name: sellerSnap.data().displayName || 'Seller',
+                  avatarUrl: sellerSnap.data().avatarUrl || 'https://via.placeholder.com/40',
+                  details: 'Student'
+                });
+              }
+            }
+            
+            setProduct(productObj);
+          } else {
+            toast.error('Product not found');
+            navigate('/unimarket');
+          }
+        } catch (error) {
+          console.error('Error fetching product:', error);
+          toast.error('Error loading product');
+          navigate('/unimarket');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchProduct();
+    }
+  }, [productId, navigate]);
+ 
+  if (loading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-secondary dark:text-white text-lg">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
 font-display text-secondary dark:text-slate-200 min-h-screen"> 
@@ -94,12 +199,12 @@ font-display text-secondary dark:text-slate-200 min-h-screen">
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
           <div className="flex flex-col max-w-7xl mx-auto"> 
             <div className="mb-6"> 
-              <a className="flex items-center gap-2 text-sm text-slate-600 
-dark:text-slate-300 hover:text-primary dark:hover:text-primary" href="#"> 
+              <button className="flex items-center gap-2 text-sm text-slate-600 
+dark:text-slate-300 hover:text-primary dark:hover:text-primary" onClick={() => navigate('/unimarket')}> 
                 <span 
 className="material-symbols-outlined">arrow_back</span> 
                 Back to Marketplace 
-              </a> 
+              </button> 
             </div> 
  
 
@@ -110,9 +215,9 @@ className="material-symbols-outlined">arrow_back</span>
                 <div className="bg-white dark:bg-secondary rounded-xl 
 shadow-md overflow-hidden"> 
                   <img 
-                    alt={productData.name} 
-                    className="w-full h-auto aspect-[4/3] object-cover" 
-                    src={productData.imageUrl} 
+                    alt={product.name} 
+                    className="w-full h-auto object-contain" 
+                    src={product.imageUrl} 
                   /> 
                 </div> 
               </div> 
@@ -123,14 +228,14 @@ shadow-md overflow-hidden">
 shadow-md p-6"> 
                   <span className="text-sm font-medium text-slate-500 
 dark:text-slate-400"> 
-                    {productData.category} 
+                    {product.category} 
                   </span> 
                   <h1 className="text-3xl font-bold text-secondary 
 dark:text-white mt-2"> 
-                    {productData.name} 
+                    {product.name} 
                   </h1> 
                   <p className="text-3xl font-bold text-primary mt-4"> 
-                    ₦{productData.price.toLocaleString()} 
+                    ₦{product.price.toLocaleString()} 
                   </p> 
                    
                   <div className="mt-6 pt-6 border-t border-slate-200 
@@ -139,17 +244,17 @@ dark:border-slate-700">
 dark:text-white">Seller Information</h2> 
                     <div className="flex items-center gap-4 mt-4"> 
                       <img 
-                        alt={`${productData.seller.name}'s profile picture`} 
+                        alt={`${seller.name}'s profile picture`} 
  
 
                         className="w-12 h-12 rounded-full object-cover" 
-                        src={productData.seller.avatarUrl} 
+                        src={seller.avatarUrl} 
                       /> 
                       <div> 
                         <p className="font-bold text-secondary 
-dark:text-white">{productData.seller.name}</p> 
+dark:text-white">{seller.name}</p> 
                         <p className="text-sm text-slate-500 
-dark:text-slate-400">{productData.seller.details}</p> 
+dark:text-slate-400">{seller.details}</p> 
                       </div> 
                     </div> 
                   </div> 
@@ -187,22 +292,22 @@ dark:text-white">Description</h2>
 styling */} 
               <div className="prose prose-slate dark:prose-invert mt-4 
 max-w-none text-slate-600 dark:text-slate-300"> 
-                <p>{productData.description.short}</p> 
+                <p>{product.description.short}</p> 
                 <ul> 
-                  {productData.description.specs.map((spec) => ( 
+                  {product.description.specs.map((spec) => ( 
                     <li key={spec.label}> 
                       <strong>{spec.label}:</strong> {spec.value} 
                     </li> 
                   ))} 
                 </ul> 
-                <p>{productData.description.long}</p> 
+                <p>{product.description.long}</p> 
               </div> 
             </div> 
           </div> 
         </main> 
       </div> 
     </div> 
-  ); 
+  );
 } 
  
 export default ProductDetailsPage; 

@@ -1,6 +1,7 @@
  import React, { useState, useEffect } from 'react'; 
  import { auth, db } from '../firebase';
  import { doc, getDoc, updateDoc } from 'firebase/firestore';
+ import { onAuthStateChanged } from 'firebase/auth';
  import { useTheme } from '../hooks/useTheme';
  import { useNavigate } from 'react-router-dom';
  
@@ -82,29 +83,43 @@ function SettingsPage() {
     // Use global theme hook so the settings page stays in sync with the app
     const { darkMode, toggleTheme } = useTheme();
 
-    // Fetch saved settings (including fontSize and passwordLastChanged) from Firestore on mount
+    // Fetch saved settings (including fontSize, email, and passwordLastChanged) from Firestore on mount
     useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const user = auth.currentUser;
-                if (user) {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // Fetch email from Firebase Auth
+                    if (user.email) {
+                        setSettings(prev => ({ ...prev, email: user.email }));
+                    }
+                    
+                    // Fetch additional settings from Firestore
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
+                        console.log('User data from Firestore:', userData);
+                        
                         if (userData.fontSize) {
                             setSettings(prev => ({ ...prev, fontSize: userData.fontSize }));
                         }
+                        
                         if (userData.passwordLastChanged) {
                             const formattedTime = formatTimestampToRelative(userData.passwordLastChanged);
+                            console.log('Password last changed formatted:', formattedTime);
                             setSettings(prev => ({ ...prev, passwordLastChanged: formattedTime }));
+                        } else {
+                            console.log('No passwordLastChanged field in Firestore');
                         }
+                    } else {
+                        console.log('User document does not exist');
                     }
+                } catch (error) {
+                    console.error('Error fetching settings from Firestore:', error);
                 }
-            } catch (error) {
-                console.error('Error fetching settings from Firestore:', error);
             }
-        };
-        fetchSettings();
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     // Keep local settings.theme in sync with the global darkMode

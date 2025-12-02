@@ -119,9 +119,15 @@ passwords;
             await updatePassword(user, passwords.new);
 
             // Save password change timestamp to Firestore
-            await updateDoc(doc(db, 'users', user.uid), {
-                passwordLastChanged: serverTimestamp()
-            });
+            try {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    passwordLastChanged: serverTimestamp()
+                });
+                console.log('Password change timestamp saved to Firestore');
+            } catch (firestoreError) {
+                console.error('Error saving password timestamp to Firestore:', firestoreError);
+                // Don't block the user even if timestamp save fails
+            }
 
             toast.success('Password updated successfully!');
             setShowSuccess(true);
