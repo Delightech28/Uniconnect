@@ -2,6 +2,7 @@
  import { auth, db } from '../firebase';
  import { doc, getDoc, updateDoc } from 'firebase/firestore';
  import { useTheme } from '../hooks/useTheme';
+ import { useNavigate } from 'react-router-dom';
  
 // --- Static Data (No Backend) --- 
 const initialSettings = { 
@@ -39,7 +40,25 @@ after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300
 after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
 dark:border-slate-600 peer-checked:bg-primary"></div> 
     </label> 
-); 
+);
+
+// Helper function to format timestamp to relative time
+const formatTimestampToRelative = (timestamp) => {
+    if (!timestamp) return 'Never changed';
+    
+    const changeDate = new Date(timestamp.toDate?.() || timestamp);
+    const now = new Date();
+    const diffInMs = now - changeDate;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+
+    if (diffInYears > 0) return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+    if (diffInMonths > 0) return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    if (diffInDays > 0) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    
+    return 'Today';
+};
  
 const SettingsSection = ({ title, description, children }) => ( 
     <section className="mb-8"> 
@@ -58,11 +77,12 @@ mb-6">{description}</p>
 function SettingsPage() { 
     const [settings, setSettings] = useState(initialSettings); 
     const [activeTab, setActiveTab] = useState('account'); 
+    const navigate = useNavigate(); 
  
     // Use global theme hook so the settings page stays in sync with the app
     const { darkMode, toggleTheme } = useTheme();
 
-    // Fetch saved settings (including fontSize) from Firestore on mount
+    // Fetch saved settings (including fontSize and passwordLastChanged) from Firestore on mount
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -73,6 +93,10 @@ function SettingsPage() {
                         const userData = userDoc.data();
                         if (userData.fontSize) {
                             setSettings(prev => ({ ...prev, fontSize: userData.fontSize }));
+                        }
+                        if (userData.passwordLastChanged) {
+                            const formattedTime = formatTimestampToRelative(userData.passwordLastChanged);
+                            setSettings(prev => ({ ...prev, passwordLastChanged: formattedTime }));
                         }
                     }
                 }
@@ -166,7 +190,7 @@ dark:text-white">Password</h3>
                                 <p className="text-slate-500 dark:text-slate-400 
 text-sm">Last changed {settings.passwordLastChanged}</p> 
                             </div> 
-                            <button className="mt-2 sm:mt-0 text-sm 
+                            <button onClick={() => navigate('/change-password')} className="mt-2 sm:mt-0 text-sm 
 font-medium text-primary hover:underline self-start 
 sm:self-center">Change</button> 
                         </div> 

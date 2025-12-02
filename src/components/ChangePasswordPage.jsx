@@ -1,4 +1,9 @@
 import React, { useState, useMemo } from 'react'; 
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import toast from 'react-hot-toast'; 
 // --- Helper Components & Logic --- 
 // A component for displaying a password validation rule 
 const PasswordRule = ({ isValid, text }) => (
@@ -35,16 +40,15 @@ inline-block align-middle mr-1">error</span>
  
 // --- Main Page Component --- 
 function ChangePasswordPage() { 
+    const navigate = useNavigate();
     const [passwords, setPasswords] = useState({ 
         current: '', 
         new: '', 
         confirm: '', 
     }); 
     const [errors, setErrors] = useState({}); 
-    const [showSuccess, setShowSuccess] = useState(false); 
-     
-    // In a real app, this would be checked against a server. 
-    const FAKE_CURRENT_PASSWORD = 'password123'; 
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); 
  
  
 
@@ -73,8 +77,8 @@ passwords;
      
     const validateForm = () => { 
         const newErrors = {}; 
-        if (passwords.current !== FAKE_CURRENT_PASSWORD) { 
-            newErrors.current = 'Incorrect current password.'; 
+        if (!passwords.current) { 
+            newErrors.current = 'Current password is required.'; 
         } 
         if (!validationStatus.hasMinLength || !validationStatus.hasNumber || !validationStatus.hasSpecialChar) {
             newErrors.new = 'New password does not meet all requirements.'; 
@@ -88,19 +92,58 @@ passwords;
         return Object.keys(newErrors).length === 0; 
     }; 
  
-    const handleSubmit = (e) => { 
+    const handleSubmit = async (e) => { 
         e.preventDefault(); 
-        setShowSuccess(false); 
-         
-        if (validateForm()) { 
-            console.log('Password change successful!'); 
-            setShowSuccess(true); 
-            // Reset fields 
+        setShowSuccess(false);
+        
+        if (!validateForm()) {
+            toast.error('Please fix all errors before submitting.');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const user = auth.currentUser;
+            if (!user || !user.email) {
+                toast.error('User not authenticated.');
+                setIsLoading(false);
+                return;
+            }
+
+            // Reauthenticate with current password
+            const credential = EmailAuthProvider.credential(user.email, passwords.current);
+            await reauthenticateWithCredential(user, credential);
+
+            // Update to new password
+            await updatePassword(user, passwords.new);
+
+            // Save password change timestamp to Firestore
+            await updateDoc(doc(db, 'users', user.uid), {
+                passwordLastChanged: serverTimestamp()
+            });
+
+            toast.success('Password updated successfully!');
+            setShowSuccess(true);
             setPasswords({ current: '', new: '', confirm: '' }); 
-            setErrors({}); 
-        } else { 
-            console.log('Validation failed:', errors); 
-        } 
+            setErrors({});
+
+            // Redirect back to settings after 2 seconds
+            setTimeout(() => navigate('/settings'), 2000);
+        } catch (error) {
+            console.error('Password change error:', error);
+            if (error.code === 'auth/wrong-password' || error.message.includes('Incorrect')) {
+                setErrors({ current: 'Incorrect current password.' });
+                toast.error('Incorrect current password.');
+            } else if (error.code === 'auth/weak-password') {
+                setErrors({ new: 'New password is too weak.' });
+                toast.error('New password is too weak.');
+            } else {
+                toast.error('Failed to update password. Please try again.');
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }; 
  
     return ( 
@@ -110,10 +153,10 @@ font-display min-h-screen">
             <main className="px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-2xl mx-auto"> 
                     <div className="flex items-center gap-4 pb-8"> 
-                        <a href="#" className="text-secondary dark:text-white"> 
+                        <button onClick={() => navigate('/settings')} className="text-secondary dark:text-white hover:text-primary"> 
                             <span 
 className="material-symbols-outlined">arrow_back</span> 
-                        </a> 
+                        </button> 
                         <h1 className="text-secondary dark:text-white tracking-light text-2xl sm:text-3xl font-bold leading-tight">Change Password</h1> 
                     </div> 
                     <div className="bg-white dark:bg-secondary rounded-xl 
@@ -177,8 +220,8 @@ password has been updated.</span>
                             )} 
  
                             <div className="flex justify-end pt-4"> 
-                                <button type="submit" className="bg-primary text-white font-bold py-2 px-6 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-secondary"> 
-                                    Save Changes 
+                                <button type="submit" disabled={isLoading} className="bg-primary text-white font-bold py-2 px-6 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-secondary disabled:opacity-50 disabled:cursor-not-allowed"> 
+                                    {isLoading ? 'Updating...' : 'Save Changes'}
                                 </button> 
                             </div> 
                         </form> 
