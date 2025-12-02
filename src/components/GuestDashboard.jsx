@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = ['Dashboard', 'Marketplace', 'Study Hub', 'Wallet'];
 const marketplaceItems = [
@@ -144,9 +145,9 @@ dark:bg-secondary rounded-md shadow-lg py-1">
 <a className="block px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
 href="#">Profile</a>
-<a className="block px-4 py-2 text-sm text-secondary
+<Link className="block px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Settings</a>
+to="/settings">Settings</Link>
 <a className="block px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
 href="#">Logout</a>

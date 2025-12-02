@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, query, collection, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
@@ -145,11 +145,15 @@ const UniConnectDashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+  const [marketplaceTab, setMarketplaceTab] = useState('listings');
+  const [userListings, setUserListings] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  // Fetch current user's avatar from Firestore
+  // Fetch current user's avatar and set currentUserId from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setCurrentUserId(user.uid);
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists() && userDoc.data().avatarUrl) {
@@ -163,6 +167,33 @@ const UniConnectDashboard = () => {
     return () => unsubscribe();
   }, []);
 
+  // Subscribe to user's listings from Firestore
+  useEffect(() => {
+    if (!currentUserId) return;
+    
+    try {
+      const q = query(
+        collection(db, 'listings'),
+        where('sellerId', '==', currentUserId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const listings = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setUserListings(listings);
+      }, (error) => {
+        console.error('Error fetching user listings:', error);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up listings subscription:', error);
+    }
+  }, [currentUserId]);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -171,7 +202,6 @@ const UniConnectDashboard = () => {
       console.error('Error logging out:', error);
     }
   };
-  const [marketplaceTab, setMarketplaceTab] = useState('listings');
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 {/* --- Header --- */}
@@ -245,9 +275,9 @@ style={{ backgroundImage: `url("${userAvatar}")` }}
 dark:bg-secondary rounded-md shadow-lg py-1">
 <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary
 dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Settings</a>
+  <Link className="block px-4 py-2 text-sm text-secondary
+  dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+  to="/settings">Settings</Link>
 <button
   onClick={handleLogout}
   className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
@@ -342,28 +372,33 @@ Purchases
 </div>
 <div className="mt-4 space-y-4">
 {marketplaceTab === 'listings' ? (
-marketplaceItems.map((item) => (
+userListings.length > 0 ? (
+userListings.map((item) => (
 <div key={item.id} className="flex items-center gap-4">
 <img className="w-16 h-16 rounded-lg object-cover"
-alt={item.name} src={item.imageUrl} />
+alt={item.name} src={item.images?.[0] || 'https://via.placeholder.com/64'} />
 <div className="flex-1">
 <p className="font-semibold text-secondary
 dark:text-white">{item.name}</p>
 <p className="text-sm text-slate-500
-dark:text-slate-400">Status: <span
-className={item.statusColor}>{item.status}</span></p>
+dark:text-slate-400">Price: <span
+className="text-primary">{item.price}</span></p>
 </div>
 <p className="font-bold text-secondary
-dark:text-white">{item.price}</p>
+dark:text-white">₦{item.price}</p>
 </div>
 ))
+) : (
+<p className="text-slate-500 dark:text-slate-400 p-4
+text-center">No listings found. <Link to="/sell-item" className="text-primary hover:underline">Create one</Link></p>
+)
 ) : (
 <p className="text-slate-500 dark:text-slate-400 p-4
 text-center">No purchases found.</p>
 )}
 </div>
-<a className="block text-center text-primary text-sm
-font-medium mt-4" href="#">View All Listings</a>
+<Link className="block text-center text-primary text-sm
+font-medium mt-4 hover:underline" to="/my-listings">View All Listings</Link>
 </div>
 <div className="bg-white dark:bg-secondary rounded-xl
 shadow-md p-6">

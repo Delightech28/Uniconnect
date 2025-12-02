@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { query, collection, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 // --- Data Layer ---
-// In a real app, this would come from an API. For now, it's a static array.
+// Removed static mock data; now fetches from Firestore in component
 const listingsData = [
 {
 id: 1,
@@ -89,6 +93,76 @@ dark:text-slate-400 dark:hover:text-red-500">
 };
 // --- Main Page Component ---
 function MyListingsPage() {
+  const [userListings, setUserListings] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch current user ID and subscribe to their listings
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+      } else {
+        setCurrentUserId(null);
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to user's listings from Firestore
+  useEffect(() => {
+    if (!currentUserId) {
+      setUserListings([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, 'listings'),
+        where('sellerId', '==', currentUserId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const listings = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setUserListings(listings);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching user listings:', error);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up listings subscription:', error);
+      setLoading(false);
+    }
+  }, [currentUserId]);
+
+  // Helper to format timestamp to days from now
+  const formatExpiresIn = (createdAt) => {
+    if (!createdAt) return '-';
+    // Assuming listings expire after 30 days
+    const created = new Date(createdAt.toDate?.() || createdAt);
+    const expiryDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const daysLeft = Math.max(0, Math.floor((expiryDate - now) / (24 * 60 * 60 * 1000)));
+    return `${daysLeft} days`;
+  };
+
+  // Helper to determine status based on listing data
+  const getListingStatus = (listing) => {
+    if (!listing.createdAt) return 'Pending Review';
+    const created = new Date(listing.createdAt.toDate?.() || listing.createdAt);
+    const expiryDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (expiryDate < new Date()) return 'Expired';
+    return 'Active';
+  };
 
 return (
 // The main container div gets the body classes
@@ -154,15 +228,15 @@ AlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")` }}
 <div className="absolute right-0 mt-2 w-48 bg-white
 dark:bg-secondary rounded-md shadow-lg py-1 hidden
 group-hover:block z-10">
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Profile</a>
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Settings</a>
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Logout</a>
+					<a className="block px-4 py-2 text-sm text-secondary
+					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+					href="#">Profile</a>
+					<Link className="block px-4 py-2 text-sm text-secondary
+					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+					to="/settings">Settings</Link>
+					<a className="block px-4 py-2 text-sm text-secondary
+					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
+					href="#">Logout</a>
 </div>
 
 </div>
@@ -182,7 +256,7 @@ your active and inactive product listings.</p>
 </div>
 <a className="flex items-center justify-center gap-2
 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold
-leading-normal w-full sm:w-auto flex-shrink-0" href="#">
+leading-normal w-full sm:w-auto flex-shrink-0" href="/sell-item">
 <span
 className="material-symbols-outlined">add_circle</span>
 <span>Create New Listing</span>
@@ -212,26 +286,32 @@ dark:text-slate-400 text-right">Actions</th>
 </thead>
 <tbody className="divide-y divide-slate-200
 dark:divide-slate-700">
-{listingsData.map((item) => (
+{loading ? (
+<tr><td colSpan="5" className="p-4 text-center text-slate-500 dark:text-slate-400">Loading listings...</td></tr>
+) : userListings.length > 0 ? (
+userListings.map((item) => (
 <tr key={item.id}>
 <td className="p-4">
 <div className="flex items-center gap-4">
 <img alt={item.name} className="w-16 h-16
-object-cover rounded-lg" src={item.imageUrl} />
+object-cover rounded-lg" src={item.images?.[0] || 'https://via.placeholder.com/64'} />
 <span className="font-medium text-secondary
 dark:text-white">{item.name}</span>
 </div>
 </td>
 <td className="p-4 font-medium text-slate-700
-dark:text-slate-300">{item.price}</td>
+dark:text-slate-300">₦{item.price}</td>
 <td className="p-4"><StatusBadge
-status={item.status} /></td>
+status={getListingStatus(item)} /></td>
 <td className="p-4 text-slate-600
-dark:text-slate-400">{item.expiresIn}</td>
+dark:text-slate-400">{formatExpiresIn(item.createdAt)}</td>
 <td className="p-4"><ActionButtons
-status={item.status} /></td>
+status={getListingStatus(item)} /></td>
 </tr>
-))}
+))
+) : (
+<tr><td colSpan="5" className="p-4 text-center text-slate-500 dark:text-slate-400">No listings found. <Link to="/sell-item" className="text-primary hover:underline">Create one</Link></td></tr>
+)}
 </tbody>
 </table>
 </div>
@@ -240,31 +320,37 @@ status={item.status} /></td>
 */}
 <div className="divide-y divide-slate-200
 dark:divide-slate-700 md:hidden">
-{listingsData.map((item) => (
+{loading ? (
+<div className="p-4 text-center text-slate-500 dark:text-slate-400">Loading listings...</div>
+) : userListings.length > 0 ? (
+userListings.map((item) => (
 <div key={item.id} className="p-4">
 <div className="flex gap-4">
 <img alt={item.name} className="w-20 h-20
-object-cover rounded-lg flex-shrink-0" src={item.imageUrl} />
+object-cover rounded-lg flex-shrink-0" src={item.images?.[0] || 'https://via.placeholder.com/80'} />
 <div className="flex-grow">
 <p className="font-medium text-secondary
 dark:text-white mb-1">{item.name}</p>
 <p className="font-bold text-primary text-lg
-mb-2">{item.price}</p>
-<StatusBadge status={item.status} />
+mb-2">₦{item.price}</p>
+<StatusBadge status={getListingStatus(item)} />
 </div>
 </div>
 <div className="flex justify-between items-center
 mt-4">
 <div>
 <span className="text-sm text-slate-500
-dark:text-slate-400">Expires in: {item.expiresIn}</span>
+dark:text-slate-400">Expires in: {formatExpiresIn(item.createdAt)}</span>
 </div>
 <div>
-<ActionButtons status={item.status} />
+<ActionButtons status={getListingStatus(item)} />
 </div>
 </div>
 </div>
-))}
+))
+) : (
+<div className="p-4 text-center text-slate-500 dark:text-slate-400">No listings found. <Link to="/sell-item" className="text-primary hover:underline">Create one</Link></div>
+)}
 </div>
 </div>
 </div>

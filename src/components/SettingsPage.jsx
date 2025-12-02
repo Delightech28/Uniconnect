@@ -1,4 +1,7 @@
  import React, { useState, useEffect } from 'react'; 
+ import { auth, db } from '../firebase';
+ import { doc, getDoc, updateDoc } from 'firebase/firestore';
+ import { useTheme } from '../hooks/useTheme';
  
 // --- Static Data (No Backend) --- 
 const initialSettings = { 
@@ -56,14 +59,42 @@ function SettingsPage() {
     const [settings, setSettings] = useState(initialSettings); 
     const [activeTab, setActiveTab] = useState('account'); 
  
-    // Effect to apply the dark mode class to the <html> element 
-    useEffect(() => { 
-        if (settings.theme === 'dark') { 
-            document.documentElement.classList.add('dark'); 
-        } else { 
-            document.documentElement.classList.remove('dark'); 
-        } 
-    }, [settings.theme]); 
+    // Use global theme hook so the settings page stays in sync with the app
+    const { darkMode, toggleTheme } = useTheme();
+
+    // Fetch saved settings (including fontSize) from Firestore on mount
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const user = auth.currentUser;
+                if (user) {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.fontSize) {
+                            setSettings(prev => ({ ...prev, fontSize: userData.fontSize }));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching settings from Firestore:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    // Keep local settings.theme in sync with the global darkMode
+    useEffect(() => {
+        setSettings(prev => ({ ...prev, theme: darkMode ? 'dark' : 'light' }));
+    }, [darkMode]);
+
+    // Apply the selected font size globally so the whole app respects this setting
+    useEffect(() => {
+        const sizeMap = { 1: 14, 2: 16, 3: 18, 4: 20, 5: 22 };
+        const px = sizeMap[settings.fontSize] ?? 16;
+        // Set the root font-size (affects rem-based typography)
+        document.documentElement.style.fontSize = `${px}px`;
+    }, [settings.fontSize]);
  
  
 
@@ -77,13 +108,30 @@ function SettingsPage() {
         })); 
     }; 
  
-    const handleThemeChange = (theme) => { 
-        setSettings(prev => ({ ...prev, theme })); 
-    }; 
+    const handleThemeChange = (theme) => {
+        // Update local state for immediate UI response
+        setSettings(prev => ({ ...prev, theme }));
+        // Ensure the global theme matches the selection
+        if (theme === 'dark' && !darkMode) toggleTheme();
+        if (theme === 'light' && darkMode) toggleTheme();
+        // 'system' option would be implemented here if needed
+    };
  
-    const handleFontSizeChange = (e) => { 
-        setSettings(prev => ({ ...prev, fontSize: parseInt(e.target.value, 10) 
-})); 
+    const handleFontSizeChange = async (e) => {
+        const newFontSize = parseInt(e.target.value, 10);
+        setSettings(prev => ({ ...prev, fontSize: newFontSize }));
+        
+        // Persist the font size to Firestore
+        try {
+            const user = auth.currentUser;
+            if (user) {
+                await updateDoc(doc(db, 'users', user.uid), {
+                    fontSize: newFontSize
+                });
+            }
+        } catch (error) {
+            console.error('Error updating fontSize in Firestore:', error);
+        }
     }; 
      
     // In a real app with routing, each of these would be a separate component.
@@ -175,12 +223,18 @@ text-sm">Adjust the font size for better readability.</p>
  
 
                             <div className="flex items-center gap-4 mt-2 
-sm:mt-0"> 
+sm:mt-0 w-full"> 
                                 <span className="text-xs text-secondary 
 dark:text-white">A</span> 
-                                <input type="range" min="1" max="5" 
-value={settings.fontSize} onChange={handleFontSizeChange} 
-className="w-24 accent-primary" /> 
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="5"
+                                    value={settings.fontSize}
+                                    onChange={handleFontSizeChange}
+                                    className="w-full sm:w-24 accent-primary"
+                                    aria-label="Font size"
+                                />
                                 <span className="text-lg text-secondary 
 dark:text-white">A</span> 
                             </div> 
