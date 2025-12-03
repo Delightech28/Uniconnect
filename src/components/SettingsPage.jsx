@@ -3,6 +3,7 @@
  import { doc, getDoc, updateDoc } from 'firebase/firestore';
  import { onAuthStateChanged } from 'firebase/auth';
  import { useTheme } from '../hooks/useTheme';
+ import AppHeader from './AppHeader';
  import { useNavigate } from 'react-router-dom';
  
 // --- Static Data (No Backend) --- 
@@ -309,7 +310,7 @@ soon."></SettingsSection>
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
 font-display min-h-screen text-secondary dark:text-slate-200"> 
-            {/* Header could be here */} 
+            <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
             <main className="px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-5xl mx-auto"> 
                     <h1 className="text-secondary dark:text-white 

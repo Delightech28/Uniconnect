@@ -5,6 +5,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
       allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Allow reading user profile for messaging (to get name and avatar when creating conversations)
+      allow read: if request.auth != null;
     }
     
     // Public listings collection: anyone can read listings
@@ -13,6 +15,45 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Conversations and messages: participants-only access
+    match /conversations/{convoId} {
+      // Allow creating a conversation if requester is authenticated and is one of the participants
+      allow create: if request.auth != null
+        && request.resource.data.participants is list
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.participants.size() >= 2
+        && request.resource.data.participants.size() <= 10;
+
+      // Allow reading a conversation only to its participants
+      allow get: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow list: if request.auth != null && request.auth.uid != null; // limited by client queries (should use array-contains)
+
+      // Allow updating conversation metadata only to participants and prevent changing participants list
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participants
+        && request.resource.data.participants == resource.data.participants;
+
+      // Deleting conversations not allowed by clients
+      allow delete: if false;
+
+      // Messages subcollection rules
+      match /messages/{messageId} {
+        // Allow participants to create messages, senderId must equal authenticated user
+        allow create: if request.auth != null
+          && request.resource.data.senderId == request.auth.uid
+          && get(/databases/$(database)/documents/conversations/$(convoId)).data.participants is list
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+
+        // Allow reading messages only to participants
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/conversations/$(convoId)).data.participants is list
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+
+        // No updates/deletes from clients
+        allow update, delete: if false;
+      }
     }
 
     // Default deny all other access

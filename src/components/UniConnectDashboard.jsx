@@ -4,6 +4,7 @@ import { doc, getDoc, query, collection, where, orderBy, onSnapshot } from 'fire
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
+import AppHeader from './AppHeader';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
@@ -204,99 +205,7 @@ const UniConnectDashboard = () => {
   };
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-{/* --- Header --- */}
-<header className="sticky top-0 z-20 flex items-center
-justify-between whitespace-nowrap border-b border-solid
-border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white
-dark:bg-secondary">
-<div className="flex items-center gap-4 lg:gap-8">
-<Logo />
-{/* Desktop Navigation */}
-<nav className="hidden lg:flex items-center gap-6">
-{navLinks.map((link) => (
-<Link key={link.label} to={link.path} className="text-secondary dark:text-white
-text-sm font-medium leading-normal hover:text-primary">{link.label}</Link>
-))}
-</nav>
-</div>
-<div className="flex flex-1 justify-end items-center gap-3
-sm:gap-6">
-
-<label className="hidden sm:flex flex-col min-w-40 !h-10
-max-w-64">
-<div className="flex w-full flex-1 items-stretch rounded-lg
-h-full">
-<div className="text-slate-500 flex items-center justify-center
-pl-4 rounded-l-lg bg-background-light dark:bg-slate-800">
-<span
-className="material-symbols-outlined">search</span>
-</div>
-<input
-className="form-input w-full min-w-0 flex-1 rounded-r-lg
-text-secondary dark:text-white focus:outline-none focus:ring-0
-border-none bg-background-light dark:bg-slate-800 h-full
-placeholder:text-slate-500 px-4 text-base"
-placeholder="Search"
-/>
-</div>
-</label>
-{/* --- Header Icons --- */}
-<button onClick={toggleTheme}
-className="flex cursor-pointer items-center justify-center rounded-lg
-h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-white" aria-label="Toggle dark mode">
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-<button 
-onClick={() => navigate('/notifications')}
-className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
->
-<span className="material-symbols-outlined">notifications</span>
-</button>
-<button 
-onClick={() => navigate('/inbox')}
-className="flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
->
-<span className="material-symbols-outlined">mail</span>
-</button>
-{/* --- Profile Dropdown --- */}
-<div className="relative">
-<button onClick={() => setIsProfileOpen(!isProfileOpen)}
-className="block">
-<div
-className="bg-center bg-no-repeat aspect-square bg-cover
-rounded-full size-10"
-style={{ backgroundImage: `url("${userAvatar}")` }}
-></div>
-</button>
-{isProfileOpen && (
-<div className="absolute right-0 mt-2 w-48 bg-white
-dark:bg-secondary rounded-md shadow-lg py-1">
-<button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
-  <Link className="block px-4 py-2 text-sm text-secondary
-  dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-  to="/settings">Settings</Link>
-<button
-  onClick={handleLogout}
-  className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
->
-  Logout
-</button>
-</div>
-)}
-</div>
-{/* --- Mobile Menu Button --- */}
-<div className="lg:hidden">
-<button onClick={() => setIsMenuOpen(!isMenuOpen)}
-className="text-secondary dark:text-white">
-<span className="material-symbols-outlined
-text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
-</button>
-</div>
-</div>
-</header>
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 {/* --- Mobile Menu --- */}
 {isMenuOpen && (
 <div className="lg:hidden bg-white dark:bg-secondary border-b

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 // --- Initial Data for Notifications ---
@@ -78,127 +79,7 @@ const navLinks = [
 { label: 'Wallet', path: '/uni-wallet' }
 ];
 // --- Sub-components for better organization ---
-const Header = ({ darkMode, toggleDarkMode, hasUnread }) => {
-const navigate = useNavigate();
-const [isMenuOpen, setIsMenuOpen] = useState(false);
-const [isProfileOpen, setIsProfileOpen] = useState(false);
-const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
-
-// Fetch current user's avatar from Firestore
-useEffect(() => {
-  const unsubscribe = auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().avatarUrl) {
-          setUserAvatar(userDoc.data().avatarUrl);
-        }
-      } catch (err) {
-        console.error('Error fetching user avatar:', err);
-      }
-    }
-  });
-  return () => unsubscribe();
-}, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
-
-return (
-<>
-<header className="sticky top-0 z-20 flex items-center
-justify-between whitespace-nowrap border-b border-solid
-border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white
-dark:bg-secondary">
-<div className="flex items-center gap-4 lg:gap-8">
-<div 
-  onClick={() => navigate('/dashboard')}
-  className="flex items-center gap-4 text-secondary dark:text-white cursor-pointer hover:text-primary transition-colors">
-  <div className="size-6 text-primary">
-    <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
-  </div>
-  <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniConnect</h2>
-</div>
-<nav className="hidden lg:flex items-center gap-6">
-{navLinks.map(link => <Link key={link.label} to={link.path}
-className="text-secondary dark:text-white text-sm
-font-medium hover:text-primary">{link.label}</Link>)}
-</nav>
-</div>
-<div className="flex flex-1 justify-end items-center gap-3
-sm:gap-6">
-<button onClick={toggleDarkMode} className="flex
-items-center justify-center rounded-lg h-10 w-10 bg-background-light
-dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle
-dark mode">
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-<button className="relative flex items-center justify-center
-rounded-lg h-10 w-10 bg-primary text-white">
-<span
-className="material-symbols-outlined">notifications</span>
-{hasUnread && <div className="absolute top-1.5 right-1.5
-size-2 bg-red-500 rounded-full"></div>}
-</button>
-<button onClick={() => navigate('/inbox')} className="flex items-center justify-center rounded-lg
-h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-white">
-<span className="material-symbols-outlined">mail</span>
-</button>
-<div className="relative">
-<button onClick={() => setIsProfileOpen(!isProfileOpen)}>
-<div className="bg-center bg-no-repeat aspect-square
-bg-cover rounded-full size-10" style={{backgroundImage:
-`url("${userAvatar}")`}}></div>
-</button>
-{isProfileOpen && (
-<div className="absolute right-0 mt-2 w-48 bg-white
-dark:bg-secondary rounded-md shadow-lg py-1 z-10">
-<button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm
-text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800">Profile</button>
-<a href="#" className="block px-4 py-2 text-sm
-text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800">Settings</a>
-<button
-  onClick={handleLogout}
-  className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
->
-  Logout
-</button>
-</div>
-)}
-</div>
-<div className="lg:hidden">
-<button onClick={() => setIsMenuOpen(!isMenuOpen)}
-className="text-secondary dark:text-white">
-<span className="material-symbols-outlined
-text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
-</button>
-</div>
-</div>
-</header>
-{isMenuOpen && (
-<nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
-{navLinks.map(link => (
-<Link key={link.label} to={link.path} className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
-{link.label}
-</Link>
-))}
-</nav>
-)}
-</>
-);
-}
+ 
 const NotificationItem = ({ notification, onClick }) => (
 <li onClick={onClick} className="p-4 sm:p-6 flex items-start gap-4
 hover:bg-background-light/50 dark:hover:bg-slate-800/50
@@ -239,7 +120,7 @@ setNotifications(notifications.map((n) => ({ ...n, unread: false })));
 const hasUnread = notifications.some(n => n.unread);
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-<Header darkMode={darkMode} toggleDarkMode={toggleTheme} hasUnread={hasUnread}/>
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex-1 px-4 sm:px-10 py-8">
 <div className="flex flex-col max-w-4xl mx-auto">
 <div className="flex flex-col sm:flex-row sm:items-center

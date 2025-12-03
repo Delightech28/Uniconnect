@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 // --- Data Layer (No Backend) ---
 // In a real app, you would fetch this object from an API based on a product ID.
 const productData = { 
@@ -25,95 +25,14 @@ imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3PseYjpIvW1kpMj2
   }, 
 }; 
 
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, onAuthStateChanged } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { useTheme } from '../hooks/useTheme';
-import toast from 'react-hot-toast'; 
- 
-// --- Helper Components --- 
- 
-// A reusable header 
-const AppHeader = ({ darkMode, toggleDarkMode }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
-  const navigate = useNavigate();
+import AppHeader from './AppHeader';
+import toast from 'react-hot-toast';
 
-  // Fetch current user's avatar from Firestore
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().avatarUrl) {
-            setUserAvatar(userDoc.data().avatarUrl);
-          }
-        } catch (err) {
-          console.error('Error fetching user avatar:', err);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <>
-      <header className="sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
-        <div className="flex items-center gap-4 lg:gap-8">
-          <div className="flex items-center gap-4 text-secondary dark:text-white">
-            <div className="size-6 text-primary">
-              <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
-            </div>
-            <h2 className="text-xl font-bold leading-tight tracking-tight">UniConnect</h2>
-          </div>
-          <nav className="hidden lg:flex items-center gap-6">
-            <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Dashboard</button>
-            <button onClick={() => navigate('/unimarket')} className="text-sm font-bold text-primary">Marketplace</button>
-            <button onClick={() => navigate('/study-hub')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Study Hub</button>
-            <button onClick={() => navigate('/uni-wallet')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Wallet</button>
-          </nav>
-        </div>
-        <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
-          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle dark mode">
-            <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
-          </button>
-          <button onClick={() => navigate('/notifications')} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button onClick={() => navigate('/inbox')} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
-            <span className="material-symbols-outlined">mail</span>
-          </button>
-          <div className="relative">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style={{backgroundImage: `url("${userAvatar}")`}}></div>
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10">
-                <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
-                <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
-              </div>
-            )}
-          </div>
-          <div className="lg:hidden">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary dark:text-white">
-              <span className="material-symbols-outlined text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
-            </button>
-          </div>
-        </div>
-      </header>
-      {isMenuOpen && (
-        <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
-          <button onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Dashboard</button>
-          <button onClick={() => { navigate('/unimarket'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Marketplace</button>
-          <button onClick={() => { navigate('/study-hub'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Study Hub</button>
-          <button onClick={() => { navigate('/uni-wallet'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Wallet</button>
-        </nav>
-      )}
-    </>
-  );
-}; 
- 
 // --- Main Page Component --- 
 function ProductDetailsPage() {
   const { productId } = useParams();
@@ -128,7 +47,7 @@ function ProductDetailsPage() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  useEffect(() {
+  useEffect(() => {
     if (productId) {
       const fetchProduct = async () => {
         try {
@@ -137,32 +56,52 @@ function ProductDetailsPage() {
           
           if (docSnap.exists()) {
             const data = docSnap.data();
+            // Accept either `name` or legacy `productName` field
             const productObj = {
               id: docSnap.id,
-              name: data.productName || 'Product',
+              sellerId: data.sellerId || null,
+              name: data.name || data.productName || 'Product',
               category: data.category || 'Uncategorized',
               price: data.price || 0,
-              imageUrl: data.images?.[0] || 'https://via.placeholder.com/400x300',
-              description: {
-                short: data.description || 'No description available',
-                specs: [],
-                long: ''
-              }
+              imageUrl: (data.images && data.images[0]) || data.imageUrl || 'https://via.placeholder.com/400x300',
+              description: (typeof data.description === 'string')
+                ? { short: data.description, specs: [], long: '' }
+                : {
+                    short: data.description?.short || data.description || 'No description available',
+                    specs: data.description?.specs || [],
+                    long: data.description?.long || ''
+                  }
             };
             
-            // Fetch seller info
-            if (data.sellerId) {
-              const sellerRef = doc(db, 'users', data.sellerId);
-              const sellerSnap = await getDoc(sellerRef);
-              if (sellerSnap.exists()) {
-                setSeller({
-                  name: sellerSnap.data().displayName || 'Seller',
-                  avatarUrl: sellerSnap.data().avatarUrl || 'https://via.placeholder.com/40',
-                  details: 'Student'
-                });
+            // Use seller info embedded in the listing if present (saved at post time)
+            const initialSeller = {
+              name: data.sellerName || 'Seller',
+              avatarUrl: data.sellerAvatarUrl || 'https://via.placeholder.com/40',
+              details: 'Student'
+            };
+            setSeller(initialSeller);
+
+            // If avatar wasn't embedded but we have sellerId, try to fetch (may be blocked by rules)
+            if (!data.sellerAvatarUrl && data.sellerId) {
+              try {
+                const sellerRef = doc(db, 'users', data.sellerId);
+                const sellerSnap = await getDoc(sellerRef);
+                if (sellerSnap.exists()) {
+                  setSeller((prev) => ({
+                    ...prev,
+                    name: sellerSnap.data().displayName || prev.name,
+                    avatarUrl: sellerSnap.data().avatarUrl || prev.avatarUrl,
+                  }));
+                }
+              } catch (err) {
+                if (err && err.code === 'permission-denied') {
+                  console.warn('Permission denied when fetching seller profile; using embedded avatar or placeholder');
+                } else {
+                  console.error('Error fetching seller profile:', err);
+                }
               }
             }
-            
+
             setProduct(productObj);
           } else {
             toast.error('Product not found');
@@ -170,7 +109,7 @@ function ProductDetailsPage() {
           }
         } catch (error) {
           console.error('Error fetching product:', error);
-          toast.error('Error loading product');
+          toast.error(`Error loading product: ${error.message || ''}`);
           navigate('/unimarket');
         } finally {
           setLoading(false);
@@ -180,6 +119,107 @@ function ProductDetailsPage() {
       fetchProduct();
     }
   }, [productId, navigate]);
+
+  // Open or create a conversation with the seller and navigate to Inbox
+  const handleMessageSeller = async () => {
+    console.log('handleMessageSeller called'); // Debug
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error('Please sign in to message the seller');
+      navigate('/uniconnect-login');
+      return;
+    }
+
+    const buyerId = user.uid;
+    const sellerId = product.sellerId;
+    console.log('buyerId:', buyerId, 'sellerId:', sellerId, 'product:', product); // Debug
+
+    if (!sellerId) {
+      toast.error('Seller information unavailable');
+      return;
+    }
+
+    if (buyerId === sellerId) {
+      toast.error('You cannot message yourself');
+      return;
+    }
+
+    try {
+      console.log('Starting conversation creation flow...'); // Debug
+      // Search for an existing conversation between these participants about this listing
+      const convQuery = query(collection(db, 'conversations'), where('participants', 'array-contains', buyerId));
+      const convSnap = await getDocs(convQuery);
+      let existingConvoId = null;
+
+      convSnap.forEach((docSnap) => {
+        const d = docSnap.data();
+        if (d.participants && d.participants.includes(sellerId) && d.context && d.context.listingId === product.id) {
+          existingConvoId = docSnap.id;
+        }
+      });
+
+      if (existingConvoId) {
+        console.log('Found existing conversation:', existingConvoId); // Debug
+        navigate(`/inbox?convo=${existingConvoId}`);
+        return;
+      }
+
+      console.log('No existing conversation, creating new one'); // Debug
+      // Fetch seller's current display name and avatar from their user doc
+      let sellerName = seller.name || 'Seller';
+      let sellerAvatarUrl = seller.avatarUrl || 'https://via.placeholder.com/40';
+      console.log('Initial seller state - name:', sellerName, 'avatar:', sellerAvatarUrl); // Debug
+
+      try {
+        console.log('Fetching seller user doc for sellerId:', sellerId); // Debug
+        const sellerUserDoc = await getDoc(doc(db, 'users', sellerId));
+        if (sellerUserDoc.exists()) {
+          const sellerData = sellerUserDoc.data();
+          console.log('Seller user doc data:', sellerData); // Debug log
+          // Priority: displayName > email prefix > email > fallback to 'Seller'
+          const displayName = sellerData.displayName?.trim();
+          const emailPrefix = sellerData.email?.split('@')[0];
+          sellerName = displayName || emailPrefix || sellerData.email || sellerName;
+          
+          if (sellerData.avatarUrl) {
+            sellerAvatarUrl = sellerData.avatarUrl;
+          }
+          console.log('Computed sellerName:', sellerName, 'sellerAvatarUrl:', sellerAvatarUrl); // Debug log
+        } else {
+          console.log('Seller user doc does not exist'); // Debug
+        }
+      } catch (userErr) {
+        // Permission denied or other error; use fallback values
+        console.warn('Could not fetch seller user info; using defaults:', userErr);
+      }
+
+      console.log('Creating conversation with sellerName:', sellerName); // Debug
+      // Create a new conversation
+      const convoPayload = {
+        participants: [buyerId, sellerId],
+        createdAt: serverTimestamp(),
+        lastMessage: '',
+        lastTimestamp: serverTimestamp(),
+        name: sellerName,
+        avatarUrl: sellerAvatarUrl,
+        context: {
+          type: 'listing',
+          listingId: product.id,
+          title: product.name,
+          imageUrl: product.imageUrl,
+          link: `/product-details/${product.id}`,
+        },
+      };
+
+      console.log('Conversation payload:', convoPayload); // Debug
+      const convRef = await addDoc(collection(db, 'conversations'), convoPayload);
+      console.log('Conversation created with ID:', convRef.id); // Debug
+      navigate(`/inbox?convo=${convRef.id}`);
+    } catch (err) {
+      console.error('Error opening conversation:', err);
+      toast.error('Unable to open conversation');
+    }
+  };
  
   if (loading) {
     return (
@@ -195,7 +235,7 @@ function ProductDetailsPage() {
     <div className="bg-background-light dark:bg-background-dark 
 font-display text-secondary dark:text-slate-200 min-h-screen"> 
       <div className="relative flex h-auto w-full flex-col"> 
-        <AppHeader /> 
+        <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
           <div className="flex flex-col max-w-7xl mx-auto"> 
             <div className="mb-6"> 
@@ -268,7 +308,7 @@ className="material-symbols-outlined">account_balance_wallet</span
  > 
                       <span>Buy Now</span> 
                     </button> 
-                    <button className="flex w-full items-center justify-center 
+                    <button onClick={handleMessageSeller} className="flex w-full items-center justify-center 
 gap-2 rounded-lg h-12 px-6 bg-slate-200 dark:bg-slate-700 
 text-secondary dark:text-white text-base font-bold leading-normal 
 transition-colors hover:bg-slate-300 dark:hover:bg-slate-600"> 

@@ -290,9 +290,11 @@ const handleSubmit = async (e) => {
 
 		// attempt to get seller display name from users collection
 		let sellerName = '';
+		let sellerAvatarUrl = '';
 		try {
 			const userDoc = await getDoc(doc(db, 'users', user.uid));
 			if (userDoc.exists()) sellerName = userDoc.data().displayName || '';
+			if (userDoc.exists() && userDoc.data().avatarUrl) sellerAvatarUrl = userDoc.data().avatarUrl;
 		} catch (err) {
 			console.warn('Failed to fetch seller name', err);
 		}
@@ -305,6 +307,7 @@ const handleSubmit = async (e) => {
 			images,
 			sellerId: user.uid,
 			sellerName,
+			sellerAvatarUrl,
 			createdAt: serverTimestamp(),
 		};
 
