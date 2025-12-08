@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const AppHeader = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
@@ -81,10 +82,10 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             )}
           </button>
           <div className="relative">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <button onClick={() => setIsProfileOpen(!isProfileOpen)}>
               <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style={{backgroundImage: `url("${userAvatar}")`}}></div>
             </button>
-            {isMenuOpen && (
+            {isProfileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10">
                 <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
                 <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
