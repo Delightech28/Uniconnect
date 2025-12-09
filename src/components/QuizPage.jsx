@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 // --- Data Layer (No Backend) ---
 // This array holds all the quiz questions and answers.
 const quizData = [
@@ -54,68 +55,7 @@ explanation: "Any point on the PPF curve represents an efficient allocation of r
 }
 ];
 // --- Helper Components ---
-// Header Component
-const AppHeader = () => (
-<header className="flex items-center justify-between
-whitespace-nowrap border-b border-solid border-slate-200
-dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
-<div className="flex items-center gap-4 sm:gap-8">
-<div className="flex items-center gap-4 text-secondary
-dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
-<h2 className="text-xl font-bold leading-tight
-tracking-[-0.015em]">UniConnect</h2>
-</div>
-</div>
-<div className="flex flex-1 justify-end items-center gap-2 sm:gap-4">
-{/* Navigation is hidden on mobile for simplicity, a hamburger menu
-would be added in a full app */}
-<nav className="hidden md:flex items-center gap-6">
-<a className="text-secondary dark:text-white text-sm
-font-medium" href="#">Dashboard</a>
-<a className="text-secondary dark:text-white text-sm
-font-medium" href="#">Marketplace</a>
-<a className="text-primary font-bold text-sm" href="#">Study
-Hub</a>
-
-<a className="text-secondary dark:text-white text-sm
-font-medium" href="#">Wallet</a>
-</nav>
-<button className="flex items-center justify-center rounded-lg h-10
-w-10 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-white">
-<span
-className="material-symbols-outlined">notifications</span>
-</button>
-<div className="relative group">
-<div
-className="bg-center bg-no-repeat aspect-square bg-cover
-rounded-full size-10 cursor-pointer"
-style={{ backgroundImage:
-`url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oX
-pOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL
-8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke
-_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrS
-yxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANM
-AlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")` }}
-/>
-<div className="absolute right-0 mt-2 w-48 bg-white
-dark:bg-secondary rounded-md shadow-lg py-1 hidden
-group-hover:block z-10">
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Profile</a>
-</div>
-</div>
-</div>
-</header>
-);
+import AppHeader from './AppHeader';
 // QuizOption Component
 const QuizOption = ({ option, index, selectedAnswer, correctAnswer,
 onSelect, isAnswered }) => {
@@ -162,12 +102,22 @@ ml-auto">cancel</span>}
 };
 // --- Main Page Component ---
 function QuizPage() {
-const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-const [userAnswers, setUserAnswers] =
-useState(Array(quizData.length).fill(null));
+	const location = useLocation();
+	const incoming = location.state && location.state.questions;
+	const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+	const [questions, setQuestions] = useState(incoming && incoming.length ? incoming : quizData);
+	const [userAnswers, setUserAnswers] = useState(Array(questions.length).fill(null));
+
+	useEffect(() => {
+		if (incoming && incoming.length) {
+			setQuestions(incoming);
+			setUserAnswers(Array(incoming.length).fill(null));
+			setCurrentQuestionIndex(0);
+		}
+	}, [incoming]);
 const [showResults, setShowResults] = useState(false);
-const currentQuestion = quizData[currentQuestionIndex];
-const selectedAnswer = userAnswers[currentQuestionIndex];
+	const currentQuestion = questions[currentQuestionIndex];
+	const selectedAnswer = userAnswers[currentQuestionIndex];
 const isAnswered = selectedAnswer !== null;
 const handleSelectAnswer = (optionIndex) => {
 if (!isAnswered) {
@@ -195,12 +145,12 @@ setCurrentQuestionIndex(0);
 setUserAnswers(Array(quizData.length).fill(null));
 setShowResults(false);
 };
-const score = useMemo(() => {
-return userAnswers.reduce((acc, answer, index) => {
-return answer === quizData[index].correctAnswerIndex ? acc + 1 :
-acc;
-}, 0);
-}, [userAnswers]);
+	const score = useMemo(() => {
+		return userAnswers.reduce((acc, answer, index) => {
+			return answer === (questions[index] && questions[index].correctAnswerIndex) ? acc + 1 : acc;
+		}, 0);
+	}, [userAnswers, questions]);
+
 const progressPercentage = ((currentQuestionIndex + 1) /
 quizData.length) * 100;
 if (showResults) {

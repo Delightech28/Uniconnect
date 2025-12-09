@@ -16,7 +16,7 @@ const categories = ['All Categories', 'Electronics', 'Textbooks', 'Fashion', 'Se
 const productsStateInitial = [];
 // --- Sub-components for better organization ---
 const ProductCard = ({ product }) => {
-const [sellerAvatar, setSellerAvatar] = useState('https://via.placeholder.com/40');
+const [sellerAvatar, setSellerAvatar] = useState('/default_avatar.png');
 const navigate = useNavigate();
 
 // Fetch seller's avatar from Firestore using sellerId
@@ -37,7 +37,7 @@ useEffect(() => {
 				// If permission denied, fall back to placeholder avatar instead of failing
 				if (err && err.code === 'permission-denied') {
 					console.warn('Permission denied when fetching seller avatar; using placeholder');
-					setSellerAvatar('https://via.placeholder.com/40');
+					setSellerAvatar('/default_avatar.png');
 				} else {
 					console.error('Error fetching seller avatar:', err);
 				}
@@ -56,7 +56,7 @@ return (
 overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-105"
 onClick={handleProductClick}>
 <img alt={product.name} className="w-full h-48 object-cover"
-src={product.imageUrl || (product.images && product.images[0]) || 'https://via.placeholder.com/400x300'} />
+					src={product.imageUrl || (product.images && product.images[0]) || '/vite.svg'} />
 <div className="p-4 flex-grow flex flex-col">
 <p className="text-sm text-slate-500
 dark:text-slate-400">{product.category}</p>

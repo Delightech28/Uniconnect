@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { useTheme } from '../hooks/useTheme';
+
 // --- Data for the "What's Next?" section (cleaner than hardcoding) ---
 const whatsNextFeatures = [
 {
@@ -29,31 +35,59 @@ leading-normal flex-1">
 );
 // --- Main Page Component ---
 const VerificationCompletePage = () => {
-const [darkMode, setDarkMode] = useState(false);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-const root = window.document.documentElement;
-if (darkMode) {
-root.classList.add('dark');
-} else {
-root.classList.remove('dark');
-}
-}, [darkMode]);
-return (
-<div className="relative flex min-h-screen w-full flex-col">
-{/* Dark Mode Toggle - Added for interactivity demo */}
-<div className="absolute top-4 right-4 z-10">
-<button
-onClick={() => setDarkMode(!darkMode)}
-className="flex items-center justify-center size-10 rounded-full
-bg-gray-100 dark:bg-gray-800 shadow-md"
-aria-label="Toggle dark mode"
->
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-</div>
-<header className="flex items-center justify-between
+  const navigate = useNavigate();
+  const { darkMode } = useTheme();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const seenKey = `verified_shown_${user.uid}`;
+
+        // If we've already shown the verified page for this user, send to dashboard
+        if (sessionStorage.getItem(seenKey)) {
+          navigate('/dashboard');
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (!userDoc.exists()) {
+          navigate('/dashboard');
+          return;
+        }
+
+        const userData = userDoc.data();
+
+        if (userData.verified === true) {
+          // mark that we've shown this page for this user once
+          sessionStorage.setItem(seenKey, '1');
+          // allow the page to render normally
+          return;
+        }
+
+        if (userData.verified === 'failed' || userData.verificationStatus === 'failed') {
+          navigate('/verification-failed');
+          return;
+        }
+
+        // Not verified yet -> go back to pending
+        navigate('/verification-pending');
+      } catch (error) {
+        console.error('Error checking verification status:', error);
+        navigate('/dashboard');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  return (
+    <div className="relative flex min-h-screen w-full flex-col">
+      <header className="flex items-center justify-between
 whitespace-nowrap border-b border-solid border-gray-200
 dark:border-gray-700 px-6 sm:px-10 py-4">
 <div className="flex items-center gap-4 text-black

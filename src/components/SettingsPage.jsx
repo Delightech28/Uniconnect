@@ -177,62 +177,40 @@ function SettingsPage() {
     // In a real app with routing, each of these would be a separate component.
     const renderContent = () => { 
         switch (activeTab) { 
-            case 'account': 
-                return ( 
-                    <SettingsSection title="Account Settings" 
-description="Manage your account information and notification 
-preferences."> 
-                        <div className="flex flex-col sm:flex-row 
-sm:items-center justify-between py-4 border-b border-slate-200 
-dark:border-slate-700"> 
-                            <div> 
-                                <h3 className="font-semibold text-secondary 
-dark:text-white">Email Address</h3> 
-                                <p className="text-slate-500 dark:text-slate-400 
-text-sm">{settings.email}</p> 
-                            </div> 
- 
+            case 'account':
+                return (
+                    <SettingsSection title="Account Settings" description="Manage your account information and notification preferences.">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
+                            <div>
+                                <h3 className="font-semibold text-secondary dark:text-white">Email Address</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm">{settings.email}</p>
+                            </div>
+                        </div>
 
-                            <button className="mt-2 sm:mt-0 text-sm 
-font-medium text-primary hover:underline self-start 
-sm:self-center">Change</button> 
-                        </div> 
-                        <div className="flex flex-col sm:flex-row 
-sm:items-center justify-between py-4 border-b border-slate-200 
-dark:border-slate-700"> 
-                            <div> 
-                                <h3 className="font-semibold text-secondary 
-dark:text-white">Password</h3> 
-                                <p className="text-slate-500 dark:text-slate-400 
-text-sm">Last changed {settings.passwordLastChanged}</p> 
-                            </div> 
-                            <button onClick={() => navigate('/change-password')} className="mt-2 sm:mt-0 text-sm 
-font-medium text-primary hover:underline self-start 
-sm:self-center">Change</button> 
-                        </div> 
-                        <div className="py-4"> 
-                            <h3 className="text-lg font-semibold text-secondary 
-dark:text-white mb-1">Notification Preferences</h3> 
-                            <div className="space-y-4 pt-4"> 
-                                <div className="flex items-start justify-between"> 
-                                    <div className="max-w-md"> 
-                                        <h4 className="font-medium text-secondary 
-dark:text-white">Email Notifications</h4> 
-                                        <p className="text-slate-500 
-dark:text-slate-400 text-sm">Receive important updates, digests, and 
-marketing communications via email.</p> 
-                                    </div> 
-                                    <ToggleSwitch 
-checked={settings.notifications.email} onChange={() => 
-handleNotificationChange('email')} /> 
-                                </div> 
-                                {/* ... more toggles */} 
-                            </div> 
-                        </div> 
-                    </SettingsSection> 
- 
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
+                            <div>
+                                <h3 className="font-semibold text-secondary dark:text-white">Password</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm">Last changed {settings.passwordLastChanged}</p>
+                            </div>
+                            <button onClick={() => navigate('/change-password')} className="mt-2 sm:mt-0 text-sm font-medium text-primary hover:underline self-start sm:self-center">Change</button>
+                        </div>
 
-                ); 
+                        <div className="py-4">
+                            <h3 className="text-lg font-semibold text-secondary dark:text-white mb-1">Notification Preferences</h3>
+                            <div className="space-y-4 pt-4">
+                                <div className="flex items-start justify-between">
+                                    <div className="max-w-md">
+                                        <h4 className="font-medium text-secondary dark:text-white">Email Notifications</h4>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Receive important updates, digests, and marketing communications via email.</p>
+                                    </div>
+                                    <ToggleSwitch checked={settings.notifications.email} onChange={() => handleNotificationChange('email')} />
+                                </div>
+                                {/* ... more toggles */}
+                            </div>
+                        </div>
+                    </SettingsSection>
+
+                );
             case 'theme': 
                 return ( 
                     <SettingsSection title="Theme & Display" 

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import useVerified from '../hooks/useVerified';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const MY_AVATAR_URL = null; // will load from auth user profile
@@ -86,6 +87,19 @@ function InboxPage() {
         return () => unsubAuth();
     }, []);
 
+    // Redirect unverified users away from Inbox
+    const { isLoading: verifyingLoading, verified, status } = useVerified();
+    useEffect(() => {
+        if (!verifyingLoading && !verified) {
+            if (status === 'failed') {
+                // send to failed page
+                window.location.href = '/verification-failed';
+            } else {
+                window.location.href = '/verification-pending';
+            }
+        }
+    }, [verifyingLoading, verified, status]);
+
     // Subscribe to conversations for this user
     const location = useLocation();
     const convoParam = useMemo(() => new URLSearchParams(location.search).get('convo'), [location.search]);
@@ -97,7 +111,7 @@ function InboxPage() {
             const promises = snap.docs.map(async (d) => {
                 const data = d.data();
                 let name = data.name || 'Unknown';
-                let avatarUrl = data.avatarUrl || 'https://via.placeholder.com/40';
+                let avatarUrl = data.avatarUrl || '/default_avatar.png';
 
                 // If name is still "Unknown", try to fetch from the other participant's user doc
                 if (name === 'Unknown' && data.participants && user.uid) {

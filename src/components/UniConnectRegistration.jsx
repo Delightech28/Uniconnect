@@ -103,7 +103,23 @@ const handleNext = async (e) => {
 				if (fileDataUrlToStore && fileDataUrlToStore.length > maxDataUrlLength) {
 					fileDataUrlToStore = null;
 				}
-				await setDoc(doc(db, 'users', user.uid), {
+				// Generate a simple referral code and link for the new user
+				const referralCode = user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10);
+				const referralLink = (typeof window !== 'undefined' && window.location && window.location.origin)
+					? `${window.location.origin}/?ref=${referralCode}`
+					: `/?ref=${referralCode}`;
+
+					// If visitor had a referral code, store it on the new user record
+					// Attribution (incrementing the referrer's counters) should be done server-side
+					// (e.g. Cloud Function) to avoid client-side permission issues.
+					const incomingRefGuest = (typeof window !== 'undefined') ? localStorage.getItem('referral_code') : null;
+					if (incomingRefGuest) {
+					  // store the code for server-side attribution
+					  // remove from localStorage so it isn't reused
+					  try { localStorage.removeItem('referral_code'); } catch (e) {}
+					}
+
+					await setDoc(doc(db, 'users', user.uid), {
 					email: formData.email,
 					displayName: formData.displayName || '',
 					bio: formData.bio || '',
@@ -113,7 +129,11 @@ const handleNext = async (e) => {
 					documentType: formData.documentType || null,
 					documentFileName: formData.file ? formData.file.name : null,
 					fileDataUrl: fileDataUrlToStore,
-					verified: false,
+						verified: false,
+						referredByCode: incomingRefGuest || null,
+					referralCode,
+					referralLink,
+					referralsCount: 0,
 					createdAt: serverTimestamp(),
 				});
 		navigate('/guest-dashboard');
@@ -165,9 +185,23 @@ const handleSubmit = async (e) => {
 			documentFileName: formData.file ? formData.file.name : null,
 			fileDataUrl: fileDataUrlToStore,
 			verified: false,
+			referralCode: user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10),
+			referralLink: (typeof window !== 'undefined' && window.location && window.location.origin)
+				? `${window.location.origin}/?ref=${user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10)}`
+				: `/?ref=${user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10)}`,
+			referralsCount: 0,
 			createdAt: serverTimestamp(),
 		};
 
+		// Apply referral if present (visitor came with ?ref=...)
+		// NOTE: do not perform cross-user reads/writes from the client. Instead
+		// store the referral code on the new user doc so a secure server-side
+		// Cloud Function can attribute it and update the referrer's counters.
+		const incomingRef = (typeof window !== 'undefined') ? localStorage.getItem('referral_code') : null;
+		if (incomingRef) {
+			userData.referredByCode = incomingRef;
+			localStorage.removeItem('referral_code');
+		}
 		console.log('Saving user data to Firestore...', userData);
 		
 		// Save user data to Firestore

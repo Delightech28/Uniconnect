@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import useVerified from '../hooks/useVerified';
 // --- Data for UI elements ---
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
@@ -22,7 +23,7 @@ months: { max: 12, fee: 1000 },
 const Header = ({ darkMode, toggleDarkMode }) => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
-const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+const [userAvatar, setUserAvatar] = useState('/default_avatar.png');
 
 // Fetch current user's avatar from Firestore
 useEffect(() => {
@@ -230,6 +231,23 @@ type="button">Top Up Wallet</button>
 // --- Main Page Component ---
 const SellItemPage = () => {
 const { darkMode, toggleTheme } = useTheme();
+const { isLoading: verifyingLoading, verified, status } = useVerified();
+const navigate = useNavigate();
+
+useEffect(() => {
+	if (!verifyingLoading && !verified) {
+		if (status === 'failed') {
+			toast.error('Your verification failed. You cannot create listings.');
+			navigate('/verification-failed');
+		} else {
+			toast('Complete verification to create a listing');
+			navigate('/verification-pending');
+		}
+	}
+}, [verifyingLoading, verified, status, navigate]);
+
+// preserve existing navigate binding
+// const navigate = useNavigate();
 const [formData, setFormData] = useState({ productName: '', price: '',
 category: '', description: '' });
 const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -248,7 +266,7 @@ setDurationType(e.target.value);
 setDurationValue(1); // Reset slider on type change
 };
 const listingFee = durationOptions[durationType].fee * durationValue;
-const navigate = useNavigate();
+
 
 const readFileAsDataURL = (file) => new Promise((resolve, reject) => {
 	const reader = new FileReader();
@@ -293,10 +311,16 @@ const handleSubmit = async (e) => {
 		let sellerAvatarUrl = '';
 		try {
 			const userDoc = await getDoc(doc(db, 'users', user.uid));
-			if (userDoc.exists()) sellerName = userDoc.data().displayName || '';
-			if (userDoc.exists() && userDoc.data().avatarUrl) sellerAvatarUrl = userDoc.data().avatarUrl;
+			if (userDoc.exists()) {
+				const userData = userDoc.data();
+				// Use displayName first, fallback to fullName, then email, then 'Seller'
+				sellerName = userData.displayName || userData.fullName || user.email.split('@')[0] || 'Seller';
+				if (userData.avatarUrl) sellerAvatarUrl = userData.avatarUrl;
+			}
 		} catch (err) {
 			console.warn('Failed to fetch seller name', err);
+			// Fallback to email if fetch fails
+			sellerName = user.email.split('@')[0] || 'Seller';
 		}
 
 		const listing = {

@@ -183,6 +183,8 @@ function EditProfilePage() {
       });
       setTempAvatar(null);
       setTempAvatarFile(null);
+      // Redirect to dashboard after successful save
+      navigate('/dashboard');
     } catch (err) {
       console.error('Error saving profile:', err);
       const errorMessage = 'Failed to save profile. Please try again.';

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 // --- Data for Links and Icons (Cleaner than hardcoding in JSX) ---
 const footerLinks = [
 { name: 'Terms of Service', href: '#' },
@@ -113,9 +116,45 @@ dark:text-text-secondary-dark text-sm">
 );
 // --- Main Page Component ---
 const VerificationPendingPage = () => {
-const navigate = useNavigate();
-const { darkMode, toggleTheme } = useTheme();
-const handleDashboardClick = () => navigate('/dashboard');
+	const navigate = useNavigate();
+	const { darkMode, toggleTheme } = useTheme();
+	const handleDashboardClick = () => navigate('/dashboard');
+
+	useEffect(() => {
+		let unsubscribeSnapshot = null;
+		const authUnsub = onAuthStateChanged(auth, (user) => {
+			if (!user) return; // wait until user signs in
+
+			const seenKey = `verified_shown_${user.uid}`;
+
+			// Listen for real-time changes to the user's document
+			const docRef = doc(db, 'users', user.uid);
+			unsubscribeSnapshot = onSnapshot(docRef, (snap) => {
+				if (!snap.exists()) return;
+				const data = snap.data();
+
+				// If developer sets verified true -> show complete page (only once)
+				if (data.verified === true) {
+					// only redirect if user hasn't already seen the completion
+					if (!sessionStorage.getItem(seenKey)) {
+						// mark shown so we don't keep redirecting
+						sessionStorage.setItem(seenKey, '1');
+						navigate('/verification-complete');
+					}
+				}
+
+				// If verification result is explicitly failed (support string flag)
+				if (data.verified === 'failed' || data.verificationStatus === 'failed') {
+					navigate('/verification-failed');
+				}
+			});
+		});
+
+		return () => {
+			if (unsubscribeSnapshot) unsubscribeSnapshot();
+			if (typeof authUnsub === 'function') authUnsub();
+		};
+	}, [navigate]);
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 <div className="flex flex-1 justify-center py-5 px-4 sm:px-8

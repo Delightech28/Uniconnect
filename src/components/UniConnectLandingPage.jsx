@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import toast from 'react-hot-toast';
 // --- Data for Features and Testimonials (Makes JSX cleaner) ---
 const featuresData = [
 {
@@ -63,6 +66,33 @@ return <div className="flex text-accent">{stars}</div>;
 const UniConnectLandingPage = () => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [darkMode, setDarkMode] = useState(true);
+	const navigate = useNavigate();
+
+	// Redirect signed-in users away from the public landing page
+	useEffect(() => {
+		const unsub = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				// If authenticated, send them to the main dashboard
+				navigate('/dashboard');
+			}
+		});
+		return () => unsub();
+	}, [navigate]);
+
+	// Capture referral code in URL (e.g. ?ref=abc123) and store for attribution
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		const params = new URLSearchParams(window.location.search);
+		const ref = params.get('ref');
+		if (ref) {
+			try {
+				localStorage.setItem('referral_code', ref);
+				toast.success('Referral code captured — thanks for sharing!');
+			} catch (err) {
+				console.warn('Could not store referral code:', err);
+			}
+		}
+	}, []);
 // Effect to toggle dark mode class on the html element
 useEffect(() => {
 if (darkMode) {

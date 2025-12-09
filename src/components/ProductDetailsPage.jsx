@@ -32,12 +32,14 @@ import { db, auth } from '../firebase';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import toast from 'react-hot-toast';
+import useVerified from '../hooks/useVerified';
 
 // --- Main Page Component --- 
 function ProductDetailsPage() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
+  const { isLoading: verifyingLoading, verified, status } = useVerified();
   const [product, setProduct] = useState(productData);
   const [seller, setSeller] = useState(productData.seller);
   const [loading, setLoading] = useState(!!productId);
@@ -76,7 +78,7 @@ function ProductDetailsPage() {
             // Use seller info embedded in the listing if present (saved at post time)
             const initialSeller = {
               name: data.sellerName || 'Seller',
-              avatarUrl: data.sellerAvatarUrl || 'https://via.placeholder.com/40',
+              avatarUrl: data.sellerAvatarUrl || '/default_avatar.png',
               details: 'Student'
             };
             setSeller(initialSeller);
@@ -130,6 +132,18 @@ function ProductDetailsPage() {
       return;
     }
 
+    // block if not verified
+    if (!verifyingLoading && !verified) {
+      if (status === 'failed') {
+        toast.error('Your verification failed. You cannot message sellers.');
+        navigate('/verification-failed');
+      } else {
+        toast('Complete verification to message sellers');
+        navigate('/verification-pending');
+      }
+      return;
+    }
+
     const buyerId = user.uid;
     const sellerId = product.sellerId;
     console.log('buyerId:', buyerId, 'sellerId:', sellerId, 'product:', product); // Debug
@@ -167,7 +181,7 @@ function ProductDetailsPage() {
       console.log('No existing conversation, creating new one'); // Debug
       // Fetch seller's current display name and avatar from their user doc
       let sellerName = seller.name || 'Seller';
-      let sellerAvatarUrl = seller.avatarUrl || 'https://via.placeholder.com/40';
+            let sellerAvatarUrl = seller.avatarUrl || '/default_avatar.png';
       console.log('Initial seller state - name:', sellerName, 'avatar:', sellerAvatarUrl); // Debug
 
       try {
@@ -256,7 +270,7 @@ className="material-symbols-outlined">arrow_back</span>
 shadow-md overflow-hidden"> 
                   <img 
                     alt={product.name} 
-                    className="w-full h-auto object-contain" 
+                    className="w-full h-96 object-fill" 
                     src={product.imageUrl} 
                   /> 
                 </div> 
@@ -299,24 +313,29 @@ dark:text-slate-400">{seller.details}</p>
                     </div> 
                   </div> 
  
-                  <div className="mt-6 flex flex-col gap-4"> 
-                    <button className="flex w-full items-center justify-center 
-gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold 
-leading-normal transition-colors hover:bg-green-600"> 
-                      <span 
-className="material-symbols-outlined">account_balance_wallet</span
- > 
-                      <span>Buy Now</span> 
-                    </button> 
-                    <button onClick={handleMessageSeller} className="flex w-full items-center justify-center 
-gap-2 rounded-lg h-12 px-6 bg-slate-200 dark:bg-slate-700 
-text-secondary dark:text-white text-base font-bold leading-normal 
-transition-colors hover:bg-slate-300 dark:hover:bg-slate-600"> 
-                      <span 
-className="material-symbols-outlined">chat</span> 
-                      <span>Message Seller</span> 
-                    </button> 
-                  </div> 
+                    <div className="mt-6 flex flex-col gap-4">
+                      <button onClick={() => {
+                        if (!verifyingLoading && !verified) {
+                          if (status === 'failed') {
+                            toast.error('Your verification failed. You cannot buy items.');
+                            navigate('/verification-failed');
+                          } else {
+                            toast('Complete verification to buy items');
+                            navigate('/verification-pending');
+                          }
+                          return;
+                        }
+                        // TODO: integrate real checkout flow
+                        toast.success('Proceeding to payment (mock)');
+                      }} className="flex w-full items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal transition-colors hover:bg-green-600">
+                        <span className="material-symbols-outlined">account_balance_wallet</span>
+                        <span>Buy Now</span>
+                      </button>
+                      <button onClick={handleMessageSeller} className="flex w-full items-center justify-center gap-2 rounded-lg h-12 px-6 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white text-base font-bold leading-normal transition-colors hover:bg-slate-300 dark:hover:bg-slate-600">
+                        <span className="material-symbols-outlined">chat</span>
+                        <span>Message Seller</span>
+                      </button>
+                    </div>
                 </div> 
               </div> 
             </div> 

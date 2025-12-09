@@ -52,8 +52,9 @@ font-medium leading-normal py-2" href="#">Marketplace</a>
 font-medium leading-normal py-2" href="#">Study Hub</a> 
         <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="#">CampusFeed</a> 
-        <a className="text-secondary dark:text-white text-sm 
+    <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="#">Wallet</a> 
+    <Link className="text-secondary dark:text-white text-sm font-medium leading-normal py-2" to="/student-referral">Referral</Link>
     </> 
 ); 
  

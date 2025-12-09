@@ -145,7 +145,7 @@ const UniConnectDashboard = () => {
   const { darkMode, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/40');
+  const [userAvatar, setUserAvatar] = useState('/default_avatar.png');
   const [marketplaceTab, setMarketplaceTab] = useState('listings');
   const [userListings, setUserListings] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
@@ -12,6 +13,13 @@ const [darkMode, setDarkMode] = useState(true);
 const [loading, setLoading] = useState(false);
 const [errorMessage, setErrorMessage] = useState('');
 const navigate = useNavigate();
+    // If user is already authenticated, redirect to dashboard
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, (user) => {
+            if (user) navigate('/dashboard');
+        });
+        return () => unsub();
+    }, [navigate]);
 // Effect to toggle dark mode class on the html element
 useEffect(() => {
 const root = window.document.documentElement;
