@@ -267,7 +267,7 @@ answers to your questions.">
                            {[
                                { label: 'FAQ', action: () => navigate('/faq') },
                                { label: 'Contact Support', action: () => navigate('/contact-support') },
-                               { label: 'Terms of Service', action: () => {} }
+                               { label: 'Terms of Service', action: () => navigate('/terms-of-service') }
                            ].map(item => (
                                <button 
                                    key={item.label}

@@ -38,6 +38,7 @@ import ReferralReward from "./components/ReferralReward";
 import UniConnectWelcome from "./components/UniConnectWelcome";
 import FAQPage from "./components/FAQPage";
 import ContactSupportPage from "./components/ContactSupportPage";
+import TermsOfServicePage from "./components/TermsOfServicePage";
 function App() {
   return (
     <>
@@ -83,6 +84,7 @@ function App() {
         <Route path="/welcome" element={<UniConnectWelcome />} />
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/contact-support" element={<ContactSupportPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
       </Routes>
       </Router>
     </>
