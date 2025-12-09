@@ -264,11 +264,18 @@ dark:text-white">A</span>
                     <SettingsSection title="Help & Support" description="Find 
 answers to your questions."> 
                         <div className="space-y-2"> 
-                           {['FAQ', 'Contact Support', 'Terms of Service'].map(item => (
-                               <a key={item} href="#" className="flex items-center justify-between py-3 rounded-lg text-secondary dark:text-white hover:bg-primary/5 dark:hover:bg-slate-700/50 px-3">
-                                   <span className="font-medium">{item}</span>
-                                   <span className="material-symbols-outlined text-xl">chevron_right</span>
-                               </a>
+                           {[
+                               { label: 'FAQ', action: () => navigate('/faq') },
+                               { label: 'Contact Support', action: () => navigate('/contact-support') },
+                               { label: 'Terms of Service', action: () => {} }
+                           ].map(item => (
+                               <button 
+                                   key={item.label}
+                                   onClick={item.action}
+                                   className="w-full flex items-center justify-between py-3 rounded-lg text-secondary dark:text-white hover:bg-primary/5 dark:hover:bg-slate-700/50 px-3 transition-colors"
+                               >
+                                   <span className="font-medium">{item.label}</span>
+                               </button>
                            ))} 
                         </div> 
                     </SettingsSection> 

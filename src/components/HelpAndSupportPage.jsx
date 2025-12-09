@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AppHeader from './AppHeader';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for FAQs and Contact Methods ---
 const faqs = [
 {
@@ -20,23 +23,6 @@ const contactMethods = [
 { icon: 'call', text: '+234 123 456 789', href: 'tel:+234123456789' }
 ];
 // --- Sub-components for better organization ---
-const Header = () => (
-<header className="flex items-center justify-between
-whitespace-nowrap border-b border-solid border-gray-200
-dark:border-gray-700 px-6 sm:px-10 py-4">
-<div className="flex items-center gap-4 text-black dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
-<h2 className="text-xl font-bold leading-tight
-tracking-tight">UniConnect</h2>
-</div>
-</header>
-);
 const FAQItem = ({ question, answer }) => {
 const [isOpen, setIsOpen] = useState(false);
 return (
@@ -49,8 +35,8 @@ aria-expanded={isOpen}
 >
 <span>{question}</span>
 <span className={`material-symbols-outlined transition-transform
-duration-300 ease-in-out ${isOpen ? 'rotate-90' : ''}`}>
-chevron_right
+duration-300 ease-in-out ${isOpen ? 'rotate-180' : ''}`}>
+expand_more
 </span>
 </div>
 {isOpen && (
@@ -75,31 +61,11 @@ href={href}
 )
 // --- Main Page Component ---
 const HelpAndSupportPage = () => {
-const [darkMode, setDarkMode] = useState(false);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-const root = window.document.documentElement;
-if (darkMode) {
-root.classList.add('dark');
-} else {
-root.classList.remove('dark');
-}
-}, [darkMode]);
+const { darkMode, toggleTheme } = useTheme();
+const navigate = useNavigate();
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-{/* Dark Mode Toggle - Added for interactivity demo */}
-<div className="absolute top-4 right-4 z-10">
-<button
-onClick={() => setDarkMode(!darkMode)}
-className="flex items-center justify-center size-10 rounded-full
-bg-white dark:bg-gray-800 shadow-md"
-aria-label="Toggle dark mode"
->
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-</div>
-<Header />
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex flex-1 justify-center py-10 sm:py-20 px-4">
 <div className="flex w-full max-w-3xl flex-col items-center gap-8
 rounded-xl bg-background-light dark:bg-gray-900/50 p-6 sm:p-10">
@@ -151,19 +117,13 @@ key={method.icon} {...method}/>)}
 </div>
 <div className="flex w-full flex-col sm:flex-row items-center
 gap-4 mt-6">
-<button className="w-full sm:w-auto px-8 py-3 rounded-lg
-bg-gray-100 dark:bg-gray-700 text-black dark:text-white text-base
-font-bold tracking-wide transition-colors hover:bg-gray-200
-dark:hover:bg-gray-600 focus:outline-none focus:ring-2
-focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-offset-2
-dark:focus:ring-offset-background-dark">
-Back to Verification
-</button>
-<button className="w-full sm:w-auto px-8 py-3 rounded-lg
+<button 
+onClick={() => navigate('/faq')}
+className="w-full sm:w-auto px-8 py-3 rounded-lg
 bg-primary text-white text-base font-bold tracking-wide transition-colors
 hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-primary
 focus:ring-offset-2 dark:focus:ring-offset-background-dark flex-1">
-Upload Documents Again
+View Full FAQ
 </button>
 </div>
 </div>
