@@ -163,10 +163,10 @@ className="material-symbols-outlined">{showPassword ? 'visibility_off'
 </div>
 </div>
 </div>
-<a href="#" className="text-primary text-sm leading-normal pb-3
-pt-1 px-0 text-right underline cursor-pointer">
+<button onClick={() => navigate('/change-password')} type="button" className="text-primary text-sm leading-normal pb-3
+pt-1 px-0 text-right underline cursor-pointer hover:text-primary/80">
 Forgot Password?
-</a>
+</button>
 {errorMessage && (
     <div className="text-sm text-red-500 mb-2">{errorMessage}</div>
 )}

@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
+import { useNavigate } from 'react-router-dom';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-const PostStats = ({ likes, comments }) => (
+const PostStats = ({ likes, comments, onToggleLike, liked }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
     <div className="flex items-center gap-4">
-      <button className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
+      <button onClick={onToggleLike} className={`flex items-center gap-1.5 ${liked ? 'text-primary' : 'hover:text-primary'} dark:hover:text-primary`}>
         <span className="material-symbols-outlined text-xl">thumb_up</span>
         <span className="text-sm font-medium">{likes}</span>
       </button>
@@ -21,7 +26,7 @@ const PostStats = ({ likes, comments }) => (
   </div>
 );
 
-const Comment = ({ img, name, isAuthor, time, text, likes }) => (
+const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, onToggleLike, liked }) => (
   <div className="flex items-start gap-3">
     <img
       alt={`${name}'s profile picture`}
@@ -36,7 +41,7 @@ const Comment = ({ img, name, isAuthor, time, text, likes }) => (
         <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">{text}</p>
       </div>
       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1.5 px-2">
-        <button className="hover:text-primary font-medium">Like</button>
+        <button onClick={() => onToggleLike && onToggleLike(postId, commentId)} className={`hover:text-primary font-medium ${liked ? 'text-primary' : ''}`}>Like</button>
         <span>·</span>
         <button className="hover:text-primary font-medium">Reply</button>
         <span>·</span>
@@ -56,6 +61,27 @@ const Comment = ({ img, name, isAuthor, time, text, likes }) => (
 
 export default function CampusFeed() {
   const { darkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+      const unsub = onSnapshot(q, (snap) => {
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setPosts(items);
+        setLoading(false);
+      }, (err) => {
+        console.error('Posts subscription error', err);
+        setLoading(false);
+      });
+      return () => unsub();
+    } catch (e) {
+      console.error('Error subscribing to posts', e);
+      setLoading(false);
+    }
+  }, []);
   return (
     <div className="bg-background-light dark:bg-background-dark font-display">
       <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
@@ -67,147 +93,177 @@ export default function CampusFeed() {
               {/* Page Title & Action */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
                 <h1 className="text-secondary dark:text-white text-3xl font-bold leading-tight">CampusFeed</h1>
-                <button className="flex items-center justify-center gap-2 h-10 px-4 mt-4 sm:mt-0 text-sm font-bold text-white bg-primary rounded-lg">
+                <button onClick={() => navigate('/create-post')} className="flex items-center justify-center gap-2 h-10 px-4 mt-4 sm:mt-0 text-sm font-bold text-white bg-primary rounded-lg">
                   <span className="material-symbols-outlined">add</span>
                   <span>New Post</span>
                 </button>
               </div>
 
               <div className="space-y-8">
-                
-                {/* Article 1 */}
-                <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
-                  {/* Post Header */}
-                  <div className="flex items-start gap-4">
-                    <img
-                      alt="Chukwudi's profile picture"
-                      className="w-12 h-12 rounded-full object-cover"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVKjqD0UUlZ-E-rgiu9IwYmbpz9BdG3CEMQEuHd49WNci_D7tLxeA20RyvQ29CMqpy1_BtTRGxmnvfsZsPBC4-QQz8_k8g4DoOPzm0-CBT6CrjvNud5--SU-scX8RRenq4aTlHIeQR842oI567QlAHTjqvK3jSvRpjtyuFId855Wj5E6MuiIy02KO4KY5JAAaSelDZiJlbC6O60TO8d9OFLxNE1R_oZMgF1iTcr8Rn5uuQ81HHAkM7E69-RGrXJPXmErrR9sNjagvI"
-                    />
-                    <div className="flex-grow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-secondary dark:text-white">Chukwudi Anene</p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">UNILAG • 2 hours ago</p>
-                        </div>
-                        <button className="text-slate-500 dark:text-slate-400">
-                          <span className="material-symbols-outlined">more_horiz</span>
-                        </button>
-                      </div>
-                      <div className="mt-4 text-slate-700 dark:text-slate-300 space-y-3">
-                        <h2 className="text-xl font-bold text-secondary dark:text-white">The Hustle is Real: My Top 5 Side Gigs on Campus</h2>
-                        <p>
-                          Juggling lectures, assignments, and a social life is tough enough. Add 'being broke' to the mix, and you've got the classic Nigerian student experience. But fear
-                          not! Here are my tried-and-tested side hustles that have kept my UniWallet from hitting zero...
-                        </p>
-                      </div>
-                    </div>
+                {loading && <div className="text-center py-8">Loading posts...</div>}
+                {!loading && posts.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-lg text-slate-600 dark:text-slate-400">No posts yet — be the first to post!</p>
                   </div>
-
-                  {/* Post Stats */}
-                  <PostStats likes="128" comments="42" />
-
-                  {/* Comments Section */}
-                  <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <h3 className="text-lg font-bold text-secondary dark:text-white mb-4">Comments (42)</h3>
-                    
-                    {/* Add Comment Input */}
-                    <div className="flex items-start gap-3 mb-6">
-                      <div
-                        className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0"
-                        style={{
-                          backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")',
-                        }}
-                      ></div>
-                      <div className="relative flex-grow">
-                        <textarea
-                          className="form-textarea w-full rounded-lg bg-background-light dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary text-secondary dark:text-white placeholder:text-slate-500"
-                          placeholder="Add a comment..."
-                          rows="2"
-                        ></textarea>
-                        <button className="absolute bottom-2 right-2 flex items-center justify-center h-8 px-3 text-sm font-bold text-white bg-primary rounded-md">
-                          Post
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Comments List */}
-                    <div className="space-y-5">
-                      {/* Thread 1 */}
-                      <div>
-                        <Comment
-                          img="https://lh3.googleusercontent.com/aida-public/AB6AXuAqjFAoqVT4QH6JOyFVUJM3RizFKS5dGD3Q9O-wN4DDpivWZ5CvPm-R__0LgjFLAQs4okklILDp7OMyJiDjwaO4XX25nVAKGsoF6NOp4YhpBBM51AZOwyyvpAA5HNJ5W7I6qX6bWmN5HLAPXOApYXF36IucZ1Js2CNTD4lXgHlHVKRWEElqOSH9tro0P2rKbmRqgMPUicbqru94lhHAE5j_zQ4e3w7sx9hLvQ-BIZ-wkyk95-BYH_X4YEiRmzknXM2XK1U6JXUvaOoo"
-                          name="Aisha Bello"
-                          text="Great list! Tutoring younger students in JAMB prep has been a lifesaver for me. Consistent income and you're helping someone out."
-                          time="1h ago"
-                          likes="12"
-                        />
-                        {/* Nested Reply */}
-                        <div className="mt-4 pl-3">
-                          <Comment
-                            img="https://lh3.googleusercontent.com/aida-public/AB6AXuAFLWNUYNg73-0bamD1GDFYhHVgKt9mc48nUMOXhOETrp-7XED443xSDkTAQ870aBGzvaX_IfPk-ZBlwEoFuvT16pV2r4bIvC4oZ2AVhTfTxFUGCgXOvMiupF8tASayKOD0swnGw3UOrqKvsFGKfmkvkmv_7PQhjm05OeUCPG1LFsSgDAn--dNKlPV9LDHNvz_NPwcir1dv6Lp4uDZXFKJkU4nfubd40_4pp3ki5taXAGIrmylajiaeyStbmmcrtuk0bl32M3uThwJs"
-                            name="Chukwudi Anene"
-                            text="Solid suggestion Aisha! That's a great one to add."
-                            time="55m ago"
-                            isAuthor={true}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Thread 2 */}
-                      <div>
-                        <Comment
-                          img="https://lh3.googleusercontent.com/aida-public/AB6AXuB1p61QuSrz-Jowj8O5RXasfXJn8Z7dLQn2yTfyeHrEfpe_D0czr9iWCDpQn_EUcoOvvXV265DdZhmJVsQbb5eTSYaeJbcb8M-GmFkBKZZEnH_p8IncDdTB1Eges3EPwf5Oe6mo4Uf6uB-ssXqlYhKtDqYbIuRGJiPIQqy4rmDb2VpJ3QShSgcxWWTbEtmt_05kfqQBPp06YAOIzOZky5HG1iCvgsQRoAJ7p05qkhfvWHWGXOjCKGPFbMUdTcn0rgCZQuTje6onAbqW"
-                          name="Femi Adeboye"
-                          text="Anyone tried dropshipping using the marketplace? Seems like it could work."
-                          time="45m ago"
-                          likes="3"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </article>
-
-                {/* Article 2 */}
-                <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
-                  <div className="flex items-start gap-4">
-                    <img
-                      alt="Zainab's profile picture"
-                      className="w-12 h-12 rounded-full object-cover"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-R9-xWgeHWyGUJ5Ct2z1vz1pU6SuJGCiNLfELgLlk4sr3mziaqDL04yfGFSXsZF0XQP5O3ZmQK_pjLEIgdGa31TWFai-4gAoLkcFOrGZT2_jqWAxps-Ma6QY2ptBfURQVd7ebqfaFbSGbkLsDUj12U8qcpTnCxcgG6zPMDWk2H4B1fSPCKswoejzagCaxvOSb1glsLXTsjmUNh1vRRzEUjlr8ilwgOgJHqhuYxKavTyeflxxUkKtm3fsmzRMPBE1-yCbr2xRdb0On"
-                    />
-                    <div className="flex-grow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-secondary dark:text-white">Zainab Aliyu</p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">ABU Zaria • 1 day ago</p>
-                        </div>
-                        <button className="text-slate-500 dark:text-slate-400">
-                          <span className="material-symbols-outlined">more_horiz</span>
-                        </button>
-                      </div>
-                      <div className="mt-4 text-slate-700 dark:text-slate-300 space-y-3">
-                        <h2 className="text-xl font-bold text-secondary dark:text-white">Exam Season is Coming: Study Zone is a Game-Changer</h2>
-                        <p>
-                          The shared notes and past questions in the Study Zone for my department are honestly a lifesaver. If you're not using it, you're missing out. Shoutout to
-                          everyone uploading material for CHM 201!
-                        </p>
-                        <img
-                          alt="A stack of books on a desk."
-                          className="rounded-lg mt-4 w-full h-auto max-h-80 object-cover"
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_RCZyAAff1MRTqy1ribCt5T9QOBTdyQaYKB7oEfM0qN8VbyWJTssqItg_qCfvL73PRAiR6Fn-IoBU06KYuXKMSN2n9iS0RCUjDxW-2pks4B6D7U5xCX7K157zF1OmEqOtiCfe7UzE8dpMd2FMhG2r68VMC4Se5I45VPOcBcdhEZYxf5AwTjRqVG_wztHrLWz5W1Nq8cXkmDNif1S0LaEfk8LvdJQVfWUAMH6nWiwVQeBHprNkfl3PZWCD8u17VGe5CJXUDhPqgzDh"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <PostStats likes="251" comments="88" />
-                </article>
-
+                )}
+                {!loading && posts.map((p) => (
+                  <PostItem key={p.id} post={p} />
+                ))}
               </div>
             </div>
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+function PostItem({ post }) {
+  const navigate = useNavigate();
+  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const [liked, setLiked] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentLikes, setCommentLikes] = useState({});
+
+  useEffect(() => {
+    const likesCol = collection(db, 'posts', post.id, 'likes');
+    const unsub = onSnapshot(likesCol, (snap) => {
+      setLikesCount(snap.size);
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        setLiked(snap.docs.some(d => d.id === uid));
+      } else {
+        setLiked(false);
+      }
+    }, (err) => {
+      console.error('Likes subscription error', err);
+    });
+    return () => unsub();
+  }, [post.id]);
+
+  // Subscribe to comments
+  useEffect(() => {
+    try {
+      const commentsCol = collection(db, 'posts', post.id, 'comments');
+      const q = query(commentsCol, orderBy('createdAt', 'asc'));
+      const unsub = onSnapshot(q, (snap) => {
+        const commentsList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setComments(commentsList);
+        setCommentsLoading(false);
+      }, (err) => {
+        console.error('Comments subscription error', err);
+        setCommentsLoading(false);
+      });
+      return () => unsub();
+    } catch (e) {
+      console.error('Error subscribing to comments', e);
+      setCommentsLoading(false);
+    }
+  }, [post.id]);
+
+  // Subscribe to comment likes
+  useEffect(() => {
+    const unsubscribers = comments.map(comment => {
+      const commentLikesCol = collection(db, 'posts', post.id, 'comments', comment.id, 'likes');
+      return onSnapshot(commentLikesCol, (snap) => {
+        const uid = auth.currentUser?.uid;
+        const userLiked = uid && snap.docs.some(d => d.id === uid);
+        
+        setCommentLikes(prev => ({
+          ...prev,
+          [comment.id]: snap.size,
+          [`${comment.id}_liked`]: userLiked || false
+        }));
+      }, (err) => {
+        console.error('Comment likes subscription error', err);
+      });
+    });
+    return () => unsubscribers.forEach(unsub => unsub && unsub());
+  }, [post.id, comments]);
+
+  const toggleLike = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/uni-connect-login');
+      return;
+    }
+    const likeDocRef = doc(db, 'posts', post.id, 'likes', user.uid);
+    try {
+      const snap = await getDoc(likeDocRef);
+      if (snap.exists()) {
+        await deleteDoc(likeDocRef);
+      } else {
+        await setDoc(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+      }
+    } catch (err) {
+      console.error('Like toggle failed', err);
+    }
+  };
+
+  const toggleCommentLike = async (postId, commentId) => {
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/uni-connect-login');
+      return;
+    }
+    const commentLikeDocRef = doc(db, 'posts', postId, 'comments', commentId, 'likes', user.uid);
+    try {
+      const snap = await getDoc(commentLikeDocRef);
+      if (snap.exists()) {
+        await deleteDoc(commentLikeDocRef);
+      } else {
+        await setDoc(commentLikeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+      }
+    } catch (err) {
+      console.error('Comment like toggle failed', err);
+    }
+  };
+
+  return (
+    <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
+      <div className="flex items-start gap-4">
+        <img alt={`${post.authorName}'s profile`} className="w-12 h-12 rounded-full object-cover" src={post.authorAvatar || '/default_avatar.png'} />
+        <div className="flex-grow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-secondary dark:text-white">{post.authorName || 'Anonymous'}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
+            </div>
+            <button className="text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined">more_horiz</span>
+            </button>
+          </div>
+          <div className="mt-4 text-slate-700 dark:text-slate-300 space-y-3">
+            <h2 className="text-xl font-bold text-secondary dark:text-white">{post.title}</h2>
+            <div className="prose max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ''}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      </div>
+      <PostStats likes={likesCount} comments={comments.length || 0} onToggleLike={toggleLike} liked={liked} />
+      
+      {/* Comments Section */}
+      {!commentsLoading && comments.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-4">
+          {comments.map((comment) => (
+            <Comment
+              key={comment.id}
+              img={comment.authorAvatar || '/default_avatar.png'}
+              name={comment.authorName || 'Anonymous'}
+              isAuthor={comment.authorId === post.authorId}
+              time={comment.createdAt?.toDate ? new Date(comment.createdAt.toDate()).toLocaleString() : ''}
+              text={comment.text}
+              likes={commentLikes[comment.id] || 0}
+              commentId={comment.id}
+              postId={post.id}
+              onToggleLike={toggleCommentLike}
+              liked={commentLikes[`${comment.id}_liked`] || false}
+            />
+          ))}
+        </div>
+      )}
+    </article>
   );
 }

@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react'; 
+import React, { useState, useMemo, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast'; 
 // --- Helper Components & Logic --- 
 // A component for displaying a password validation rule 
@@ -48,7 +48,24 @@ function ChangePasswordPage() {
     }); 
     const [errors, setErrors] = useState({}); 
     const [showSuccess, setShowSuccess] = useState(false);
-    const [isLoading, setIsLoading] = useState(false); 
+    const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
+    // Check authentication state
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+                setAuthLoading(false);
+            } else {
+                // Redirect to login if not authenticated
+                navigate('/login');
+                setAuthLoading(false);
+            }
+        });
+        return () => unsubscribe();
+    }, [navigate]); 
  
  
 
@@ -104,7 +121,6 @@ passwords;
         setIsLoading(true);
 
         try {
-            const user = auth.currentUser;
             if (!user || !user.email) {
                 toast.error('User not authenticated.');
                 setIsLoading(false);
@@ -157,81 +173,89 @@ passwords;
 font-display min-h-screen"> 
             {/* Header could be here */} 
             <main className="px-4 sm:px-6 lg:px-10 py-8"> 
-                <div className="max-w-2xl mx-auto"> 
-                    <div className="flex items-center gap-4 pb-8"> 
-                        <button onClick={() => navigate('/settings')} className="text-secondary dark:text-white hover:text-primary"> 
-                            <span 
+                <div className="max-w-2xl mx-auto">
+                    {authLoading ? (
+                        <div className="text-center py-8">
+                            <p className="text-lg text-slate-600 dark:text-slate-400">Loading...</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-4 pb-8"> 
+                                <button onClick={() => navigate(-1)} className="text-secondary dark:text-white hover:text-primary"> 
+                                    <span 
 className="material-symbols-outlined">arrow_back</span> 
-                        </button> 
-                        <h1 className="text-secondary dark:text-white tracking-light text-2xl sm:text-3xl font-bold leading-tight">Change Password</h1> 
-                    </div> 
-                    <div className="bg-white dark:bg-secondary rounded-xl 
-shadow-md p-6 lg:p-8"> 
-                        <form className="space-y-6" onSubmit={handleSubmit} noValidate> 
- 
-
-                            <FormInput 
-                                id="current-password" 
-                                name="current" 
-                                label="Current Password" 
-                                type="password" 
-                                placeholder="Enter your current password" 
-                                value={passwords.current} 
-                                onChange={handleInputChange} 
-                                error={errors.current} 
-                            /> 
-                             
-                            <div> 
-                                <FormInput 
-                                    id="new-password" 
-                                    name="new" 
-                                    label="New Password" 
-                                    type="password" 
-                                    placeholder="Enter your new password" 
-                                    value={passwords.new} 
-                                    onChange={handleInputChange} 
-                                /> 
-                                <div className="mt-3 text-sm space-y-1"> 
-                                    <PasswordRule 
-isValid={validationStatus.hasMinLength} text="Minimum 8 characters" /> 
-                                    <PasswordRule isValid={validationStatus.hasSpecialChar} text="At least one special character (!, @, #, etc.)" /> 
-                                    <PasswordRule 
-isValid={validationStatus.hasNumber} text="At least one number" /> 
-                                </div> 
+                                </button> 
+                                <h1 className="text-secondary dark:text-white tracking-light text-2xl sm:text-3xl font-bold leading-tight">Change Password</h1> 
                             </div> 
-                             
-                            <FormInput 
-                                id="confirm-password" 
-                                name="confirm" 
-                                label="Confirm New Password" 
-                                type="password" 
+                            <div className="bg-white dark:bg-secondary rounded-xl 
+shadow-md p-6 lg:p-8"> 
+                                <form className="space-y-6" onSubmit={handleSubmit} noValidate> 
  
 
-                                placeholder="Confirm your new password" 
-                                value={passwords.confirm} 
-                                onChange={handleInputChange} 
-                                error={passwords.confirm && 
+                                    <FormInput 
+                                        id="current-password" 
+                                        name="current" 
+                                        label="Current Password" 
+                                        type="password" 
+                                        placeholder="Enter your current password" 
+                                        value={passwords.current} 
+                                        onChange={handleInputChange} 
+                                        error={errors.current} 
+                                    /> 
+                                     
+                                    <div> 
+                                        <FormInput 
+                                            id="new-password" 
+                                            name="new" 
+                                            label="New Password" 
+                                            type="password" 
+                                            placeholder="Enter your new password" 
+                                            value={passwords.new} 
+                                            onChange={handleInputChange} 
+                                        /> 
+                                        <div className="mt-3 text-sm space-y-1"> 
+                                            <PasswordRule 
+isValid={validationStatus.hasMinLength} text="Minimum 8 characters" /> 
+                                            <PasswordRule isValid={validationStatus.hasSpecialChar} text="At least one special character (!, @, #, etc.)" /> 
+                                            <PasswordRule 
+isValid={validationStatus.hasNumber} text="At least one number" /> 
+                                        </div> 
+                                    </div> 
+                                     
+                                    <FormInput 
+                                        id="confirm-password" 
+                                        name="confirm" 
+                                        label="Confirm New Password" 
+                                        type="password" 
+ 
+
+                                        placeholder="Confirm your new password" 
+                                        value={passwords.confirm} 
+                                        onChange={handleInputChange} 
+                                        error={passwords.confirm && 
 !validationStatus.match ? 'Passwords do not match.' : errors.confirm} 
-                            /> 
-                             
-                            {showSuccess && ( 
-                                <div className="bg-green-100 
+                                    /> 
+                                     
+                                    {showSuccess && ( 
+                                        <div className="bg-green-100 
 dark:bg-green-900/50 border border-green-200 dark:border-green-800 
 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg" role="alert"> 
-                                    <strong className="font-bold">Success! 
+                                            <strong className="font-bold">Success! 
 </strong> 
-                                    <span className="block sm:inline">Your 
+                                            <span className="block sm:inline">Your 
 password has been updated.</span> 
-                                </div> 
-                            )} 
+                                        </div> 
+                                    )} 
  
-                            <div className="flex justify-end pt-4"> 
-                                <button type="submit" disabled={isLoading} className="bg-primary text-white font-bold py-2 px-6 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-secondary disabled:opacity-50 disabled:cursor-not-allowed"> 
-                                    {isLoading ? 'Updating...' : 'Save Changes'}
-                                </button> 
-                            </div> 
-                        </form> 
-                    </div> 
+                                    <div className="flex justify-end pt-4"> 
+                                        <button type="submit" disabled={isLoading} className="bg-primary text-white font-bold py-2 px-6 rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-secondary disabled:opacity-50 disabled:cursor-not-allowed"> 
+                                            {isLoading ? 'Updating...' : 'Save Changes'}
+                                        </button> 
+                                    </div> 
+                                </form> 
+                            </div>
+                        </>
+                    )} 
                 </div> 
             </main> 
         </div> 

@@ -1,39 +1,200 @@
 import React, { useState, useEffect } from 'react'; 
+import { auth, db, storage } from '../firebase';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
  
 // --- Helper Components --- 
  
  
 
-// Toolbar for the rich text editor 
-const EditorToolbar = () => { 
-    const buttons = [ 
-        'format_h1', 'format_h2', 'format_bold', 'format_italic', 
-'format_underlined', 'format_strikethrough', 
-        { type: 'divider' }, 
-        'format_list_bulleted', 'format_list_numbered', 'format_quote', 
-        { type: 'divider' }, 
-        'link', 'image', 'play_circle' 
-    ]; 
-    return ( 
-        <div className="flex flex-wrap items-center gap-1 border-b 
-border-border-light dark:border-border-dark px-3 py-2"> 
-            {buttons.map((btn, index) => { 
-                if (btn.type === 'divider') { 
-                    return <div key={`divider-${index}`} className="h-5 w-px 
-bg-border-light dark:bg-border-dark mx-1"></div>; 
-                } 
-                return ( 
-                    <button key={btn} className="flex items-center 
-justify-center p-2 rounded hover:bg-primary-light 
-dark:hover:bg-primary/30"> 
-                        <span className="material-symbols-outlined 
-text-text-light dark:text-text-dark text-base">{btn}</span> 
-                    </button> 
-                ); 
-            })} 
-        </div> 
-    ); 
-}; 
+// Toolbar for the rich text editor — adds simple markdown/HTML formatting
+const EditorToolbar = ({ content, setContent }) => {
+    const buttons = [
+        'format_h1', 'format_h2', 'format_bold', 'format_italic',
+        'format_underlined', 'format_strikethrough',
+        { type: 'divider' },
+        'format_list_bulleted', 'format_list_numbered', 'format_quote',
+        { type: 'divider' },
+        'link', 'image', 'play_circle'
+    ];
+
+    const getTextarea = () => document.getElementById('post-content-textarea');
+
+    const replaceSelection = (newText, selectStartOffset = 0, selectEndOffset = 0) => {
+        const ta = getTextarea();
+        if (!ta) {
+            setContent(newText);
+            return;
+        }
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = content.slice(0, start);
+        const after = content.slice(end);
+        const updated = before + newText + after;
+        setContent(updated);
+        // restore focus and selection
+        requestAnimationFrame(() => {
+            ta.focus();
+            const newStart = start + selectStartOffset;
+            const newEnd = start + newText.length - selectEndOffset;
+            ta.setSelectionRange(newStart, newEnd);
+        });
+    };
+
+    const formatInline = (wrapperLeft, wrapperRight = wrapperLeft) => {
+        const ta = getTextarea();
+        if (!ta) return;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const selected = content.slice(start, end);
+        if (selected.length === 0) {
+            const insertion = wrapperLeft + wrapperRight;
+            replaceSelection(insertion, wrapperLeft.length, wrapperRight.length);
+        } else {
+            replaceSelection(wrapperLeft + selected + wrapperRight);
+        }
+    };
+
+    const formatBlock = (prefix) => {
+        const ta = getTextarea();
+        if (!ta) return;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const selected = content.slice(start, end);
+        const lines = selected.split(/\n/);
+        const prefixed = lines.map(l => (l.trim().length ? prefix + l : l)).join('\n');
+        replaceSelection(prefixed);
+    };
+
+    const formatNumberedList = () => {
+        const ta = getTextarea();
+        if (!ta) return;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const selected = content.slice(start, end);
+        const lines = selected.split(/\n/);
+        const prefixed = lines.map((l, i) => (l.trim().length ? `${i + 1}. ${l}` : l)).join('\n');
+        replaceSelection(prefixed);
+    };
+
+    const insertLinkOrMedia = async (type) => {
+        const ta = getTextarea();
+        if (!ta) return;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const selected = content.slice(start, end) || 'link-text';
+
+        if (type === 'link') {
+            const url = window.prompt('Enter URL');
+            if (!url) return;
+            replaceSelection(`[${selected}](${url})`);
+            return;
+        }
+
+        // image or video: open file picker and upload to Firebase Storage
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = type === 'image' ? 'image/*' : 'video/*';
+        input.onchange = async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                const uid = auth.currentUser?.uid || 'anonymous';
+                const path = `posts_media/${uid}/${Date.now()}_${file.name}`;
+                const storageReference = storageRef(storage, path);
+                const uploadTask = uploadBytesResumable(storageReference, file);
+                const toastId = toast.loading('Uploading media...');
+                uploadTask.on('state_changed', (snapshot) => {
+                    // optionally could update progress: snapshot.bytesTransferred / snapshot.totalBytes
+                }, async (err) => {
+                    console.error('Upload error', err);
+                    toast.dismiss(toastId);
+                    toast.error('Upload failed — you can paste a public URL instead.');
+                    // fallback: prompt user to paste a public URL
+                    const fallback = window.prompt('Upload failed. Paste a public URL for the media (or Cancel to abort)');
+                    if (fallback) {
+                        if (type === 'image') {
+                            replaceSelection(`![${selected}](${fallback})`);
+                        } else {
+                            replaceSelection(`[video](${fallback})`);
+                        }
+                    }
+                }, async () => {
+                    try {
+                        const url = await getDownloadURL(uploadTask.snapshot.ref);
+                        if (type === 'image') {
+                            replaceSelection(`![${selected}](${url})`);
+                        } else {
+                            replaceSelection(`[video](${url})`);
+                        }
+                        toast.success('Upload complete');
+                    } catch (err) {
+                        console.error('Failed to get download URL', err);
+                        toast.error('Upload succeeded but failed to retrieve URL. Paste a public URL instead.');
+                        const fallback = window.prompt('Paste a public URL for the media (or Cancel to abort)');
+                        if (fallback) {
+                            if (type === 'image') {
+                                replaceSelection(`![${selected}](${fallback})`);
+                            } else {
+                                replaceSelection(`[video](${fallback})`);
+                            }
+                        }
+                    } finally {
+                        toast.dismiss(toastId);
+                    }
+                });
+            } catch (err) {
+                console.error('Media upload failed', err);
+                toast.error('Media upload failed — you can paste a public URL instead.');
+                const fallback = window.prompt('Upload failed. Paste a public URL for the media (or Cancel to abort)');
+                if (fallback) {
+                    if (type === 'image') {
+                        replaceSelection(`![${selected}](${fallback})`);
+                    } else {
+                        replaceSelection(`[video](${fallback})`);
+                    }
+                }
+            }
+        };
+        input.click();
+    };
+
+    const handleClick = (btn) => {
+        if (btn.type === 'divider') return;
+        switch (btn) {
+            case 'format_h1': return formatBlock('# ');
+            case 'format_h2': return formatBlock('## ');
+            case 'format_bold': return formatInline('**');
+            case 'format_italic': return formatInline('*');
+            case 'format_underlined': return formatInline('<u>', '</u>');
+            case 'format_strikethrough': return formatInline('~~');
+            case 'format_list_bulleted': return formatBlock('- ');
+            case 'format_list_numbered': return formatNumberedList();
+            case 'format_quote': return formatBlock('> ');
+            case 'link': return insertLinkOrMedia('link');
+            case 'image': return insertLinkOrMedia('image');
+            case 'play_circle': return insertLinkOrMedia('play_circle');
+            default: return;
+        }
+    };
+
+    return (
+        <div className="flex flex-wrap items-center gap-1 border-b border-border-light dark:border-border-dark px-3 py-2">
+            {buttons.map((btn, index) => {
+                if (btn.type === 'divider') {
+                    return <div key={`divider-${index}`} className="h-5 w-px bg-border-light dark:bg-border-dark mx-1"></div>;
+                }
+                return (
+                    <button key={btn} onClick={() => handleClick(btn)} type="button" className="flex items-center justify-center p-2 rounded hover:bg-primary-light dark:hover:bg-primary/30">
+                        <span className="material-symbols-outlined text-text-light dark:text-text-dark text-base">{btn}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+};
  
 // Component for handling the dynamic tag input 
 const TagInput = ({ tags, setTags }) => { 
@@ -99,8 +260,9 @@ function CreatePostPage() {
     const [post, setPost] = useState({ 
         title: '', 
         content: '', 
-        tags: ['academics', 'events'], 
+        tags: [],
     }); 
+    const navigate = useNavigate();
     const [status, setStatus] = useState({ 
         message: 'Draft', 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: 
@@ -134,14 +296,56 @@ function CreatePostPage() {
         return () => clearInterval(interval); 
     }, []); 
  
-    const handlePublish = () => { 
+    const handlePublish = async () => { 
         if (!post.title || !post.content) { 
-            alert('Please add a title and content before publishing.'); 
+            toast.error('Please add a title and content before publishing.'); 
             return; 
         } 
-        alert('Post Published!\n\n' + JSON.stringify(post, null, 2)); 
-        // Reset form or redirect 
-        setPost({ title: '', content: '', tags: [] }); 
+        try {
+            const user = auth.currentUser;
+            let author = {
+                id: null,
+                name: 'Anonymous',
+                avatarUrl: '/default_avatar.png'
+            };
+            if (user) {
+                author.id = user.uid;
+                // Attempt to read displayName/avatar from users collection
+                try {
+                    const uDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (uDoc.exists()) {
+                        const d = uDoc.data();
+                        author.name = d.displayName || d.fullName || user.email?.split('@')[0] || 'User';
+                        author.avatarUrl = d.avatarUrl || '/default_avatar.png';
+                    } else {
+                        author.name = user.email?.split('@')[0] || 'User';
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch user profile for post author', err);
+                    author.name = user.email?.split('@')[0] || 'User';
+                }
+            }
+
+            const postDoc = {
+                title: post.title,
+                content: post.content,
+                tags: post.tags || [],
+                authorId: author.id,
+                authorName: author.name,
+                authorAvatar: author.avatarUrl,
+                likesCount: 0,
+                commentsCount: 0,
+                createdAt: serverTimestamp(),
+            };
+
+            await addDoc(collection(db, 'posts'), postDoc);
+            toast.success('Post published');
+            setPost({ title: '', content: '', tags: [] });
+            navigate('/campusfeed');
+        } catch (err) {
+            console.error('Failed to publish post', err);
+            toast.error('Failed to publish post');
+        }
     }; 
  
     return ( 
@@ -184,8 +388,9 @@ leading-normal pb-2">Post Content</p>
                                 <div className="rounded-lg border 
 border-border-light dark:border-border-dark bg-background-light 
 dark:bg-background-dark"> 
-                                    <EditorToolbar /> 
+                                    <EditorToolbar content={post.content} setContent={(c) => setPost(prev => ({ ...prev, content: c }))} /> 
                                     <textarea 
+                                        id="post-content-textarea"
                                         name="content" 
                                         value={post.content} 
                                         onChange={handleInputChange} 
@@ -204,12 +409,11 @@ text-base"
                         </div> 
  
                         <div className="flex flex-wrap items-center 
-justify-between gap-4 pt-6 border-t border-border-light 
-dark:border-border-dark"> 
+                                justify-between gap-4 pt-6 border-t border-border-light 
+                                dark:border-border-dark"> 
                             <p className="text-slate-500 dark:text-slate-400 
-text-sm">Status: <span 
-className="font-medium">{status.message}</span>. Last saved at 
-{status.time}</p> 
+                                text-sm">Status: <span 
+                            className="font-medium">{status.message}</span>. Last saved at {" "}{status.time}</p> 
                             <div className="flex items-center gap-3"> 
                                 <button className="min-w-[84px] rounded-lg h-10 
 px-4 bg-transparent border border-border-light dark:border-border-dark 
