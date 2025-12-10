@@ -63,7 +63,7 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Dashboard</button>
             <button onClick={() => navigate('/unimarket')} className="text-sm font-bold text-primary">Marketplace</button>
             <button onClick={() => navigate('/study-hub')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Study Hub</button>
-            <button onClick={() => navigate('/study-hub#campusfeed')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">CampusFeed</button>
+            <button onClick={() => navigate('/campusfeed')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">CampusFeed</button>
             <button onClick={() => navigate('/uni-wallet')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Wallet</button>
             <button onClick={() => navigate('/student-referral')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Referral</button>
           </nav>
@@ -122,7 +122,7 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
           <button onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Dashboard</button>
           <button onClick={() => { navigate('/unimarket'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Marketplace</button>
           <button onClick={() => { navigate('/study-hub'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Study Hub</button>
-          <button onClick={() => { navigate('/study-hub#campusfeed'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">CampusFeed</button>
+          <button onClick={() => { navigate('/campusfeed'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">CampusFeed</button>
           <button onClick={() => { navigate('/uni-wallet'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Wallet</button>
           <button onClick={() => { navigate('/student-referral'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Referral</button>
         </nav>

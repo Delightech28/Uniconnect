@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -351,7 +352,7 @@ const handleSubmit = async (e) => {
 };
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-<Header darkMode={darkMode} toggleDarkMode={toggleTheme} />
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-4xl mx-auto">
 <div className="mb-8">

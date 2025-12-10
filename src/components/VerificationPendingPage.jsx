@@ -196,22 +196,22 @@ Go to Dashboard
 </button>
 </div>
 <div className="flex justify-center w-full">
-<div className="flex flex-col sm:flex-row flex-1 gap-4
-flex-wrap max-w-[480px] justify-center pt-4 border-t border-border-light
-dark:border-border-dark">
-<button className="flex cursor-pointer items-center
-justify-center rounded-lg h-10 px-4 text-text-secondary-light 
-dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
-text-sm font-bold grow">
-Contact Support
-</button>
-<button className="flex cursor-pointer items-center
-justify-center rounded-lg h-10 px-4 text-text-secondary-light
-dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
-text-sm font-bold grow">
-Read our Verification FAQ
-</button>
-</div>
+	<div className="flex flex-col sm:flex-row flex-1 gap-4
+		flex-wrap max-w-[480px] justify-center pt-4 border-t border-border-light
+		dark:border-border-dark">
+		<button onClick={() => navigate('/contact-support')} className="flex cursor-pointer items-center
+			justify-center rounded-lg h-10 px-4 text-text-secondary-light 
+			dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
+			text-sm font-bold grow">
+			Contact Support
+		</button>
+		<button onClick={() => navigate('/faq')} className="flex cursor-pointer items-center
+			justify-center rounded-lg h-10 px-4 text-text-secondary-light
+			dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
+			text-sm font-bold grow">
+			Read our Verification FAQ
+		</button>
+	</div>
 </div>
 </div>
 </main>

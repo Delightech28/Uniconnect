@@ -39,6 +39,7 @@ import UniConnectWelcome from "./components/UniConnectWelcome";
 import FAQPage from "./components/FAQPage";
 import ContactSupportPage from "./components/ContactSupportPage";
 import TermsOfServicePage from "./components/TermsOfServicePage";
+import CampusFeed from "./components/CampusFeed";
 function App() {
   return (
     <>
@@ -85,6 +86,7 @@ function App() {
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/contact-support" element={<ContactSupportPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/campusfeed" element={<CampusFeed />} />
       </Routes>
       </Router>
     </>

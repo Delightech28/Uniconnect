@@ -2,8 +2,18 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
+const getInitialTheme = () => {
+  try {
+    const saved = window.localStorage.getItem('darkMode');
+    if (saved !== null) return saved === 'true';
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const useTheme = () => {
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => getInitialTheme());
 
   useEffect(() => {
     const fetchThemePreference = async () => {
@@ -13,37 +23,43 @@ export const useTheme = () => {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            // If theme preference exists, use it; otherwise default to dark
-            setDarkMode(userData.darkMode ?? true);
+            if (typeof userData.darkMode === 'boolean') {
+              setDarkMode(userData.darkMode);
+              window.localStorage.setItem('darkMode', userData.darkMode ? 'true' : 'false');
+            }
           }
         }
       } catch (error) {
         console.error('Error fetching theme preference:', error);
       }
     };
-    
+
     fetchThemePreference();
   }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    if (darkMode) root.classList.add('dark');
+    else root.classList.remove('dark');
+    try {
+      window.localStorage.setItem('darkMode', darkMode ? 'true' : 'false');
+    } catch (e) {
+      // ignore
     }
   }, [darkMode]);
 
   const toggleTheme = async () => {
     try {
       const user = auth.currentUser;
+      const next = !darkMode;
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, {
-          darkMode: !darkMode
+          darkMode: next
         });
       }
-      setDarkMode(!darkMode);
+      setDarkMode(next);
+      try { window.localStorage.setItem('darkMode', next ? 'true' : 'false'); } catch (e) {}
     } catch (error) {
       console.error('Error updating theme preference:', error);
     }
