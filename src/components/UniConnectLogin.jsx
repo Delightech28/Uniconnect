@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,7 +10,7 @@ email: '',
 password: '',
 });
 const [showPassword, setShowPassword] = useState(false);
-const [darkMode, setDarkMode] = useState(true);
+const { darkMode, toggleTheme } = useTheme();
 const [loading, setLoading] = useState(false);
 const [errorMessage, setErrorMessage] = useState('');
 const navigate = useNavigate();
@@ -20,15 +21,7 @@ const navigate = useNavigate();
         });
         return () => unsub();
     }, [navigate]);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-const root = window.document.documentElement;
-if (darkMode) {
-root.classList.add('dark');
-} else {
-root.classList.remove('dark');
-}
-}, [darkMode]);
+// theme handled by useTheme
 const handleChange = (e) => {
 const { id, value } = e.target;
 setFormData((prevData) => ({
@@ -74,7 +67,7 @@ justify-center p-4">
 {/* Dark Mode Toggle - Added for interactivity demo */}
 <div className="absolute top-4 right-4 z-10">
 <button
-onClick={() => setDarkMode(!darkMode)}
+onClick={() => toggleTheme()}
 className="flex items-center justify-center size-12
 rounded-full bg-white dark:bg-gray-800 shadow-md text-text-primary
 dark:text-white"

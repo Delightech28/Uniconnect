@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for Features and Testimonials (Makes JSX cleaner) ---
 const featuresData = [
 {
@@ -65,7 +66,7 @@ return <div className="flex text-accent">{stars}</div>;
 // --- Main Landing Page Component ---
 const UniConnectLandingPage = () => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
-const [darkMode, setDarkMode] = useState(true);
+const { darkMode, toggleTheme } = useTheme();
 	const navigate = useNavigate();
 
 	// Redirect signed-in users away from the public landing page
@@ -93,14 +94,7 @@ const [darkMode, setDarkMode] = useState(true);
 			}
 		}
 	}, []);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-if (darkMode) {
-document.documentElement.classList.add('dark');
-} else {
-document.documentElement.classList.remove('dark');
-}
-}, [darkMode]);
+// theme handled by useTheme
 const navLinks = [
 { title: 'UniMarket', href: '/unimarket' },
 { title: 'StudyHub', href: '/study-hub' },
@@ -138,7 +132,7 @@ hover:text-primary dark:hover:text-primary">
 <div className="flex items-center gap-2">
 {/* Dark Mode Toggle */}
 <button
-onClick={() => setDarkMode(!darkMode)}
+onClick={() => toggleTheme()}
 className="flex items-center justify-center size-10 rounded-full
 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
 aria-label="Toggle dark mode"

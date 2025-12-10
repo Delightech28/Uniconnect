@@ -44,10 +44,7 @@ function ProductDetailsPage() {
   const [seller, setSeller] = useState(productData.seller);
   const [loading, setLoading] = useState(!!productId);
 
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [darkMode]);
+  // theme handled by useTheme
 
   useEffect(() => {
     if (productId) {

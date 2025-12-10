@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for Reminder List ---
 const reminderItems = [
 {
@@ -101,13 +102,8 @@ leading-normal flex-1">
 );
 // --- Main Page Component ---
 const ReuploadVerificationPage = () => {
-const [darkMode, setDarkMode] = useState(false);
+const { darkMode, toggleTheme } = useTheme();
 const [selectedFile, setSelectedFile] = useState(null);
-useEffect(() => {
-const root = window.document.documentElement;
-if (darkMode) root.classList.add('dark');
-else root.classList.remove('dark');
-}, [darkMode]);
 const handleSubmit = () => {
 if (selectedFile) {
 // In a real app, this is where you'd handle the file upload.
@@ -122,7 +118,7 @@ return (
 <div className="relative flex min-h-screen w-full flex-col">
 <div className="absolute top-4 right-4 z-10">
 <button
-onClick={() => setDarkMode(!darkMode)}
+onClick={() => toggleTheme()}
 className="flex items-center justify-center size-10 rounded-full
 bg-white dark:bg-gray-800 shadow-md"
 aria-label="Toggle dark mode"

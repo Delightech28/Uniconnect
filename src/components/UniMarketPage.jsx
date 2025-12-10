@@ -80,10 +80,7 @@ const { darkMode, toggleTheme } = useTheme();
 const [searchTerm, setSearchTerm] = useState('');
 const [selectedCategory, setSelectedCategory] = useState('All Categories');
 const [products, setProducts] = useState(productsStateInitial);
-useEffect(() => {
-if (darkMode) document.documentElement.classList.add('dark');
-else document.documentElement.classList.remove('dark');
-}, [darkMode]);
+// theme handled by useTheme
 const filteredProducts = useMemo(() => {
 return products.filter(product => {
 	const matchesCategory = selectedCategory === 'All Categories' ||

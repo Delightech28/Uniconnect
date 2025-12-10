@@ -81,17 +81,15 @@ text-sm">{description}</p>
 ); 
  
 // --- Main Page Component --- 
+import { useTheme } from '../hooks/useTheme';
+
 const QuizResultsPage = () => { 
-    const [darkMode, setDarkMode] = useState(false); 
+    const { darkMode, toggleTheme } = useTheme(); 
     const [score, setScore] = useState(0); 
  
     const finalScore = 80; 
  
-    useEffect(() => { 
-        if (darkMode) document.documentElement.classList.add('dark'); 
-        else document.documentElement.classList.remove('dark'); 
-  
-    }, [darkMode]); 
+    // theme handled by useTheme
      
     useEffect(() => { 
         // Animate score on component mount 
@@ -105,7 +103,7 @@ const QuizResultsPage = () => {
         <div className="relative flex min-h-screen flex-col justify-center 
 overflow-hidden py-6 sm:py-12"> 
             <div className="absolute top-4 right-4 z-10"> 
-                <button onClick={() => setDarkMode(!darkMode)} 
+                <button onClick={() => toggleTheme()} 
 className="flex items-center justify-center size-12 rounded-full 
 bg-white dark:bg-slate-800 shadow-md text-slate-700 
 dark:text-slate-200" aria-label="Toggle dark mode"> 

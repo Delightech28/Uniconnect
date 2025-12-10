@@ -255,9 +255,7 @@ const [uploadedFiles, setUploadedFiles] = useState([]);
 const [durationType, setDurationType] = useState('days');
 const [durationValue, setDurationValue] = useState(7);
 const walletBalance = 2500; // Mock data
-useEffect(() => { if (darkMode)
-document.documentElement.classList.add('dark'); else
-document.documentElement.classList.remove('dark'); }, [darkMode]);
+// theme handled by useTheme
 const handleInputChange = (e) => {
 const { id, value } = e.target;
 setFormData(prev => ({...prev, [id]: value}));

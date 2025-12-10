@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { Link } from 'react-router-dom';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = ['Dashboard', 'Marketplace', 'Study Hub', 'Wallet'];
@@ -67,14 +68,7 @@ const GuestDashboard = () => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [isProfileOpen, setIsProfileOpen] = useState(false);
 const [marketplaceTab, setMarketplaceTab] = useState('listings');
-const [darkMode, setDarkMode] = useState(true);
-useEffect(() => {
-if (darkMode) {
-document.documentElement.classList.add('dark');
-} else {
-document.documentElement.classList.remove('dark');
-}
-}, [darkMode]);
+const { darkMode, toggleTheme } = useTheme();
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 {/* --- Header --- */}
@@ -114,7 +108,7 @@ placeholder="Search"
 </div>
 </label>
 {/* --- Header Icons --- */}
-<button onClick={() => setDarkMode(!darkMode)}
+<button onClick={() => toggleTheme()}
 className="flex cursor-pointer items-center justify-center rounded-lg
 h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
 dark:text-white" aria-label="Toggle dark mode">

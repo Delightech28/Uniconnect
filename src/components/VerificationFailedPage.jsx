@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for the failure reasons list (cleaner than hardcoding) ---
 const failureReasons = [
 {
@@ -29,22 +30,13 @@ leading-normal flex-1">
 );
 // --- Main Page Component ---
 const VerificationFailedPage = () => {
-const [darkMode, setDarkMode] = useState(false);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-const root = window.document.documentElement;
-if (darkMode) {
-root.classList.add('dark');
-} else {
-root.classList.remove('dark');
-}
-}, [darkMode]);
+const { darkMode, toggleTheme } = useTheme();
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 {/* Dark Mode Toggle - Added for interactivity demo */}
 <div className="absolute top-4 right-4 z-10">
 <button
-onClick={() => setDarkMode(!darkMode)}
+onClick={() => toggleTheme()}
 className="flex items-center justify-center size-10 rounded-full
 bg-gray-100 dark:bg-gray-800 shadow-md"
 aria-label="Toggle dark mode"

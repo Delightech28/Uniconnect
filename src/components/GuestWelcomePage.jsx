@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 // --- Data for the feature list (cleaner than hardcoding in JSX) ---
 const guestFeatures = [
 {
@@ -23,22 +24,14 @@ enabled: false, // This flag will control the styling
 },
 ];
 const GuestWelcomePage = () => {
-const [darkMode, setDarkMode] = useState(true);
-// Effect to toggle dark mode class on the html element
-useEffect(() => {
-if (darkMode) {
-document.documentElement.classList.add('dark');
-} else {
-document.documentElement.classList.remove('dark');
-}
-}, [darkMode]);
+const { darkMode, toggleTheme } = useTheme();
 return (
 <div className="relative flex min-h-screen w-full flex-col
 overflow-x-hidden">
 {/* Dark Mode Toggle - Added for interactivity demo */}
 <div className="absolute top-4 right-4 z-10">
 <button
-onClick={() => setDarkMode(!darkMode)}
+onClick={() => toggleTheme()}
 className="flex items-center justify-center size-12
 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700
 dark:text-slate-200"
