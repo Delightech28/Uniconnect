@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -189,13 +189,25 @@ function PostItem({ post }) {
       return;
     }
     const likeDocRef = doc(db, 'posts', post.id, 'likes', user.uid);
+    const postDocRef = doc(db, 'posts', post.id);
+    
     try {
-      const snap = await getDoc(likeDocRef);
-      if (snap.exists()) {
-        await deleteDoc(likeDocRef);
-      } else {
-        await setDoc(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-      }
+      await runTransaction(db, async (transaction) => {
+        const likeSnap = await transaction.get(likeDocRef);
+        const postSnap = await transaction.get(postDocRef);
+        
+        if (likeSnap.exists()) {
+          transaction.delete(likeDocRef);
+          transaction.update(postDocRef, {
+            likesCount: Math.max(0, (postSnap.data()?.likesCount || 0) - 1)
+          });
+        } else {
+          transaction.set(likeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+          transaction.update(postDocRef, {
+            likesCount: (postSnap.data()?.likesCount || 0) + 1
+          });
+        }
+      });
     } catch (err) {
       console.error('Like toggle failed', err);
     }
@@ -208,13 +220,25 @@ function PostItem({ post }) {
       return;
     }
     const commentLikeDocRef = doc(db, 'posts', postId, 'comments', commentId, 'likes', user.uid);
+    const commentDocRef = doc(db, 'posts', postId, 'comments', commentId);
+    
     try {
-      const snap = await getDoc(commentLikeDocRef);
-      if (snap.exists()) {
-        await deleteDoc(commentLikeDocRef);
-      } else {
-        await setDoc(commentLikeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
-      }
+      await runTransaction(db, async (transaction) => {
+        const likeSnap = await transaction.get(commentLikeDocRef);
+        const commentSnap = await transaction.get(commentDocRef);
+        
+        if (likeSnap.exists()) {
+          transaction.delete(commentLikeDocRef);
+          transaction.update(commentDocRef, {
+            likesCount: Math.max(0, (commentSnap.data()?.likesCount || 0) - 1)
+          });
+        } else {
+          transaction.set(commentLikeDocRef, { userId: user.uid, createdAt: serverTimestamp() });
+          transaction.update(commentDocRef, {
+            likesCount: (commentSnap.data()?.likesCount || 0) + 1
+          });
+        }
+      });
     } catch (err) {
       console.error('Comment like toggle failed', err);
     }
