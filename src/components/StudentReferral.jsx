@@ -7,8 +7,6 @@ import {
   Copy, 
   Check, 
   Share2, 
-  MessageSquare, 
-  Mail, 
   Link as LinkIcon, 
   UserCheck, 
   Star 
@@ -82,6 +80,25 @@ const StudentReferral = () => {
     toast.success('Link copied to clipboard!');
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join UniConnect',
+          text: `Join me on UniConnect! Use my referral link to sign up and get verified.`,
+          url: referralLink,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed', err);
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(referralLink);
+      toast.success('Referral link copied to clipboard!');
+    }
+  };
+
   return (
     // Main Container unified with app styles
     <div className="min-h-screen w-full font-sans bg-background-light dark:bg-background-dark text-secondary dark:text-slate-200 transition-colors duration-300">
@@ -148,12 +165,12 @@ const StudentReferral = () => {
 
                   {/* Share Icons */}
                   <div className="flex flex-wrap gap-4">
-                    <ShareOption icon={<Share2 size={24} />} label="Share Link" />
-                    {/* Additional dummy share buttons to match design */}
-                    <div className="hidden sm:flex gap-4">
-                      <ShareOption icon={<MessageSquare size={24} />} label="SMS" />
-                      <ShareOption icon={<Mail size={24} />} label="Email" />
-                    </div>
+                    <button onClick={handleShare} className="flex flex-col items-center gap-2 w-24 cursor-pointer group hover:opacity-80 transition-opacity">
+                      <div className="p-3.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300 dark:group-hover:bg-slate-700 transition-colors">
+                        <Share2 size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Share Link</p>
+                    </button>
                   </div>
                 </div>
 
@@ -204,15 +221,6 @@ const StudentReferral = () => {
 };
 
 // --- Helper Components for cleaner code ---
-
-const ShareOption = ({ icon, label }) => (
-  <div className="flex flex-col items-center gap-2 w-24 cursor-pointer group">
-    <div className="p-3.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300 dark:group-hover:bg-slate-700 transition-colors">
-      {icon}
-    </div>
-    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
-  </div>
-);
 
 const StepItem = ({ icon, title, desc }) => (
   <div className="flex flex-col items-center text-center gap-3">

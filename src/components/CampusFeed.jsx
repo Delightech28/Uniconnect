@@ -7,19 +7,19 @@ import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const PostStats = ({ likes, comments, onToggleLike, liked }) => (
+const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onShare }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
     <div className="flex items-center gap-4">
       <button onClick={onToggleLike} className={`flex items-center gap-1.5 ${liked ? 'text-primary' : 'hover:text-primary'} dark:hover:text-primary`}>
         <span className="material-symbols-outlined text-xl">thumb_up</span>
         <span className="text-sm font-medium">{likes}</span>
       </button>
-      <button className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
+      <button onClick={onToggleComments} className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
         <span className="material-symbols-outlined text-xl">chat_bubble</span>
         <span className="text-sm font-medium">{comments}</span>
       </button>
     </div>
-    <button className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
+    <button onClick={onShare} className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
       <span className="material-symbols-outlined text-xl">share</span>
       <span className="text-sm font-medium">Share</span>
     </button>
@@ -43,10 +43,8 @@ const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, on
       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1.5 px-2">
         <button onClick={() => onToggleLike && onToggleLike(postId, commentId)} className={`hover:text-primary font-medium ${liked ? 'text-primary' : ''}`}>Like</button>
         <span>·</span>
-        <button className="hover:text-primary font-medium">Reply</button>
-        <span>·</span>
         <span>{time}</span>
-        {likes && (
+        {likes > 0 && (
           <div className="flex items-center gap-1 ml-auto">
             <span className={`material-symbols-outlined text-base ${likes > 5 ? 'text-primary' : 'text-slate-400'}`}>thumb_up</span>
             <span>{likes}</span>
@@ -125,6 +123,9 @@ function PostItem({ post }) {
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentLikes, setCommentLikes] = useState({});
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     const likesCol = collection(db, 'posts', post.id, 'likes');
@@ -244,6 +245,61 @@ function PostItem({ post }) {
     }
   };
 
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/uni-connect-login');
+      return;
+    }
+    if (!newComment.trim()) {
+      return;
+    }
+    
+    setPosting(true);
+    try {
+      const commentsCol = collection(db, 'posts', post.id, 'comments');
+      const commentDocRef = doc(commentsCol);
+      
+      await setDoc(commentDocRef, {
+        text: newComment,
+        authorId: user.uid,
+        authorName: user.displayName || user.email,
+        authorAvatar: user.photoURL || '/default_avatar.png',
+        createdAt: serverTimestamp(),
+        likesCount: 0
+      });
+      
+      setNewComment('');
+    } catch (err) {
+      console.error('Failed to post comment', err);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleSharePost = async () => {
+    const shareUrl = `${window.location.origin}/campus-feed`;
+    const shareText = `Check out this post: "${post.title}" on UniConnect!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'UniConnect Post',
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed', err);
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   return (
     <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
       <div className="flex items-start gap-4">
@@ -266,26 +322,63 @@ function PostItem({ post }) {
           </div>
         </div>
       </div>
-      <PostStats likes={likesCount} comments={comments.length || 0} onToggleLike={toggleLike} liked={liked} />
+      <PostStats likes={likesCount} comments={comments.length || 0} onToggleLike={toggleLike} liked={liked} onToggleComments={() => setShowComments(!showComments)} onShare={handleSharePost} />
       
       {/* Comments Section */}
-      {!commentsLoading && comments.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-4">
-          {comments.map((comment) => (
-            <Comment
-              key={comment.id}
-              img={comment.authorAvatar || '/default_avatar.png'}
-              name={comment.authorName || 'Anonymous'}
-              isAuthor={comment.authorId === post.authorId}
-              time={comment.createdAt?.toDate ? new Date(comment.createdAt.toDate()).toLocaleString() : ''}
-              text={comment.text}
-              likes={commentLikes[comment.id] || 0}
-              commentId={comment.id}
-              postId={post.id}
-              onToggleLike={toggleCommentLike}
-              liked={commentLikes[`${comment.id}_liked`] || false}
-            />
-          ))}
+      {showComments && (
+        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold text-secondary dark:text-white mb-4">Comments ({comments.length})</h3>
+          
+          {/* Add Comment Input */}
+          <form onSubmit={handlePostComment} className="flex items-start gap-3 mb-6">
+            <div
+              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0"
+              style={{
+                backgroundImage: `url("${auth.currentUser?.photoURL || '/default_avatar.png'}")`,
+              }}
+            ></div>
+            <div className="relative flex-grow">
+              <textarea
+                className="form-textarea w-full rounded-lg bg-background-light dark:bg-slate-800 border border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary text-secondary dark:text-white placeholder:text-slate-500"
+                placeholder="Add a comment..."
+                rows="2"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              ></textarea>
+              <button 
+                type="submit" 
+                disabled={posting || !newComment.trim()}
+                className="absolute bottom-2 right-2 flex items-center justify-center h-8 px-3 text-sm font-bold text-white bg-primary rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {posting ? 'Posting...' : 'Post'}
+              </button>
+            </div>
+          </form>
+
+          {/* Comments List */}
+          {commentsLoading ? (
+            <div className="text-center py-4 text-slate-500 dark:text-slate-400">Loading comments...</div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-4 text-slate-500 dark:text-slate-400">No comments yet. Be the first to comment!</div>
+          ) : (
+            <div className="space-y-5">
+              {comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  img={comment.authorAvatar || '/default_avatar.png'}
+                  name={comment.authorName || 'Anonymous'}
+                  isAuthor={comment.authorId === post.authorId}
+                  time={comment.createdAt?.toDate ? new Date(comment.createdAt.toDate()).toLocaleString() : ''}
+                  text={comment.text}
+                  likes={commentLikes[comment.id] || 0}
+                  commentId={comment.id}
+                  postId={post.id}
+                  onToggleLike={toggleCommentLike}
+                  liked={commentLikes[`${comment.id}_liked`] || false}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </article>
