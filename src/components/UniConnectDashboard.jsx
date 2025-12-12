@@ -33,29 +33,6 @@ imageUrl:
 'https://lh3.googleusercontent.com/aida-public/AB6AXuAt2vO4nW3jgysnaq7rVPGh4kxysZPvVF0dgOq5fmj6WjyVAPR1e31WNOWNAllcIDOi5id5virHcgCS2BhAkBV6ga5JIKGnUCh7H3rOM2p9xc1F4hCq-O2Qauvaj6OqGfw7tAZUfsijY9JOu_ngQ8weiLKe0av6rUq92H0XLQdUAU3Pc7dBkeoaqTMTa86L9gxOt9dkQexjL-w7HItHs_vm9o31WwXgq33PfWVg41_O4_Ke6OmFSG83_GAK54tKaGqvADnHvh6JDNj4',
 },
 ];
-const campusFeedPosts = [
-{
-id: 1,
-author: 'Bisi Adebayo',
-handle: '@bisi',
-avatarUrl:
-'https://lh3.googleusercontent.com/aida-public/AB6AXuAOJpt_NIkyXbzZ6r4FxFmGIAAgg4I6x77bZ2UUc1qOLCLWMRd1cQmxibg6PVzP87a-ns6VgOK71grhgpUf-cwnazwjhBPWob76_D7VL8rUU4aJUAsDSDtDkPcCue3DjXpjRRyXpsrqOShzi5VPdOenzPumIhklxnmGrEK9qotM_d7CZBZ0QyQ6XIfcc7Xo9h4KwBEqbtH8wvgW6ZPqm4kRC8-ArjWCFrobQtZKSKPXVl4tbzmS89CCnJdt6C4MDasffMRM4tVNy9NU',
-content: 'Anyone going for the Tech conference tomorrow? Looking to carpool!',
-likes: 12,
-comments: 5,
-},
-{
-id: 2,
-author: 'Chinedu Okafor',
-handle: '@chinedu',
-avatarUrl:
-'https://lh3.googleusercontent.com/aida-public/AB6AXuA0Dq8MRihEmv7gOkXhaWJbHvtahLVkoHmyuz9IpCxFxc7XvxbMvkAcc7hsdW_T0BfFj5KdkgSm21bgN8ouTIxADmRgdbdmPvaIm8ME5EPal4EVjsVghWUpWz0GKIOy-B4lSuFQKebGnvw0EPMTqyilUwH9DmZMfpgwum43zP--4VPMKC4_HU3HqQPqjTm62gyBptkFBZ_E0H2mDUzGvPubBJXxl6taGjXGloR4HuxQFc8V7d6WXe0jShs4rNkmkH6J1FmJ7EO5EV6p',
-content: 'Just published my notes for CSC 401. Check it out on the Study Hub. #ComputerScience',
-likes: 28,
-comments: 9,
-},
-];
-// --- Sub-components for better organization ---
 
 // --- Sub-components for better organization ---
 const Greeting = () => {
@@ -149,6 +126,7 @@ const UniConnectDashboard = () => {
   const [marketplaceTab, setMarketplaceTab] = useState('listings');
   const [userListings, setUserListings] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [campusFeedPosts, setCampusFeedPosts] = useState([]);
 
   // Fetch current user's avatar and set currentUserId from Firestore
   useEffect(() => {
@@ -194,6 +172,30 @@ const UniConnectDashboard = () => {
       console.error('Error setting up listings subscription:', error);
     }
   }, [currentUserId]);
+
+  // Subscribe to campus feed posts (first 2 posts) from Firestore
+  useEffect(() => {
+    try {
+      const q = query(
+        collection(db, 'posts'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const posts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).slice(0, 2);
+        setCampusFeedPosts(posts);
+      }, (error) => {
+        console.error('Error fetching campus feed posts:', error);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up campus feed subscription:', error);
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -301,28 +303,27 @@ mb-4">CampusFeed</p>
 {campusFeedPosts.map((post) => (
 <div key={post.id} className="flex gap-4">
 <img className="size-10 rounded-full flex-shrink-0"
-alt={`${post.author} profile`} src={post.avatarUrl} />
+alt={`${post.authorName} profile`} src={post.authorAvatar || '/default_avatar.png'} />
 <div className="flex-1">
 <p className="font-semibold text-secondary
-dark:text-white">{post.author} <span className="text-sm font-normal
-text-slate-500 dark:text-slate-400">{post.handle}</span></p>
+dark:text-white">{post.authorName || 'Anonymous'}</p>
 <p className="text-secondary dark:text-white
 mt-1">{post.content}</p>
 <div className="flex items-center gap-4 text-slate-500
 dark:text-slate-400 mt-2 text-sm">
 <span className="flex items-center gap-1"><span
 className="material-symbols-outlined
-text-base">favorite_border</span> {post.likes}</span>
+text-base">favorite_border</span> {post.likesCount || 0}</span>
 <span className="flex items-center gap-1"><span
 className="material-symbols-outlined
-text-base">chat_bubble_outline</span> {post.comments}</span>
+text-base">chat_bubble_outline</span> {post.commentsCount || 0}</span>
 </div>
 </div>
 </div>
 ))}
 </div>
-<a className="block text-center text-primary text-sm
-font-medium mt-4" href="#">View Full Feed</a>
+<Link className="block text-center text-primary text-sm
+font-medium mt-4 hover:underline" to="/campus-feed">View Full Feed</Link>
 </div>
 </div>
 </div>
