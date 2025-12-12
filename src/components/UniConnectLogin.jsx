@@ -85,7 +85,7 @@ py-10">
 <div className="text-center p-4">
 <p className="text-text-primary dark:text-white text-4xl font-black
 tracking-tighter">
-Welcome Back to UniConnect
+Welcome Back to UniSpace
 </p>
 </div>
 <form onSubmit={handleSubmit} className="w-full flex flex-col

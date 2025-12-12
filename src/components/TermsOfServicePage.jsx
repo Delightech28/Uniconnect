@@ -67,28 +67,28 @@ const TermsOfServicePage = () => {
               <div className="lg:w-3/4 flex flex-col gap-10">
                 <section className="space-y-4" id="introduction">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">1. Introduction</h2>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">Welcome to UniConnect. These Terms of Service ("Terms") govern your use of the UniConnect platform, including our website, applications, and services. By accessing or using UniConnect, you agree to be bound by these Terms. Our platform provides a digital ecosystem for Nigerian university students, integrating commerce, collaborative learning, and community engagement. All users, including guests, have access to UniWallet, the marketplace, and Study Zone features. Verified students gain additional access to post on the CampusFeed.</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">Welcome to UniSpace. These Terms of Service ("Terms") govern your use of the UniSpace platform, including our website, applications, and services. By accessing or using UniSpace, you agree to be bound by these Terms. Our platform provides a digital ecosystem for Nigerian university students, integrating commerce, collaborative learning, and community engagement. All users, including guests, have access to UniWallet, the marketplace, and Study Zone features. Verified students gain additional access to post on the CampusFeed.</p>
                 </section>
 
                 <section className="space-y-4" id="user-responsibilities">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">2. User Responsibilities</h2>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">You agree to use UniConnect responsibly and in compliance with all applicable laws. You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account. You agree not to engage in any of the following prohibited activities:</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">You agree to use UniSpace responsibly and in compliance with all applicable laws. You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account. You agree not to engage in any of the following prohibited activities:</p>
                   <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-400 pl-4">
                     <li>Impersonating another person or entity.</li>
                     <li>Using the platform for any illegal or unauthorized purpose.</li>
                     <li>Posting content that is hateful, defamatory, obscene, or discriminatory.</li>
-                    <li>Interfering with the proper functioning of the UniConnect platform.</li>
+                    <li>Interfering with the proper functioning of the UniSpace platform.</li>
                   </ul>
                 </section>
 
                 <section className="space-y-4" id="privacy-policy">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">3. Privacy Policy</h2>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">Our Privacy Policy, which is incorporated into these Terms, describes how we collect, use, and share your personal information. By using UniConnect, you agree to the collection and use of information in accordance with our Privacy Policy. Please review it carefully to understand our practices.</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">Our Privacy Policy, which is incorporated into these Terms, describes how we collect, use, and share your personal information. By using UniSpace, you agree to the collection and use of information in accordance with our Privacy Policy. Please review it carefully to understand our practices.</p>
                 </section>
 
                 <section className="space-y-4" id="marketplace-rules">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">4. Marketplace Rules</h2>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">All users can buy and sell items on the UniMarket. You agree to provide accurate and complete information for all listings. Prohibited items include, but are not limited to, illegal goods, counterfeit products, and hazardous materials. UniConnect is not a party to any transaction between buyers and sellers and is not responsible for the quality, safety, or legality of items listed.</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">All users can buy and sell items on the UniMarket. You agree to provide accurate and complete information for all listings. Prohibited items include, but are not limited to, illegal goods, counterfeit products, and hazardous materials. UniSpace is not a party to any transaction between buyers and sellers and is not responsible for the quality, safety, or legality of items listed.</p>
                 </section>
 
                 <section className="space-y-4" id="wallet-terms">
@@ -98,7 +98,7 @@ const TermsOfServicePage = () => {
 
                 <section className="space-y-4" id="disclaimers">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">6. Disclaimers</h2>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">UniConnect is provided "as is" without any warranties, express or implied. We do not guarantee that the platform will be error-free or uninterrupted. We are not responsible for any content posted by users or for the conduct of any user of the platform. Your use of UniConnect is at your own risk.</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">UniSpace is provided "as is" without any warranties, express or implied. We do not guarantee that the platform will be error-free or uninterrupted. We are not responsible for any content posted by users or for the conduct of any user of the platform. Your use of UniSpace is at your own risk.</p>
                 </section>
               </div>
             </div>
@@ -110,7 +110,7 @@ const TermsOfServicePage = () => {
           <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
             <a className="hover:text-primary" href="#">Terms of Service</a>
             <a className="hover:text-primary" href="#">Privacy Policy</a>
-            <p>© 2025 UniConnect. All rights reserved.</p>
+            <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
       </div>

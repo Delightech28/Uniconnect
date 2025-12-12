@@ -175,7 +175,7 @@ const ContactSupportPage = () => {
                       <span className="material-symbols-outlined text-primary mt-0.5">mail</span>
                       <div className="flex flex-col">
                         <p className="font-medium text-slate-700 dark:text-slate-300">Email Us</p>
-                        <a className="text-primary hover:underline" href="mailto:support@uniconnect.ng">support@uniconnect.ng</a>
+                        <a className="text-primary hover:underline" href="mailto:unispaceinnovationhub@gmail.com">unispaceinnovationhub@gmail.com</a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -215,7 +215,7 @@ const ContactSupportPage = () => {
           <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
             <a className="hover:text-primary" href="#">Terms of Service</a>
             <a className="hover:text-primary" href="#">Privacy Policy</a>
-            <p>© 2025 UniConnect. All rights reserved.</p>
+            <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
       </div>

@@ -28,7 +28,7 @@ const UniConnectWelcome = () => {
                   <path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z" fill="currentColor"></path>
                 </svg>
               </div>
-              <h2 className="text-lg font-bold leading-tight tracking-tight">UniConnect</h2>
+              <h2 className="text-lg font-bold leading-tight tracking-tight">UniSpace</h2>
             </div>
 
             {/* Desktop Navigation */}
@@ -81,7 +81,7 @@ const UniConnectWelcome = () => {
             <div className="flex flex-col gap-6 text-center items-center animate-fade-in-up">
               <h1 className="text-slate-900 dark:text-slate-50 text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 Connect, Share, and <br className="hidden md:block"/>
-                <span className="text-[#07bc0c]">Grow with UniConnect</span>
+                <span className="text-[#07bc0c]">Grow with UniSpace</span>
               </h1>
               <p className="text-slate-600 dark:text-slate-400 text-lg font-normal leading-relaxed max-w-3xl">
                 The ultimate digital ecosystem for Nigerian university students. Join our community to access resources, collaborate on projects, and discover new opportunities.
@@ -122,7 +122,7 @@ const UniConnectWelcome = () => {
                     <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Computer Science, University of Lagos</p>
                   </div>
                   <p className="text-slate-700 dark:text-slate-300 text-base italic leading-relaxed">
-                    "UniConnect has been a game-changer for my startup! The exposure from the referral program helped me connect with collaborators and early customers."
+                    "UniSpace has been a game-changer for my startup! The exposure from the referral program helped me connect with collaborators and early customers."
                   </p>
                 </div>
 
@@ -147,7 +147,7 @@ const UniConnectWelcome = () => {
               {/* Referral Call to Action */}
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-[#07bc0c]/10 dark:bg-[#07bc0c]/20 border border-[#07bc0c]/20">
                 <p className="text-slate-800 dark:text-slate-200 font-medium text-center md:text-left">
-                  Want to get your profile featured? Invite 10+ friends to join UniConnect!
+                  Want to get your profile featured? Invite 10+ friends to join UniSpace!
                 </p>
                 <button className="whitespace-nowrap flex items-center justify-center rounded-lg h-10 px-6 bg-[#07bc0c] hover:bg-[#06a50a] text-white text-sm font-bold transition-colors">
                   Learn about Referrals

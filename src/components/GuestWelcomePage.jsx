@@ -52,7 +52,7 @@ text-4xl">waving_hand</span>
 </div>
 <h1 className="text-slate-900 dark:text-white tracking-light
 text-3xl font-bold leading-tight">
-Welcome to UniConnect!
+Welcome to UniSpace!
 </h1>
 <p className="text-slate-600 dark:text-slate-300 text-base
 font-normal leading-normal">

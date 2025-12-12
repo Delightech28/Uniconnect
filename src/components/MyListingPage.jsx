@@ -187,7 +187,7 @@ fill="currentColor"></path>
 </svg>
 </div>
 <h2 className="text-xl font-bold leading-tight
-tracking-[-0.015em]">UniConnect</h2>
+tracking-[-0.015em]">UniSpace</h2>
 </div>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-6">

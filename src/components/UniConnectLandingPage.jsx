@@ -118,7 +118,7 @@ xmlns="http://www.w3.org/2000/svg">
 </svg>
 </div>
 <h2 className="text-xl font-bold leading-tight
-tracking-tight"><Link to="/">UniConnect</Link></h2>
+tracking-tight"><Link to="/">UniSpace</Link></h2>
 </div>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-8">
@@ -246,11 +246,11 @@ id="features">
 <div className="max-w-7xl mx-auto px-4 lg:px-10">
 <div className="text-center mb-16">
 <h2 className="text-3xl lg:text-4xl font-extrabold
-text-secondary dark:text-white">Explore UniConnect's Core
+text-secondary dark:text-white">Explore UniSpace's Core
 Features</h2>
 <p className="mt-4 text-lg max-w-3xl mx-auto text-text-light
 dark:text-gray-300">
-UniConnect is more than just an app; it's a comprehensive
+UniSpace is more than just an app; it's a comprehensive
 ecosystem designed to enhance every aspect of your university
 experience.
 </p>
@@ -334,7 +334,7 @@ border-t border-gray-200 dark:border-gray-700">
 <div className="max-w-7xl mx-auto px-4 lg:px-10 py-8">
 <div className="flex flex-col md:flex-row justify-between
 items-center gap-6">
-<div className="text-sm text-gray-500 dark:text-gray-400">© {new Date().getFullYear()} UniConnect. All Rights Reserved.</div>
+<div className="text-sm text-gray-500 dark:text-gray-400">© {new Date().getFullYear()} UniSpace. All Rights Reserved.</div>
 <div className="flex gap-6">
 <a className="text-sm hover:text-primary" href="#">About
 Us</a>

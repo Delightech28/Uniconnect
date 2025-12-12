@@ -20,7 +20,7 @@ xmlns="http://www.w3.org/2000/svg"><path d="M44
 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg> 
         </div> 
         <h2 className="text-xl font-bold leading-tight 
-tracking-[-0.015em]">UniConnect</h2> 
+tracking-[-0.015em]">UniSpace</h2> 
       </div> 
       <nav className="hidden md:flex items-center gap-6"> 
         <a className="text-secondary dark:text-white text-sm 
@@ -100,7 +100,7 @@ leading-tight tracking-[-0.015em] mb-6">Send Money</h2>
         <div> 
           <label className="text-sm font-medium text-slate-700 
 dark:text-slate-300" htmlFor="recipient"> 
-            Recipient's UniConnect ID 
+            Recipient's UniSpace ID 
           </label> 
           <div className="relative mt-1"> 
             <span className="material-symbols-outlined absolute left-3 
@@ -206,7 +206,7 @@ src={USER_QR_CODE_URL} />
                 </div> 
                 <div className="w-full"> 
                     <p className="text-slate-500 dark:text-slate-400 
-text-sm">Your UniConnect ID</p> 
+text-sm">Your UniSpace ID</p> 
                     <div className="relative mt-1"> 
                         <input 
                             className="form-input w-full text-center rounded-lg 

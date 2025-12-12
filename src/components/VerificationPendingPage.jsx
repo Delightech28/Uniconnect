@@ -73,7 +73,7 @@ xmlns="http://www.w3.org/2000/svg">
 </svg>
 </div>
 <h2 className="text-text-primary-light dark:text-text-primary-dark
-text-xl font-bold tracking-tight">UniConnect</h2>
+text-xl font-bold tracking-tight">UniSpace</h2>
 </div>
 <button
 onClick={toggleDarkMode}
@@ -110,7 +110,7 @@ hover:text-primary dark:hover:text-primary">
 </div>
 <p className="text-text-secondary-light
 dark:text-text-secondary-dark text-sm">
-© 2024 UniConnect. All rights reserved.
+© 2025 UniSpace. All rights reserved.
 </p>
 </footer>
 );

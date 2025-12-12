@@ -100,7 +100,7 @@ xmlns="http://www.w3.org/2000/svg">
 </svg>
 </div>
 <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniConnect</h2>
+tracking-tight">UniSpace</h2>
 </div>
 </header>
 <main className="flex flex-1 justify-center py-10 sm:py-20 px-4">

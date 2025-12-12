@@ -62,7 +62,7 @@ const FAQPage = () => {
             {/* Title Section */}
             <div className="flex flex-col items-center gap-4 text-center py-10">
               <p className="text-slate-900 dark:text-slate-50 text-4xl sm:text-5xl font-black leading-tight tracking-[-0.033em]">Help Center</p>
-              <p className="text-slate-600 dark:text-slate-400 max-w-xl">Find answers to your questions about UniConnect, from setting up your wallet to collaborating in study groups.</p>
+              <p className="text-slate-600 dark:text-slate-400 max-w-xl">Find answers to your questions about UniSpace, from setting up your wallet to collaborating in study groups.</p>
             </div>
 
             {/* Search Bar */}
@@ -137,7 +137,7 @@ const FAQPage = () => {
           <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
             <a className="hover:text-primary" href="#">Terms of Service</a>
             <a className="hover:text-primary" href="#">Privacy Policy</a>
-            <p>© 2024 UniConnect. All rights reserved.</p>
+            <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
       </div>

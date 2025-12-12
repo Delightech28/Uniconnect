@@ -84,8 +84,8 @@ const StudentReferral = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join UniConnect',
-          text: `Join me on UniConnect! Use my referral link to sign up and get verified.`,
+          title: 'Join UniSpace',
+          text: `Join me on UniSpace! Use my referral link to sign up and get verified.`,
           url: referralLink,
         });
       } catch (err) {
@@ -117,7 +117,7 @@ const StudentReferral = () => {
                 Invite Friends, <span className="text-[#07bc0c]">Get Featured</span>
               </h1>
               <p className="text-slate-600 dark:text-slate-400 text-base max-w-2xl">
-                Share your unique link and get your profile featured on our homepage when you successfully invite 10 friends to UniConnect.
+                Share your unique link and get your profile featured on our homepage when you successfully invite 10 friends to UniSpace.
               </p>
             </div>
 
@@ -203,7 +203,7 @@ const StudentReferral = () => {
                 <StepItem 
                   icon={<UserCheck />} 
                   title="2. Friends Sign Up" 
-                  desc="Your friends must sign up and get their student status verified on UniConnect." 
+                  desc="Your friends must sign up and get their student status verified on UniSpace." 
                 />
                 <StepItem 
                   icon={<Star />} 

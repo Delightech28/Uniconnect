@@ -57,7 +57,7 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             <div className="size-6 text-primary">
               <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
             </div>
-            <h2 className="text-xl font-bold leading-tight tracking-tight">UniConnect</h2>
+            <h2 className="text-xl font-bold leading-tight tracking-tight">UniSpace</h2>
           </div>
             <nav className="hidden lg:flex items-center gap-6">
             <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Dashboard</button>

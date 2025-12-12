@@ -266,7 +266,7 @@ duration-300" style={{ width: `${progressPercentage}%` }}></div>
 <div>
 <div className="mb-6 text-center">
 <h1 className="text-3xl font-black text-slate-900
-dark:text-white">Create your UniConnect account</h1>
+dark:text-white">Create your UniSpace account</h1>
 </div>
 <form onSubmit={handleNext} className="space-y-6">
 <button type="button" className="flex w-full cursor-pointer

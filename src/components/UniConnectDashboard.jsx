@@ -113,7 +113,7 @@ xmlns="http://www.w3.org/2000/svg">
 </svg>
 </div>
 <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniConnect</h2>
+tracking-tight">UniSpace</h2>
 </div>
 );
 const ProgressCircle = ({ percentage }) => (

@@ -280,12 +280,12 @@ function PostItem({ post }) {
 
   const handleSharePost = async () => {
     const shareUrl = `${window.location.origin}/campus-feed`;
-    const shareText = `Check out this post: "${post.title}" on UniConnect!`;
+    const shareText = `Check out this post: "${post.title}" on UniSpace!`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'UniConnect Post',
+          title: 'UniSpace Post',
           text: shareText,
           url: shareUrl,
         });

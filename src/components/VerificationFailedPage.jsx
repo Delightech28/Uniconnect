@@ -12,7 +12,7 @@ description: 'Make sure you have uploaded a valid, current student ID card or of
 },
 {
 title: 'Information Mismatch:',
-description: 'The name on your document must match the name on your UniConnect profile.',
+description: 'The name on your document must match the name on your UniSpace profile.',
 },
 ];
 // --- Sub-component for each reason item ---
@@ -58,7 +58,7 @@ xmlns="http://www.w3.org/2000/svg">
 </svg>
 </div>
 <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniConnect</h2>
+tracking-tight">UniSpace</h2>
 </div>
 </header>
 <main className="flex flex-1 justify-center py-10 sm:py-20 px-4">

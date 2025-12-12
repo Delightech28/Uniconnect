@@ -151,10 +151,10 @@ const StudentVerificationPage = () => {
           <main className="flex flex-col flex-1 py-10 px-4 md:px-6">
             <div className="flex flex-col items-center text-center gap-3 p-4 mb-8">
               <h1 className="text-clientPrimary text-4xl font-bold tracking-tighter">
-                UniConnect Student Verification
+                UniSpace Student Verification
               </h1>
               <p className="text-muted-foreground text-base font-normal max-w-2xl">
-                To complete your profile and access all features of UniConnect, please upload a document to verify your student status.
+                To complete your profile and access all features of UniSpace, please upload a document to verify your student status.
               </p>
             </div>
 
@@ -177,7 +177,7 @@ const StudentVerificationPage = () => {
                     {currentStep === 2 ? 'Your document is under review.' : 'Verification Complete!'}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    {currentStep === 2 ? 'This may take 24-48 hours.' : 'Welcome to the full UniConnect experience.'}
+                    {currentStep === 2 ? 'This may take 24-48 hours.' : 'Welcome to the full UniSpace experience.'}
                   </p>
                 </div>
               )}
@@ -223,7 +223,7 @@ const StudentVerificationPage = () => {
 
           <footer className="mt-auto px-10 py-6 border-t border-solid border-clientBackground">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground">© 2024 UniConnect. All rights reserved.</p>
+              <p className="text-sm text-muted-foreground">© 2024 UniSpace. All rights reserved.</p>
               <div className="flex items-center gap-6 text-sm">
                 <a className="text-muted-foreground hover:text-clientPrimary transition-colors" href="#">
                   Privacy Policy
