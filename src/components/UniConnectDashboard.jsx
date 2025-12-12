@@ -244,22 +244,6 @@ dark:text-white">Send Money</button>
 <a className="text-center text-primary text-sm font-medium
 mt-2" href="#">View full transaction history</a>
 </div>
-<div className="bg-white dark:bg-secondary rounded-xl
-shadow-md p-6 flex flex-col gap-4">
-<p className="text-secondary dark:text-white text-xl
-font-bold">Study Progress</p>
-<div className="flex flex-col items-center gap-3">
-<ProgressCircle percentage={85} />
-<div className="text-center">
-<p className="text-secondary dark:text-white
-font-semibold">Intro to Digital Marketing</p>
-<p className="text-slate-500 dark:text-slate-400
-text-sm">Overall Quiz Average</p>
-</div>
-</div>
-<button className="w-full rounded-lg h-10 px-4 bg-primary
-text-white mt-2">Continue Learning</button>
-</div>
 </div>
 {/* --- Right Column --- */}
 <div className="lg:col-span-2 flex flex-col gap-6">
