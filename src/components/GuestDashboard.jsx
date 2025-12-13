@@ -81,9 +81,13 @@ dark:bg-secondary">
 {/* Desktop Navigation */}
 <nav className="hidden lg:flex items-center gap-6">
 {navLinks.map((link) => (
+link === 'Study Hub' ? (
+<a key={link} className="text-secondary dark:text-white
+text-sm font-medium leading-normal" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">{link}</a>
+) : (
 <a key={link} className="text-secondary dark:text-white
 text-sm font-medium leading-normal" href="#">{link}</a>
-
+)
 ))}
 </nav>
 </div>
@@ -164,9 +168,15 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 <div className="lg:hidden bg-white dark:bg-secondary border-b
 border-slate-200 dark:border-slate-700 p-4">
 {navLinks.map((link) => (
+link === 'Study Hub' ? (
+<a key={link} href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer" className="block py-2 px-4
+text-secondary dark:text-white hover:bg-background-light
+dark:hover:bg-slate-800 rounded">{link}</a>
+) : (
 <a key={link} href="#" className="block py-2 px-4
 text-secondary dark:text-white hover:bg-background-light
 dark:hover:bg-slate-800 rounded">{link}</a>
+)
 ))}
 </div>
 )}

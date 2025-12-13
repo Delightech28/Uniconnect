@@ -10,7 +10,7 @@ import useVerified from '../hooks/useVerified';
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
 { name: 'Marketplace', href: '#', active: true },
-{ name: 'Study Hub', href: '#', active: false },
+{ name: 'Study Hub', href: 'https://uni-space-study.vercel.app', active: false },
 { name: 'Wallet', href: '#', active: false },
 ];
 const categories = ['Electronics', 'Textbooks', 'Fashion', 'Services',
@@ -62,8 +62,13 @@ tracking-tight">UniSpace</h2>
 </div>
 <nav className="hidden lg:flex items-center gap-6">
 {navLinks.map(link => (
+link.href.startsWith('http') ? (
+<a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" className={`text-sm
+font-medium ${link.active ? 'text-primary font-bold' : 'text-secondary dark:text-white'}`}>{link.name}</a>
+) : (
 <a key={link.name} href={link.href} className={`text-sm
 font-medium ${link.active ? 'text-primary font-bold' : 'text-secondary dark:text-white'}`}>{link.name}</a>
+)
 ))}
 </nav>
 </div>
@@ -112,9 +117,15 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span></button></div>
 {isMenuOpen && (
 <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
 {navLinks.map(link => (
+link.href.startsWith('http') ? (
+<a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
+{link.name}
+</a>
+) : (
 <a key={link.name} href={link.href} className="block px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800" onClick={() => setIsMenuOpen(false)}>
 {link.name}
 </a>
+)
 ))}
 </nav>
 )}

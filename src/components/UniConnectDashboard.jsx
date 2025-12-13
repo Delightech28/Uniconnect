@@ -9,7 +9,7 @@ import AppHeader from './AppHeader';
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
 { label: 'Marketplace', path: '/unimarket' },
-{ label: 'Study Hub', path: '/study-hub' },
+{ label: 'Study Hub', path: 'https://uni-space-study.vercel.app', external: true },
 { label: 'CampusFeed', path: '#campusfeed' },
 { label: 'Wallet', path: '/uni-wallet' }
 ];
@@ -213,9 +213,15 @@ return (
 <div className="lg:hidden bg-white dark:bg-secondary border-b
 border-slate-200 dark:border-slate-700 p-4">
 {navLinks.map((link) => (
+link.external ? (
+<a key={link.label} href={link.path} target="_blank" rel="noopener noreferrer" className="block py-2 px-4
+text-secondary dark:text-white hover:bg-background-light
+dark:hover:bg-slate-800 rounded" onClick={() => setIsMenuOpen(false)}>{link.label}</a>
+) : (
 <Link key={link.label} to={link.path} className="block py-2 px-4
 text-secondary dark:text-white hover:bg-background-light
 dark:hover:bg-slate-800 rounded" onClick={() => setIsMenuOpen(false)}>{link.label}</Link>
+)
 ))}
 </div>
 )}

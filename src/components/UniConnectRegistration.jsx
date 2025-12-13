@@ -68,81 +68,76 @@ const handleInputChange = (e) => {
 };
 const handleNext = async (e) => {
 	e.preventDefault();
-	// If registering as a student, continue to step 2 for verification.
-	if (formData.registerAs === 'student') {
+	
+	// If we're on step 1 and registering as a student, go to step 2 for verification
+	if (step === 1 && formData.registerAs === 'student') {
+		setStep(2);
+		return;
+	}
+	
+	// If we're on step 1 and registering as a guest, go to step 2 for guest details
+	if (step === 1 && formData.registerAs === 'guest') {
 		setStep(2);
 		return;
 	}
 
-	// For guests, create the Firebase Auth user immediately and save a user doc.
-	setLoading(true);
-	setError(null);
-	try {
-		const userCredential = await createUserWithEmailAndPassword(
-			auth,
-			formData.email,
-			formData.password
-		);
-		const user = userCredential.user;
-				// If a file was selected, upload it to Storage under users/{uid}/
-				let fileStoragePath = null;
-				let fileDownloadUrl = null;
-				let fileDataUrlToStore = formData.fileDataUrl || null;
-				if (formData.file) {
-					try {
-						fileStoragePath = `users/${user.uid}/${Date.now()}_${formData.file.name}`;
-						await uploadBytes(storageRef(storage, fileStoragePath), formData.file);
-						fileDownloadUrl = await getDownloadURL(storageRef(storage, fileStoragePath));
-					} catch (uploadErr) {
-						console.warn('Storage upload failed:', uploadErr);
-						// If upload fails, we still continue and save metadata without storage URL
-					}
-				}
-				// If the dataUrl is too large we set fileDataUrlToStore=null to avoid Firestore limits
-				const maxDataUrlLength = 900000;
-				if (fileDataUrlToStore && fileDataUrlToStore.length > maxDataUrlLength) {
-					fileDataUrlToStore = null;
-				}
-				// Generate a simple referral code and link for the new user
-				const referralCode = user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10);
-				const referralLink = (typeof window !== 'undefined' && window.location && window.location.origin)
-					? `${window.location.origin}/?ref=${referralCode}`
-					: `/?ref=${referralCode}`;
+	// If we're on step 2 and registering as a guest, create the account
+	if (step === 2 && formData.registerAs === 'guest') {
+		setLoading(true);
+		setError(null);
+		try {
+			const userCredential = await createUserWithEmailAndPassword(
+				auth,
+				formData.email,
+				formData.password
+			);
+			const user = userCredential.user;
+			
+			// Generate a simple referral code and link for the new user
+			const referralCode = user.uid ? String(user.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10);
+			const referralLink = (typeof window !== 'undefined' && window.location && window.location.origin)
+				? `${window.location.origin}/?ref=${referralCode}`
+				: `/?ref=${referralCode}`;
 
-					// If visitor had a referral code, store it on the new user record
-					// Attribution (incrementing the referrer's counters) should be done server-side
-					// (e.g. Cloud Function) to avoid client-side permission issues.
-					const incomingRefGuest = (typeof window !== 'undefined') ? localStorage.getItem('referral_code') : null;
-					if (incomingRefGuest) {
-					  // store the code for server-side attribution
-					  // remove from localStorage so it isn't reused
-					  try { localStorage.removeItem('referral_code'); } catch (e) {}
-					}
+			// If visitor had a referral code, store it on the new user record
+			const incomingRefGuest = (typeof window !== 'undefined') ? localStorage.getItem('referral_code') : null;
+			if (incomingRefGuest) {
+				try { localStorage.removeItem('referral_code'); } catch (e) {}
+			}
 
-					await setDoc(doc(db, 'users', user.uid), {
-					email: formData.email,
-					displayName: formData.displayName || '',
-					bio: formData.bio || '',
-					interests: formData.interests || [],
-					registerAs: formData.registerAs,
-					institution: formData.institution || null,
-					documentType: formData.documentType || null,
-					documentFileName: formData.file ? formData.file.name : null,
-					fileDataUrl: fileDataUrlToStore,
-						verified: false,
-						referredByCode: incomingRefGuest || null,
-					referralCode,
-					referralLink,
-					referralsCount: 0,
-					createdAt: serverTimestamp(),
-				});
-		navigate('/guest-dashboard');
-	} catch (err) {
-		console.error('Error creating guest user:', err);
-		setError(err.message || 'Failed to create account');
-		alert(`Error: ${err.message}`);
-	} finally {
-		setLoading(false);
+			await setDoc(doc(db, 'users', user.uid), {
+				email: formData.email,
+				displayName: formData.displayName || '',
+				bio: formData.bio || '',
+				interests: formData.interests || [],
+				registerAs: 'Guest',
+				institution: null, // Guests don't have institution
+				documentType: null,
+				documentFileName: null,
+				fileDataUrl: null,
+				verified: false,
+				referredByCode: incomingRefGuest || null,
+				referralCode,
+				referralLink,
+				referralsCount: 0,
+				createdAt: serverTimestamp(),
+			});
+			
+			navigate('/guest-welcome');
+		} catch (err) {
+			console.error('Error creating guest user:', err);
+			setError(err.message || 'Failed to create account');
+			alert(`Error: ${err.message}`);
+		} finally {
+			setLoading(false);
+		}
+		return;
+	}
+
+	// For students on step 2, continue to step 2 for verification.
+	if (step === 2 && formData.registerAs === 'student') {
+		setStep(2);
+		return;
 	}
 };
 
@@ -234,10 +229,8 @@ const handleSubmit = async (e) => {
 	}
 };
 // --- Progress Bar Logic ---
-const progressPercentage = step === 1 ? (formData.registerAs ===
-'student' ? 50 : 100) : 100;
-const stepText = step === 1 && formData.registerAs === 'student' ?
-'Step 1 of 2' : 'Step 2 of 2';
+const progressPercentage = step === 1 ? 50 : 100;
+const stepText = step === 1 ? 'Step 1 of 2' : 'Step 2 of 2';
 return (
 <div className="relative flex min-h-screen flex-col justify-center
 overflow-hidden p-4">
@@ -367,8 +360,8 @@ Next
 </form>
 </div>
 )}
-{/* --- Step 2: Verification --- */}
-{step === 2 && (
+{/* --- Step 2: Verification or Guest Registration --- */}
+{step === 2 && formData.registerAs === 'student' && (
 <div>
 <div className="mb-6 text-center">
 <h1 className="text-3xl font-black text-slate-900
@@ -426,6 +419,72 @@ font-bold tracking-wide text-white hover:bg-primary/90">
 Submit
 </button>
 </form>
+</div>
+)}
+{/* --- Step 2: Guest Registration --- */}
+{step === 2 && formData.registerAs === 'guest' && (
+<div>
+<div className="mb-6 text-center">
+<h1 className="text-3xl font-black text-slate-900
+dark:text-white">Complete Your Guest Account</h1>
+<p className="text-slate-600 dark:text-slate-300 mt-2">
+You're almost done! Click below to create your guest account.
+</p>
+</div>
+<div className="space-y-6">
+<div>
+<label className="mb-2 block text-sm font-medium
+text-slate-700 dark:text-slate-300" htmlFor="displayName">Display Name</label>
+<input className="form-input block w-full rounded-lg
+border-slate-300 bg-background-light p-4 text-base text-slate-900
+placeholder:text-slate-400 focus:border-primary focus:ring-primary
+dark:border-slate-600 dark:bg-slate-800 dark:text-white
+dark:placeholder:text-slate-500" id="displayName" type="text"
+placeholder="Enter your display name" value={formData.displayName}
+onChange={handleInputChange} />
+</div>
+<div>
+<label className="mb-2 block text-sm font-medium
+text-slate-700 dark:text-slate-300" htmlFor="bio">Bio (Optional)</label>
+<textarea className="form-input block w-full rounded-lg
+border-slate-300 bg-background-light p-4 text-base text-slate-900
+placeholder:text-slate-400 focus:border-primary focus:ring-primary
+dark:border-slate-600 dark:bg-slate-800 dark:text-white
+dark:placeholder:text-slate-500" id="bio" rows="3"
+placeholder="Tell us about yourself" value={formData.bio}
+onChange={handleInputChange}></textarea>
+</div>
+<div>
+<label className="mb-2 block text-sm font-medium
+text-slate-700 dark:text-slate-300" htmlFor="interests">Interests (Optional)</label>
+<div className="flex flex-wrap gap-2">
+{['Technology', 'Business', 'Arts', 'Sports', 'Science', 'Literature'].map(interest => (
+<button
+key={interest}
+type="button"
+onClick={() => {
+const newInterests = formData.interests.includes(interest)
+? formData.interests.filter(i => i !== interest)
+: [...formData.interests, interest];
+setFormData(prev => ({ ...prev, interests: newInterests }));
+}}
+className={`px-3 py-2 rounded-full text-sm font-medium border ${
+formData.interests.includes(interest)
+? 'bg-primary text-white border-primary'
+: 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+}`}
+>
+{interest}
+</button>
+))}
+</div>
+</div>
+</div>
+<button onClick={handleNext} disabled={loading} className="flex w-full cursor-pointer
+items-center justify-center rounded-lg bg-primary px-5 py-4 text-base
+font-bold tracking-wide text-white hover:bg-primary/90 mt-6">
+{loading ? 'Creating Account...' : 'Create Guest Account'}
+</button>
 </div>
 )}
 

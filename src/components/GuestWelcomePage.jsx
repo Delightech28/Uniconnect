@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useNavigate } from 'react-router-dom';
 // --- Data for the feature list (cleaner than hardcoding in JSX) ---
 const guestFeatures = [
 {
@@ -25,6 +26,7 @@ enabled: false, // This flag will control the styling
 ];
 const GuestWelcomePage = () => {
 const { darkMode, toggleTheme } = useTheme();
+const navigate = useNavigate();
 return (
 <div className="relative flex min-h-screen w-full flex-col
 overflow-x-hidden">
@@ -81,7 +83,7 @@ font-normal leading-normal flex-1">
 })}
 </div>
 <div className="flex flex-col gap-3 pt-2">
-<button className="flex h-12 w-full items-center justify-center
+<button onClick={() => navigate('/guest-dashboard')} className="flex h-12 w-full items-center justify-center
 rounded-lg bg-primary px-6 text-base font-semibold text-white
 transition-colors hover:bg-primary/90 focus-visible:outline
 focus-visible:outline-2 focus-visible:outline-offset-2
