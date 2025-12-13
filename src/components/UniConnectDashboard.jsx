@@ -128,6 +128,11 @@ const UniConnectDashboard = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [campusFeedPosts, setCampusFeedPosts] = useState([]);
 
+  // Simple markdown renderer for bold text
+  const renderMarkdown = (text) => {
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
   // Fetch current user's avatar and set currentUserId from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -314,7 +319,7 @@ alt={`${post.authorName} profile`} src={post.authorAvatar || '/default_avatar.pn
 <p className="font-semibold text-secondary
 dark:text-white">{post.authorName || 'Anonymous'}</p>
 <p className="text-secondary dark:text-white
-mt-1">{post.content}</p>
+mt-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
 <div className="flex items-center gap-4 text-slate-500
 dark:text-slate-400 mt-2 text-sm">
 <span className="flex items-center gap-1"><span

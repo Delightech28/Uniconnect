@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
 email: '',
@@ -14,10 +15,16 @@ const { darkMode, toggleTheme } = useTheme();
 const [loading, setLoading] = useState(false);
 const [errorMessage, setErrorMessage] = useState('');
 const navigate = useNavigate();
-    // If user is already authenticated, redirect to dashboard
+    // If user is already authenticated, redirect to appropriate dashboard
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (user) => {
-            if (user) navigate('/dashboard');
+        const unsub = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const registerAs = userDoc.data().registerAs;
+                    navigate(registerAs === 'Guest' ? '/guest-dashboard' : '/dashboard');
+                }
+            }
         });
         return () => unsub();
     }, [navigate]);
@@ -42,8 +49,14 @@ const handleSubmit = async (e) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         // successful login
         setLoading(false);
-        // Redirect to dashboard
-        navigate('/dashboard');
+        // Get user data to determine dashboard
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (userDoc.exists()) {
+            const registerAs = userDoc.data().registerAs;
+            navigate(registerAs === 'Guest' ? '/guest-dashboard' : '/dashboard');
+        } else {
+            navigate('/dashboard'); // fallback
+        }
     } catch (error) {
         setLoading(false);
         // Map common Firebase Auth errors to friendly messages

@@ -115,7 +115,7 @@ const handleNext = async (e) => {
 				documentType: null,
 				documentFileName: null,
 				fileDataUrl: null,
-				verified: false,
+				verified: true,
 				referredByCode: incomingRefGuest || null,
 				referralCode,
 				referralLink,

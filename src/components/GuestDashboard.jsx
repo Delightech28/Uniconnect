@@ -2,28 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Link } from 'react-router-dom';
 import AppHeader from './AppHeader';
-const marketplaceItems = [
-{
-id: 1,
-name: 'Nike Air Max 270',
-status: 'Active',
-statusColor: 'text-green-500',
-price: '₦25,000',
-imageUrl:
-'https://lh3.googleusercontent.com/aida-public/AB6AXuB9mXk_qbIXJYUVxnWvbQg_bozBnGEKHRrM8v4t3KcQmZHd-FxDm81WKa7Sjga6pBF5VoxZvEEjD7WxHkR-DpYU-kBAS_JQ3aZOjZDUbu09QoakvbG-jN-BHaJPSPzt0JmZ7cKqJF3_8xN3ykop63r1dxxeepW0l6UN313C0kraBIyJwgjjuR6zyRJNmmuyswyUC0MXK2t5hBQwgo56w1dZUdskGE0AkKY2pzcLLwQC0Q8r_QgnJdJCVMPqCCKl5ZzE8Oc34XLJWDCt',
-},
-{
-id: 2,
-name: 'Beats by Dre Headset',
-status: 'Sold',
-statusColor: 'text-red-500',
-price: '₦18,500',
-imageUrl:
-'https://lh3.googleusercontent.com/aida-public/AB6AXuAt2vO4nW3jgysnaq7rVPGh4kxysZPvVF0dgOq5fmj6WjyVAPR1e31WNOWNAllcIDOi5id5virHcgCS2BhAkBV6ga5JIKGnUCh7H3rOM2p9xc1F4hCq-O2Qauvaj6OqGfw7tAZUfsijY9JOu_ngQ8weiLKe0av6rUq92H0XLQdUAU3Pc7dBkeoaqTMTa86L9gxOt9dkQexjL-w7HItHs_vm9o31WwXgq33PfWVg41_O4_Ke6OmFSG83_GAK54tKaGqvADnHvh6JDNj4',
-},
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { query, collection, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
 
-];
-// --- Sub-components for better organization ---
+// --- Main Dashboard Component ---
+const GuestDashboard = () => {
+const [marketplaceTab, setMarketplaceTab] = useState('listings');
+const { darkMode, toggleTheme } = useTheme();
+const [userName, setUserName] = useState('Guest');
+const [greeting, setGreeting] = useState('Good morning');
+const [userListings, setUserListings] = useState([]);
+const [currentUserId, setCurrentUserId] = useState(null);
+const [campusFeedPosts, setCampusFeedPosts] = useState([]);
+
+// Simple markdown renderer for bold text
+const renderMarkdown = (text) => {
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+};
 const ProgressCircle = ({ percentage }) => (
 <div className="relative size-32">
 <svg className="size-full" width="36" height="36" viewBox="0 0 36
@@ -48,10 +44,78 @@ text-primary">{percentage}%</span>
 </div>
 </div>
 );
-// --- Main Dashboard Component ---
-const GuestDashboard = () => {
-const [marketplaceTab, setMarketplaceTab] = useState('listings');
-const { darkMode, toggleTheme } = useTheme();
+
+useEffect(() => {
+	const unsubscribe = onAuthStateChanged(auth, (user) => {
+		if (user) {
+			setCurrentUserId(user.uid);
+			setUserName(user.displayName || 'Guest');
+		}
+	});
+
+	const hour = new Date().getHours();
+	if (hour < 12) {
+		setGreeting('Good morning');
+	} else if (hour < 18) {
+		setGreeting('Good afternoon');
+	} else {
+		setGreeting('Good evening');
+	}
+
+	return () => unsubscribe();
+}, []);
+
+  // Subscribe to user's listings from Firestore
+  useEffect(() => {
+    if (!currentUserId) return;
+    
+    try {
+      const q = query(
+        collection(db, 'listings'),
+        where('sellerId', '==', currentUserId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const listings = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setUserListings(listings);
+      }, (error) => {
+        console.error('Error fetching user listings:', error);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up listings subscription:', error);
+    }
+  }, [currentUserId]);
+
+  // Subscribe to campus feed posts (first 2 posts) from Firestore
+  useEffect(() => {
+    try {
+      const q = query(
+        collection(db, 'posts'),
+        orderBy('createdAt', 'desc'),
+        limit(2)
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const posts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setCampusFeedPosts(posts);
+      }, (error) => {
+        console.error('Error fetching campus feed posts:', error);
+      });
+      
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up campus feed subscription:', error);
+    }
+  }, []);
 return (
 <div className="relative flex min-h-screen w-full flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
@@ -60,7 +124,7 @@ return (
 <div className="flex flex-col max-w-7xl mx-auto">
 <h1 className="text-secondary dark:text-white tracking-light
 text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
-Good morning, Adekunle!
+{greeting}, {userName}!
 </h1>
 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4">
 {/* --- Left Column --- */}
@@ -107,29 +171,64 @@ Purchases
 </div>
 <div className="mt-4 space-y-4">
 {marketplaceTab === 'listings' ? (
-marketplaceItems.map((item) => (
-<div key={item.id} className="flex items-center gap-4">
+userListings.length > 0 ? (
+userListings.map((item) => (
+<div key={item.id} className="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
 <img className="w-16 h-16 rounded-lg object-cover"
-alt={item.name} src={item.imageUrl} />
+alt={item.name} src={item.images?.[0] || 'https://via.placeholder.com/64'} />
 <div className="flex-1">
 <p className="font-semibold text-secondary
 dark:text-white">{item.name}</p>
 <p className="text-sm text-slate-500
-dark:text-slate-400">Status: <span
-className={item.statusColor}>{item.status}</span></p>
+dark:text-slate-400">Price: <span
+className="text-primary">{item.price}</span></p>
 </div>
+<div className="flex flex-col gap-2">
 <p className="font-bold text-secondary
-dark:text-white">{item.price}</p>
+dark:text-white">₦{item.price}</p>
+<button className="text-primary text-sm font-medium hover:underline">View Details</button>
+</div>
 </div>
 ))
 ) : (
 <p className="text-slate-500 dark:text-slate-400 p-4
+text-center">No listings found. <Link to="/sell-item" className="text-primary hover:underline">Create one</Link></p>
+)
+) : (
+<p className="text-slate-500 dark:text-slate-400 p-4
 text-center">No purchases found.</p>
-
 )}
 </div>
-<a className="block text-center text-primary text-sm
-font-medium mt-4" href="#">View All Listings</a>
+    <Link className="block text-center text-primary text-sm
+font-medium mt-4 hover:underline" to="/my-listings">View All Listings</Link>
+</div>
+<div className="bg-white dark:bg-secondary rounded-xl
+shadow-md p-6">
+<p className="text-secondary dark:text-white text-xl font-bold
+mb-4">CampusFeed</p>
+<div className="space-y-4">
+{campusFeedPosts.map((post) => (
+<div key={post.id} className="flex gap-4">
+<img className="size-10 rounded-full flex-shrink-0"
+alt={`${post.authorName} profile`} src={post.authorAvatar || '/default_avatar.png'} />
+<div className="flex-1">
+<p className="font-semibold text-secondary
+dark:text-white">{post.authorName || 'Anonymous'}</p>
+<p className="text-secondary dark:text-white
+mt-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
+<div className="flex items-center gap-4 text-slate-500
+dark:text-slate-400 mt-2 text-sm">
+<span className="flex items-center gap-1"><span
+className="material-symbols-outlined text-sm">favorite_border</span> {post.likes || 0}</span>
+<span className="flex items-center gap-1"><span
+className="material-symbols-outlined text-sm">chat_bubble_outline</span> {post.comments || 0}</span>
+</div>
+</div>
+</div>
+))}
+</div>
+<Link className="block text-center text-primary text-sm
+font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </div>
@@ -138,4 +237,5 @@ font-medium mt-4" href="#">View All Listings</a>
 </div>
 );
 };
+
 export default GuestDashboard;
