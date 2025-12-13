@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Link } from 'react-router-dom';
-// --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
-const navLinks = ['Dashboard', 'Marketplace', 'Study Hub', 'Wallet'];
+import AppHeader from './AppHeader';
 const marketplaceItems = [
 {
 id: 1,
@@ -25,20 +24,6 @@ imageUrl:
 
 ];
 // --- Sub-components for better organization ---
-const Logo = () => (
-<div className="flex items-center gap-4 text-secondary
-dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
-<h2 className="text-xl font-bold leading-tight
-tracking-tight">UniSpace</h2>
-</div>
-);
 const ProgressCircle = ({ percentage }) => (
 <div className="relative size-32">
 <svg className="size-full" width="36" height="36" viewBox="0 0 36
@@ -65,121 +50,11 @@ text-primary">{percentage}%</span>
 );
 // --- Main Dashboard Component ---
 const GuestDashboard = () => {
-const [isMenuOpen, setIsMenuOpen] = useState(false);
-const [isProfileOpen, setIsProfileOpen] = useState(false);
 const [marketplaceTab, setMarketplaceTab] = useState('listings');
 const { darkMode, toggleTheme } = useTheme();
 return (
 <div className="relative flex min-h-screen w-full flex-col">
-{/* --- Header --- */}
-<header className="sticky top-0 z-20 flex items-center
-justify-between whitespace-nowrap border-b border-solid
-border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white
-dark:bg-secondary">
-<div className="flex items-center gap-4 lg:gap-8">
-<Logo />
-{/* Desktop Navigation */}
-<nav className="hidden lg:flex items-center gap-6">
-{navLinks.map((link) => (
-link === 'Study Hub' ? (
-<a key={link} className="text-secondary dark:text-white
-text-sm font-medium leading-normal" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">{link}</a>
-) : (
-<a key={link} className="text-secondary dark:text-white
-text-sm font-medium leading-normal" href="#">{link}</a>
-)
-))}
-</nav>
-</div>
-<div className="flex flex-1 justify-end items-center gap-3
-sm:gap-6">
-<label className="hidden sm:flex flex-col min-w-40 !h-10
-max-w-64">
-<div className="flex w-full flex-1 items-stretch rounded-lg
-h-full">
-<div className="text-slate-500 flex items-center justify-center
-pl-4 rounded-l-lg bg-background-light dark:bg-slate-800">
-<span
-className="material-symbols-outlined">search</span>
-</div>
-<input
-className="form-input w-full min-w-0 flex-1 rounded-r-lg
-text-secondary dark:text-white focus:outline-none focus:ring-0
-border-none bg-background-light dark:bg-slate-800 h-full
-placeholder:text-slate-500 px-4 text-base"
-placeholder="Search"
-/>
-</div>
-</label>
-{/* --- Header Icons --- */}
-<button onClick={() => toggleTheme()}
-className="flex cursor-pointer items-center justify-center rounded-lg
-h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-white" aria-label="Toggle dark mode">
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-<button className="flex cursor-pointer items-center justify-center
-rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800
-text-secondary dark:text-white">
-
-<span
-className="material-symbols-outlined">notifications</span>
-</button>
-{/* --- Profile Dropdown --- */}
-<div className="relative">
-<button onClick={() => setIsProfileOpen(!isProfileOpen)}
-className="block">
-<div
-className="bg-center bg-no-repeat aspect-square bg-cover
-rounded-full size-10"
-style={{ backgroundImage:
-'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oXpOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrSyxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANMAlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")' }}
-></div>
-</button>
-{isProfileOpen && (
-<div className="absolute right-0 mt-2 w-48 bg-white
-dark:bg-secondary rounded-md shadow-lg py-1">
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Profile</a>
-<Link className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-to="/settings">Settings</Link>
-<a className="block px-4 py-2 text-sm text-secondary
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-href="#">Logout</a>
-</div>
-)}
-</div>
-{/* --- Mobile Menu Button --- */}
-
-<div className="lg:hidden">
-<button onClick={() => setIsMenuOpen(!isMenuOpen)}
-className="text-secondary dark:text-white">
-<span className="material-symbols-outlined
-text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
-</button>
-</div>
-</div>
-</header>
-{/* --- Mobile Menu --- */}
-{isMenuOpen && (
-<div className="lg:hidden bg-white dark:bg-secondary border-b
-border-slate-200 dark:border-slate-700 p-4">
-{navLinks.map((link) => (
-link === 'Study Hub' ? (
-<a key={link} href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer" className="block py-2 px-4
-text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800 rounded">{link}</a>
-) : (
-<a key={link} href="#" className="block py-2 px-4
-text-secondary dark:text-white hover:bg-background-light
-dark:hover:bg-slate-800 rounded">{link}</a>
-)
-))}
-</div>
-)}
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 {/* --- Main Content --- */}
 <main className="flex-1 px-4 sm:px-10 py-8">
 <div className="flex flex-col max-w-7xl mx-auto">

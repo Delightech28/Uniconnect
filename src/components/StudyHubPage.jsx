@@ -12,7 +12,7 @@ const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
 { name: 'Marketplace', path: '/unimarket', active: false },
 { name: 'Study Hub', path: '/study-hub', active: true },
-{ name: 'CampusFeed', path: '#campusfeed', active: false },
+{ name: 'CampusFeed', path: '/campusfeed', active: false },
 { name: 'Wallet', path: '/uni-wallet', active: false },
 ];
 const featureCards = [

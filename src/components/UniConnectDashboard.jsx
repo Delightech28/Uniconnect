@@ -10,7 +10,7 @@ const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
 { label: 'Marketplace', path: '/unimarket' },
 { label: 'Study Hub', path: 'https://uni-space-study.vercel.app', external: true },
-{ label: 'CampusFeed', path: '#campusfeed' },
+{ label: 'CampusFeed', path: '/campusfeed' },
 { label: 'Wallet', path: '/uni-wallet' }
 ];
 const marketplaceItems = [
@@ -329,7 +329,7 @@ text-base">chat_bubble_outline</span> {post.commentsCount || 0}</span>
 ))}
 </div>
 <Link className="block text-center text-primary text-sm
-font-medium mt-4 hover:underline" to="/campus-feed">View Full Feed</Link>
+font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </div>
