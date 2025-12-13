@@ -22,7 +22,7 @@ const navigate = useNavigate();
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
                     const registerAs = userDoc.data().registerAs;
-                    navigate(registerAs === 'Guest' ? '/guest-dashboard' : '/dashboard');
+                    navigate(registerAs === 'Guest' ? '/dashboard' : '/dashboard');
                 }
             }
         });
@@ -53,7 +53,7 @@ const handleSubmit = async (e) => {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         if (userDoc.exists()) {
             const registerAs = userDoc.data().registerAs;
-            navigate(registerAs === 'Guest' ? '/guest-dashboard' : '/dashboard');
+            navigate(registerAs === 'Guest' ? '/dashboard' : '/dashboard');
         } else {
             navigate('/dashboard'); // fallback
         }

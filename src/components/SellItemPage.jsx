@@ -3,6 +3,7 @@ import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
@@ -19,6 +20,10 @@ const durationOptions = {
 days: { max: 7, fee: 50 },
 weeks: { max: 4, fee: 300 },
 months: { max: 12, fee: 1000 },
+};
+const guestFees = {
+days: { 2: 200, 3: 300, 4: 400, 5: 500, 6: 600, 7: 700 },
+weeks: { 1: 900, 2: 1200, 3: 1800, 4: 2400 }
 };
 // --- Sub-components for better organization ---
 const Header = ({ darkMode, toggleDarkMode }) => {
@@ -245,9 +250,23 @@ const SellItemPage = () => {
 const { darkMode, toggleTheme } = useTheme();
 const { isLoading: verifyingLoading, verified, status } = useVerified();
 const navigate = useNavigate();
+const [user, setUser] = useState(null);
+const [formData, setFormData] = useState({ productName: '', price: '',
+category: '', description: '' });
+const [uploadedFiles, setUploadedFiles] = useState([]);
+const [durationType, setDurationType] = useState('days');
+const [durationValue, setDurationValue] = useState(7);
+const [registerAs, setRegisterAs] = useState(null);
 
 useEffect(() => {
-	if (!verifyingLoading && !verified) {
+  const unsubAuth = onAuthStateChanged(auth, (u) => {
+    setUser(u);
+  });
+  return () => unsubAuth();
+}, []);
+
+useEffect(() => {
+	if (!verifyingLoading && !verified && user && registerAs !== 'guest') {
 		if (status === 'failed') {
 			toast.error('Your verification failed. You cannot create listings.');
 			navigate('/verification-failed');
@@ -256,17 +275,29 @@ useEffect(() => {
 			navigate('/verification-pending');
 		}
 	}
-}, [verifyingLoading, verified, status, navigate]);
+}, [verifyingLoading, verified, status, navigate, registerAs, user]);
 
 // preserve existing navigate binding
 // const navigate = useNavigate();
-const [formData, setFormData] = useState({ productName: '', price: '',
-category: '', description: '' });
-const [uploadedFiles, setUploadedFiles] = useState([]);
-const [durationType, setDurationType] = useState('days');
-const [durationValue, setDurationValue] = useState(7);
 const walletBalance = 2500; // Mock data
 // theme handled by useTheme
+
+// Fetch user registerAs
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setRegisterAs(userDoc.data().registerAs);
+        }
+      } catch (err) {
+        console.error('Error fetching registerAs:', err);
+      }
+    }
+  });
+  return () => unsubscribe();
+}, []);
 const handleInputChange = (e) => {
 const { id, value } = e.target;
 setFormData(prev => ({...prev, [id]: value}));
@@ -275,7 +306,16 @@ const handleDurationTypeChange = (e) => {
 setDurationType(e.target.value);
 setDurationValue(1); // Reset slider on type change
 };
-const listingFee = durationOptions[durationType].fee * durationValue;
+let listingFee = durationOptions[durationType].fee * durationValue;
+// Guest surcharge based on duration
+if (registerAs === 'Guest') {
+  if (guestFees[durationType] && guestFees[durationType][durationValue]) {
+    listingFee = guestFees[durationType][durationValue];
+  } else {
+    // If not specified, perhaps keep default or set to 0, but for now keep default
+    listingFee = durationOptions[durationType].fee * durationValue;
+  }
+}
 
 
 const readFileAsDataURL = (file) => new Promise((resolve, reject) => {

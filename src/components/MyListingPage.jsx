@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { query, collection, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { query, collection, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import AppHeader from './AppHeader';
+import { useTheme } from '../hooks/useTheme';
 // --- Data Layer ---
 // Removed static mock data; now fetches from Firestore in component
 const listingsData = [
@@ -66,7 +68,7 @@ return <span className={`${baseClasses}
 ${statusClasses}`}>{status}</span>;
 };
 // A component for action buttons, with conditional rendering for the "Relist" button
-const ActionButtons = ({ status }) => {
+const ActionButtons = ({ status, onDelete }) => {
 return (
 <div className="flex justify-end items-center gap-2">
 <button className="p-2 text-slate-500 hover:text-primary
@@ -84,7 +86,7 @@ dark:text-slate-400 dark:hover:text-blue-400">
 <span className="material-symbols-outlined">edit</span>
 </button>
 )}
-<button className="p-2 text-slate-500 hover:text-red-600
+<button onClick={onDelete} className="p-2 text-slate-500 hover:text-red-600
 dark:text-slate-400 dark:hover:text-red-500">
 <span className="material-symbols-outlined">delete</span>
 </button>
@@ -96,6 +98,7 @@ function MyListingsPage() {
   const [userListings, setUserListings] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { darkMode, toggleTheme } = useTheme();
 
   // Fetch current user ID and subscribe to their listings
   useEffect(() => {
@@ -164,84 +167,32 @@ function MyListingsPage() {
     return 'Active';
   };
 
+  // Handle delete listing
+  const handleDelete = async (listingId) => {
+    if (window.confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+      try {
+        await deleteDoc(doc(db, 'listings', listingId));
+        // The onSnapshot will automatically update the UI
+      } catch (error) {
+        console.error('Error deleting listing:', error);
+        alert('Failed to delete listing. Please try again.');
+      }
+    }
+  };
+
+  // Format price with commas
+  const formatPrice = (price) => {
+    return Number(price).toLocaleString();
+  };
+
 return (
 // The main container div gets the body classes
 <div className="bg-background-light dark:bg-background-dark
 font-display text-secondary dark:text-slate-200 min-h-screen">
+<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <div className="relative flex h-auto w-full flex-col group/design-root
 overflow-x-hidden">
 <div className="layout-container flex h-full grow flex-col">
-{/* Header */}
-<header className="flex items-center justify-between
-whitespace-nowrap border-b border-solid border-slate-200
-dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
-<div className="flex items-center gap-4 sm:gap-8">
-<div className="flex items-center gap-4 text-secondary
-dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="none" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"
-fill="currentColor"></path>
-</svg>
-</div>
-<h2 className="text-xl font-bold leading-tight
-tracking-[-0.015em]">UniSpace</h2>
-</div>
-{/* Desktop Navigation */}
-<nav className="hidden md:flex items-center gap-6">
-<a className="text-secondary dark:text-white text-sm
-font-medium leading-normal" href="#">Dashboard</a>
-<a className="text-primary dark:text-primary text-sm
-font-bold leading-normal" href="#">Marketplace</a>
-<a className="text-secondary dark:text-white text-sm
-font-medium leading-normal" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Study Hub</a>
-<a className="text-secondary dark:text-white text-sm
-font-medium leading-normal" href="#">Wallet</a>
-</nav>
-
-</div>
-<div className="flex flex-1 justify-end items-center gap-2
-sm:gap-4">
-{/* In a real app, a hamburger menu would be here for mobile
-*/}
-<button className="flex items-center justify-center rounded-lg
-h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-white">
-<span
-className="material-symbols-outlined">notifications</span>
-</button>
-<div className="relative group">
-<div
-className="bg-center bg-no-repeat aspect-square bg-cover
-rounded-full size-10 cursor-pointer"
-alt="User profile picture"
-style={{ backgroundImage:
-`url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oX
-pOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL
-8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke
-_YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrS
-yxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANM
-AlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")` }}
-></div>
-<div className="absolute right-0 mt-2 w-48 bg-white
-dark:bg-secondary rounded-md shadow-lg py-1 hidden
-group-hover:block z-10">
-					<a className="block px-4 py-2 text-sm text-secondary
-					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-					href="#">Profile</a>
-					<Link className="block px-4 py-2 text-sm text-secondary
-					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-					to="/settings">Settings</Link>
-					<a className="block px-4 py-2 text-sm text-secondary
-					dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-					href="#">Logout</a>
-</div>
-
-</div>
-</div>
-</header>
 {/* Main Content */}
 <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
 <div className="layout-content-container flex flex-col max-w-7xl
@@ -300,13 +251,13 @@ dark:text-white">{item.name}</span>
 </div>
 </td>
 <td className="p-4 font-medium text-slate-700
-dark:text-slate-300">₦{item.price}</td>
+dark:text-slate-300">₦{formatPrice(item.price)}</td>
 <td className="p-4"><StatusBadge
 status={getListingStatus(item)} /></td>
 <td className="p-4 text-slate-600
 dark:text-slate-400">{formatExpiresIn(item.createdAt)}</td>
 <td className="p-4"><ActionButtons
-status={getListingStatus(item)} /></td>
+status={getListingStatus(item)} onDelete={() => handleDelete(item.id)} /></td>
 </tr>
 ))
 ) : (
@@ -332,7 +283,7 @@ object-cover rounded-lg flex-shrink-0" src={item.images?.[0] || 'https://via.pla
 <p className="font-medium text-secondary
 dark:text-white mb-1">{item.name}</p>
 <p className="font-bold text-primary text-lg
-mb-2">₦{item.price}</p>
+mb-2">₦{formatPrice(item.price)}</p>
 <StatusBadge status={getListingStatus(item)} />
 </div>
 </div>
@@ -343,7 +294,7 @@ mt-4">
 dark:text-slate-400">Expires in: {formatExpiresIn(item.createdAt)}</span>
 </div>
 <div>
-<ActionButtons status={getListingStatus(item)} />
+<ActionButtons status={getListingStatus(item)} onDelete={() => handleDelete(item.id)} />
 </div>
 </div>
 </div>
