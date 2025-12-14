@@ -108,7 +108,7 @@ mt-1.5" title="Unread"></div>
 const NotificationsPage = () => {
 const { darkMode, toggleTheme } = useTheme();
 const [notifications, setNotifications] =
-useState(initialNotificationsData);
+useState([]);
 const markAsRead = (id) => {
 setNotifications(
 notifications.map((n) => (n.id === id ? { ...n, unread: false } : n))
@@ -128,8 +128,7 @@ sm:justify-between mb-6">
 <h1 className="text-secondary dark:text-white text-3xl font-bold
 leading-tight">Notifications</h1>
 <div className="flex items-center gap-4 mt-4 sm:mt-0">
-<button onClick={markAllAsRead} className="text-primary
-text-sm font-medium">Mark all as read</button>
+<button onClick={markAllAsRead} disabled={!hasUnread} className={`text-sm font-medium ${hasUnread ? 'text-primary' : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'}`}>Mark all as read</button>
 <button className="text-secondary dark:text-white text-sm
 font-medium flex items-center gap-1">
 <span>Filter</span>
@@ -140,19 +139,27 @@ text-base">filter_list</span>
 </div>
 <div className="bg-white dark:bg-secondary rounded-xl
 shadow-md">
-<ul className="divide-y divide-slate-200 dark:divide-slate-700">
-{notifications.map((notification) => (
-<NotificationItem
-key={notification.id}
-notification={notification}
-onClick={() => markAsRead(notification.id)}
-/>
-))}
-</ul>
-</div>
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center">
+              <span className="material-symbols-outlined text-6xl text-slate-400 dark:text-slate-600">notifications</span>
+              <p className="text-secondary dark:text-white text-lg font-medium mt-4">No notifications yet</p>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-2">You'll see updates here when something happens.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-200 dark:divide-slate-700">
+              {notifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => markAsRead(notification.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
 
-</div>
-</main>
+      </div>
+    </main>
 </div>
 );
 };
