@@ -40,6 +40,9 @@ import FAQPage from "./components/FAQPage";
 import ContactSupportPage from "./components/ContactSupportPage";
 import TermsOfServicePage from "./components/TermsOfServicePage";
 import CampusFeed from "./components/CampusFeed";
+import UniSpaceUpgrade from "./components/UniSpaceUpgrade";
+import ProtectedRoute from "./components/ProtectedRoute";
+import GuestUpgrade from "./components/GuestUpgrade";
 function App() {
   return (
     <>
@@ -57,36 +60,38 @@ function App() {
         <Route path="/reupload-verification" element={<ReuploadVerificationPage />} />
         <Route path="/login" element={<UniConnectLogin />} />
         <Route path="/guest-welcome" element={<GuestWelcomePage />} />
-        <Route path="/dashboard" element={<UniConnectDashboard />} />
+        <Route path="/dashboard" element={<ProtectedRoute><UniConnectDashboard /></ProtectedRoute>} />
         <Route path="/guest-dashboard" element={<GuestDashboard />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/unimarket" element={<UniMarketPage />} />
-        <Route path="/sell-item" element={<SellItemPage />} />
-        <Route path="/my-listings" element={<MyListingsPage />} />
+        <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
+        <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
         <Route path="/study-hub" element={<StudyHubPage />} />
-        <Route path="/quiz" element={<QuizPage />} />
+        <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />
-        <Route path="/chat-interface" element={<ChatInterface />} />
-        <Route path="/quiz-results" element={<QuizResultsPage />} />
-        <Route path="/uni-wallet" element={<UniWalletPage />} />
-        <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/create-post" element={<CreatePostPage />} />
-        <Route path="/transaction-history" element={<TransactionHistory />} />
+        <Route path="/chat-interface" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+        <Route path="/quiz-results" element={<ProtectedRoute><QuizResultsPage /></ProtectedRoute>} />
+        <Route path="/uni-wallet" element={<ProtectedRoute><UniWalletPage /></ProtectedRoute>} />
+        <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
+        <Route path="/create-post" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
+        <Route path="/transaction-history" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
         <Route path="/product-details" element={<ProductDetailsPage />} />
         <Route path="/product-details/:productId" element={<ProductDetailsPage />} /> 
-        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
         <Route path="/header" element={<Header />} />
-        <Route path="/edit-profile" element={<EditProfilePage />} />
-        <Route path="/settings" element={<SettingsPage />} /> 
-        <Route path="/change-password" element={<ChangePasswordPage />} />
-        <Route path="/change-email" element={<ChangeEmailPage />} />
-        <Route path="/student-referral" element={<StudentReferral />} />
-        <Route path="/referral-reward" element={<ReferralReward />} />
+        <Route path="/edit-profile" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /> 
+        <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
+        <Route path="/change-email" element={<ProtectedRoute><ChangeEmailPage /></ProtectedRoute>} />
+        <Route path="/student-referral" element={<ProtectedRoute><StudentReferral /></ProtectedRoute>} />
+        <Route path="/referral-reward" element={<ProtectedRoute><ReferralReward /></ProtectedRoute>} />
         <Route path="/welcome" element={<UniConnectWelcome />} />
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/contact-support" element={<ContactSupportPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-        <Route path="/campusfeed" element={<CampusFeed />} />
+        <Route path="/campusfeed" element={<ProtectedRoute><CampusFeed /></ProtectedRoute>} />
+        <Route path="/unispace-upgrade" element={<ProtectedRoute><UniSpaceUpgrade /></ProtectedRoute>} />
+        <Route path="/guest-upgrade" element={<ProtectedRoute><GuestUpgrade /></ProtectedRoute>} />
       </Routes>
       </Router>
     </>

@@ -7,6 +7,7 @@ export default function useVerified() {
   const [isLoading, setIsLoading] = useState(true);
   const [verified, setVerified] = useState(false);
   const [status, setStatus] = useState(null); // true | false | 'failed' | null
+  const [registerAs, setRegisterAs] = useState(null);
 
   useEffect(() => {
     let unsubSnapshot = null;
@@ -14,6 +15,7 @@ export default function useVerified() {
       if (!user) {
         setVerified(false);
         setStatus(null);
+        setRegisterAs(null);
         setIsLoading(false);
         return;
       }
@@ -27,6 +29,7 @@ export default function useVerified() {
           return;
         }
         const data = snap.data();
+        setRegisterAs(data.registerAs || null);
         const v = data.verified;
         // normalized status: true | false | 'failed'
         if (v === true) {
@@ -44,6 +47,7 @@ export default function useVerified() {
         console.error('useVerified snapshot error', err);
         setVerified(false);
         setStatus(null);
+        setRegisterAs(null);
         setIsLoading(false);
       });
     });
@@ -54,5 +58,5 @@ export default function useVerified() {
     };
   }, []);
 
-  return { isLoading, verified, status };
+  return { isLoading, verified, status, registerAs };
 }

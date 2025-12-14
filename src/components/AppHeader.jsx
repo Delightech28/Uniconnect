@@ -47,7 +47,7 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
   }, []);
 
   // hide/disable some features for unverified/failed users
-  const { isLoading: verifyingLoading, verified, status } = useVerified();
+  const { isLoading: verifyingLoading, verified, status, registerAs } = useVerified();
 
   return (
     <>
@@ -106,6 +106,7 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10">
                 <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
                 <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
+                <button onClick={() => navigate(registerAs === 'student' ? '/unispace-upgrade' : '/guest-upgrade')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Premium</button>
                 <button onClick={async () => { await auth.signOut(); navigate('/'); setIsProfileOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Logout</button>
               </div>
             )}
