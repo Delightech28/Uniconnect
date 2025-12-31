@@ -11,7 +11,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
 { name: 'Marketplace', path: '/unimarket', active: false },
-{ name: 'Study Hub', path: '/study-hub', active: true },
+{ name: 'Uni Doc', path: '/uni-doc', active: true },
 { name: 'CampusFeed', path: '/campusfeed', active: false },
 { name: 'Wallet', path: '/uni-wallet', active: false },
 ];
@@ -79,7 +79,7 @@ const { darkMode, toggleTheme } = useTheme();
 	useEffect(() => {
 		if (!isLoading && !verified) {
 			if (status === 'failed') {
-				toast.error('Your verification failed. You cannot access Study Hub.');
+				toast.error('Your verification failed. You cannot access Uni Doc.');
 				navigate('/verification-failed');
 			} else {
 				navigate('/verification-pending');
@@ -183,7 +183,7 @@ const { darkMode, toggleTheme } = useTheme();
 <div className="max-w-7xl mx-auto">
 <div className="text-center">
 <h1 className="text-secondary dark:text-white text-3xl
-sm:text-4xl font-bold">Welcome to the Study Hub</h1>
+sm:text-4xl font-bold">Welcome to the Uni Doc</h1>
 <p className="text-slate-500 dark:text-slate-400 mt-2
 max-w-2xl mx-auto">
 Your central space for learning. Upload materials, generate

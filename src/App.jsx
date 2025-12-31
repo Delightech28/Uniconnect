@@ -66,7 +66,7 @@ function App() {
         <Route path="/unimarket" element={<UniMarketPage />} />
         <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
         <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
-        <Route path="/study-hub" element={<StudyHubPage />} />
+        <Route path="/uni-doc" element={<StudyHubPage />} />
         <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/chat-interface" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />

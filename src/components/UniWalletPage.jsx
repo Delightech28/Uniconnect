@@ -7,7 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 const navLinks = [ 
     { name: 'Dashboard', path: '/dashboard', active: false }, 
     { name: 'Marketplace', path: '/unimarket', active: false }, 
-    { name: 'Study Hub', path: '/study-hub', active: false }, 
+    { name: 'Uni Doc', path: '/uni-doc', active: false }, 
     { name: 'CampusFeed', path: '/campusfeed', active: false }, 
     { name: 'Wallet', path: '/uni-wallet', active: true }, 
 ]; 

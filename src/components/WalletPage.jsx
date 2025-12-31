@@ -28,7 +28,7 @@ font-medium" href="#">Dashboard</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium" href="#">Marketplace</a> 
         <a className="text-secondary dark:text-white text-sm 
-font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Study Hub</a> 
+font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Uni Doc</a> 
         <a className="text-primary dark:text-primary font-bold text-sm" 
 href="#">Wallet</a> 
       </nav> 

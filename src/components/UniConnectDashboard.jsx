@@ -9,7 +9,7 @@ import AppHeader from './AppHeader';
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
 { label: 'Marketplace', path: '/unimarket' },
-{ label: 'Study Hub', path: 'https://uni-space-study.vercel.app', external: true },
+{ label: 'Uni Doc', path: 'https://uni-space-study.vercel.app', external: true },
 { label: 'CampusFeed', path: '/campusfeed' },
 { label: 'Wallet', path: '/uni-wallet' }
 ];

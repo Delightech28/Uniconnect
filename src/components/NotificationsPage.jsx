@@ -75,7 +75,7 @@ unread: false,
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
 { label: 'Marketplace', path: '/unimarket' },
-{ label: 'Study Hub', path: '/study-hub' },
+{ label: 'Uni Doc', path: '/uni-doc' },
 { label: 'Wallet', path: '/uni-wallet' }
 ];
 // --- Sub-components for better organization ---

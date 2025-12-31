@@ -49,7 +49,7 @@ font-medium leading-normal py-2" href="#">Dashboard</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="#">Marketplace</a> 
         <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Study Hub</a> 
+font-medium leading-normal py-2" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Uni Doc</a> 
         <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="/campusfeed">CampusFeed</a> 
     <a className="text-secondary dark:text-white text-sm 

@@ -14,9 +14,9 @@ id: 'unimarket',
 },
 {
 icon: 'school',
-title: 'StudyHub',
+title: 'Uni Doc',
 description: 'Ace your exams. Get AI-powered study notes, paste questions, and collaborative study groups.',
-id: 'studyhub',
+id: 'Uni Doc',
 },
 {
 icon: 'newspaper',
@@ -38,7 +38,7 @@ name: 'Chiamaka Okoro',
 image:
 'https://lh3.googleusercontent.com/aida-public/AB6AXuBr_eHQZx19URplTvUsnRJLkKhF6ZnzMeNaCdzhK2keoFSKTtA66hyixxybvFAMgYPzQV4GgFaB-LcFKFFvbucSg6GwUbabN0waaXjAeZatkk66eSW6bvlyMTXz6BW3X9g_QHKmNTIipnaUTr78Ou1I1Dh99TSaDMX-pJt01AZ7zo7tsoQf4ALxbEAHbcTusHHyfxlIn9DicnjJdzWoV4L9-iLxuRMCcKkSUCDCmp6CLcQG64qI3RHt0XxrJnDHI1ZJYUtndZYwNbO3',
 rating: 4.5,
-quote: '"StudyHub\'s AI notes are a game-changer. I finally understood that difficult course. Highly recommend!"',
+quote: '"Uni Doc\'s AI notes are a game-changer. I finally understood that difficult course. Highly recommend!"',
 },
 {
 name: 'Musa Ibrahim',
@@ -97,7 +97,7 @@ const { darkMode, toggleTheme } = useTheme();
 // theme handled by useTheme
 const navLinks = [
 { title: 'UniMarket', href: '/unimarket' },
-{ title: 'StudyHub', href: '/study-hub' },
+{ title: 'Uni Doc', href: '/uni-doc' },
 { title: 'CampusFeed', href: '#campusfeed' },
 ];
 return (
@@ -260,7 +260,7 @@ gap-8">
 {featuresData.map((feature) => {
 const getLink = () => {
 if (feature.title === 'UniMarket') return '/unimarket';
-if (feature.title === 'StudyHub') return '/study-hub';
+if (feature.title === 'Uni Doc') return '/uni-doc';
 return '#';
 };
 
