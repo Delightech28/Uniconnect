@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import uni4 from '../assets/uni4.jpg';
 import { useTheme } from '../hooks/useTheme';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { db } from '../firebase';
@@ -15,6 +16,8 @@ const { darkMode, toggleTheme } = useTheme();
 const [loading, setLoading] = useState(false);
 const [errorMessage, setErrorMessage] = useState('');
 const navigate = useNavigate();
+// logo target: landing for anonymous, dashboard for logged-in
+const logoTarget = auth && auth.currentUser ? '/dashboard' : '/';
     // If user is already authenticated, redirect to appropriate dashboard
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (user) => {
@@ -75,34 +78,55 @@ const handleSubmit = async (e) => {
     }
 };
 return (
-<div className="relative flex min-h-screen w-full flex-col items-center
-justify-center p-4">
-{/* Dark Mode Toggle - Added for interactivity demo */}
-<div className="absolute top-4 right-4 z-10">
-<button
-onClick={() => toggleTheme()}
-className="flex items-center justify-center size-12
-rounded-full bg-white dark:bg-gray-800 shadow-md text-text-primary
-dark:text-white"
-aria-label="Toggle dark mode"
->
-<span className="material-symbols-outlined">{darkMode ?
-'light_mode' : 'dark_mode'}</span>
-</button>
-</div>
-<div className="flex flex-col max-w-[480px] w-full justify-center
-py-10">
-<div className="flex flex-col items-center justify-center mb-8">
+    <div className="min-h-screen flex flex-col auth-split relative">
+        {/* Dark Mode Toggle - Fixed at top right */}
+        <div className="absolute top-6 right-6 z-20">
+            <button
+                onClick={() => toggleTheme()}
+                className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200 hover:shadow-lg transition-shadow"
+                aria-label="Toggle dark mode"
+            >
+                <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+            </button>
+        </div>
+        {/* Logo (top-left) */}
+        <div className="absolute top-6 left-6 z-20">
+            <NavLink to={logoTarget} className="flex items-center gap-4 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
+                <div className="size-6 text-primary">
+                    <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
+                </div>
+                <h2 className="text-xl font-bold leading-tight tracking-tight">UniSpace</h2>
+            </NavLink>
+        </div>
 
-</div>
-<div className="text-center p-4">
-<p className="text-text-primary dark:text-white text-4xl font-black
-tracking-tighter">
-Welcome Back to UniSpace
-</p>
-</div>
-<form onSubmit={handleSubmit} className="w-full flex flex-col
-gap-4 px-4 py-3">
+        <div className="flex flex-1 auth-split">
+            {/* Left: Hero image (desktop) */}
+                <div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden">
+                    {/* Centered floating image on login page */}
+                    <div className="relative w-full flex items-center justify-center py-12 px-8">
+                        {/* scaled up login hero (~5x) with preserved hover animation and added float */}
+                        <div className="max-w-[350%] w-[350%] min-h-[400px] transform -rotate-6 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-2 relative">
+                            <img src={uni4} alt="Welcome hero" className="w-full h-full object-cover block" />
+                            <div className="absolute left-4 right-4 bottom-6 flex justify-center">
+                                <div className="bg-black/40 backdrop-blur-sm rounded-md px-4 py-3 text-white max-w-[90%]">
+                                    <h3 className="text-lg md:text-2xl font-extrabold">Welcome back</h3>
+                                    <p className="text-xs md:text-sm mt-1">Sign in to continue to your UniSpace account — your campus hub for study, swap and social.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/6 pointer-events-none rounded-3xl" />
+                    <div className="absolute left-6 top-6 w-36 h-36 rounded-full bg-primary/20 auth-deco" />
+                </div>
+
+            {/* Right: Form */}
+            <div className="w-full md:w-1/2 flex items-center justify-center p-6 pt-24">
+                <div className="flex flex-col max-w-[480px] w-full justify-center py-10">
+                <div className="flex flex-col items-center justify-center mb-8">
+
+                </div>
+                {/* moved hero header into the image overlay; keep this area compact */}
+                <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 px-4 py-3">
     <button type="button" className="flex w-full cursor-pointer
 items-center justify-center gap-3 rounded-lg border border-slate-300
 bg-white px-5 py-3 text-base font-medium text-slate-700
@@ -199,8 +223,10 @@ Sign Up
 </Link>
 </p>
 </form>
-</div>
-</div>
+                </div>
+            </div>
+        </div>
+    </div>
 );
 };
 export default UniConnectLogin;

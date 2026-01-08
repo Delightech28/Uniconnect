@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -53,20 +53,30 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
     <>
       <header className="sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
         <div className="flex items-center gap-4 lg:gap-8">
-          <div className="flex items-center gap-4 text-secondary dark:text-white">
+          <NavLink to="/dashboard" className="flex items-center gap-4 text-secondary dark:text-white hover:opacity-80 transition-opacity">
             <div className="size-6 text-primary">
               <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
             </div>
             <h2 className="text-xl font-bold leading-tight tracking-tight">UniSpace</h2>
-          </div>
+          </NavLink>
             <nav className="hidden lg:flex items-center gap-6">
-            <button onClick={() => navigate('/dashboard')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Dashboard</button>
-            <button onClick={() => navigate('/unimarket')} className="text-sm font-bold text-primary">Marketplace</button>
-            <button onClick={() => window.open('https://uni-space-study.vercel.app', '_blank')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Uni Doc</button>
-            <button onClick={() => navigate('/campusfeed')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">CampusFeed</button>
-            <button onClick={() => navigate('/uni-wallet')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Wallet</button>
-            <button onClick={() => navigate('/student-referral')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Referral</button>
-          </nav>
+              <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                Dashboard
+              </NavLink>
+              <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                Marketplace
+              </NavLink>
+              <button onClick={() => window.open('https://uni-space-study.vercel.app', '_blank')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Uni Doc</button>
+              <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                CampusFeed
+              </NavLink>
+              <NavLink to="/uni-wallet" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                Wallet
+              </NavLink>
+              <NavLink to="/student-referral" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                Referral
+              </NavLink>
+            </nav>
         </div>
         <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
           <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle dark mode">
@@ -120,12 +130,22 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
       </header>
       {isMenuOpen && (
         <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
-          <button onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Dashboard</button>
-          <button onClick={() => { navigate('/unimarket'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Marketplace</button>
+          <NavLink to="/dashboard" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/unimarket" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            Marketplace
+          </NavLink>
           <button onClick={() => { window.open('https://uni-space-study.vercel.app', '_blank'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Uni Doc</button>
-          <button onClick={() => { navigate('/campusfeed'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">CampusFeed</button>
-          <button onClick={() => { navigate('/uni-wallet'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Wallet</button>
-          <button onClick={() => { navigate('/student-referral'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Referral</button>
+          <NavLink to="/campusfeed" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            CampusFeed
+          </NavLink>
+          <NavLink to="/uni-wallet" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            Wallet
+          </NavLink>
+          <NavLink to="/student-referral" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            Referral
+          </NavLink>
         </nav>
       )}
     </>

@@ -58,7 +58,7 @@ selectedClasses : unselectedClasses}`}>
 // --- Main Page Component --- 
 function EditProfilePage() { 
   const navigate = useNavigate();
-  const { darkMode } = useTheme();
+  const { darkMode, toggleTheme } = useTheme();
   const [profileData, setProfileData] = useState(initialProfileData);
   const [tempAvatar, setTempAvatar] = useState(null);
   const [tempAvatarFile, setTempAvatarFile] = useState(null);
@@ -222,6 +222,16 @@ function EditProfilePage() {
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
 font-display min-h-screen"> 
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => toggleTheme()}
+          className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200"
+          aria-label="Toggle dark mode"
+        >
+          <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+        </button>
+      </div>
       {/* <AppHeader /> */} 
       <main className="py-10"> 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"> 

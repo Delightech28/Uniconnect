@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'; 
+import { useTheme } from '../hooks/useTheme';
  
 // --- Static Data (No Backend) --- 
 const CURRENT_USER_EMAIL = 'adekunle.a@university.edu.ng'; 
@@ -31,6 +32,7 @@ function ChangeEmailPage() {
     }); 
     const [errors, setErrors] = useState({}); 
     const [showSuccess, setShowSuccess] = useState(false); 
+    const { darkMode, toggleTheme } = useTheme();
  
     const handleInputChange = (e) => { 
         const { id, value } = e.target; 
@@ -81,6 +83,16 @@ function ChangeEmailPage() {
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark font-display min-h-screen"> 
+            {/* Dark Mode Toggle */}
+            <div className="absolute top-4 right-4 z-10">
+                <button
+                    onClick={() => toggleTheme()}
+                    className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200"
+                    aria-label="Toggle dark mode"
+                >
+                    <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+                </button>
+            </div>
             {/* Header could be here */} 
             <main className="px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-5xl mx-auto"> 

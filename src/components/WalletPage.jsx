@@ -1,4 +1,5 @@
 import React, { useState } from 'react'; 
+import { useTheme } from '../hooks/useTheme';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
 const USER_QR_CODE_URL = 
@@ -252,6 +253,7 @@ text-lg">download</span>
 // --- Main Page Component --- 
 function WalletPage() { 
   const [balance, setBalance] = useState(15000); 
+  const { darkMode, toggleTheme } = useTheme();
  
   const handleSendMoney = (amount) => { 
     if (balance >= amount) { 
@@ -266,6 +268,17 @@ function WalletPage() {
     <div className="bg-background-light dark:bg-background-dark 
 font-display text-secondary dark:text-slate-200 min-h-screen"> 
   
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => toggleTheme()}
+          className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200"
+          aria-label="Toggle dark mode"
+        >
+          <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+        </button>
+      </div>
+
       <div className="relative flex h-auto w-full flex-col"> 
         <AppHeader /> 
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
