@@ -66,7 +66,9 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
               <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
                 Marketplace
               </NavLink>
-              <button onClick={() => window.open('https://uni-space-study.vercel.app', '_blank')} className="text-sm font-medium text-secondary dark:text-white hover:text-primary">Uni Doc</button>
+              <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
+                Uni Doc
+              </NavLink>
               <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
                 CampusFeed
               </NavLink>
@@ -136,7 +138,9 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
           <NavLink to="/unimarket" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
             Marketplace
           </NavLink>
-          <button onClick={() => { window.open('https://uni-space-study.vercel.app', '_blank'); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-3 text-sm font-medium text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Uni Doc</button>
+          <NavLink to="/uni-doc" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+            Uni Doc
+          </NavLink>
           <NavLink to="/campusfeed" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
             CampusFeed
           </NavLink>
