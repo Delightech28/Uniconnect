@@ -36,7 +36,7 @@ leading-normal flex-1">
 // --- Main Page Component ---
 const VerificationCompletePage = () => {
   const navigate = useNavigate();
-  const { darkMode } = useTheme();
+  const { darkMode, toggleTheme } = useTheme();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -87,6 +87,19 @@ const VerificationCompletePage = () => {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => toggleTheme()}
+          className="flex items-center justify-center size-12
+rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700
+dark:text-slate-200"
+          aria-label="Toggle dark mode"
+        >
+          <span className="material-symbols-outlined">{darkMode ?
+'light_mode' : 'dark_mode'}</span>
+        </button>
+      </div>
       <header className="flex items-center justify-between
 whitespace-nowrap border-b border-solid border-gray-200
 dark:border-gray-700 px-6 sm:px-10 py-4">

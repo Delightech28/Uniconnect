@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast'; 
+import { useTheme } from '../hooks/useTheme';
 // --- Helper Components & Logic --- 
 // A component for displaying a password validation rule 
 const PasswordRule = ({ isValid, text }) => (
@@ -41,6 +42,7 @@ inline-block align-middle mr-1">error</span>
 // --- Main Page Component --- 
 function ChangePasswordPage() { 
     const navigate = useNavigate();
+    const { darkMode, toggleTheme } = useTheme();
     const [passwords, setPasswords] = useState({ 
         current: '', 
         new: '', 
@@ -171,6 +173,16 @@ passwords;
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
 font-display min-h-screen"> 
+            {/* Dark Mode Toggle */}
+            <div className="absolute top-4 right-4 z-10">
+                <button
+                    onClick={() => toggleTheme()}
+                    className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200"
+                    aria-label="Toggle dark mode"
+                >
+                    <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+                </button>
+            </div>
             {/* Header could be here */} 
             <main className="px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-2xl mx-auto">

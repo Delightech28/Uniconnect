@@ -101,7 +101,7 @@ const StudentReferral = () => {
 
   return (
     // Main Container unified with app styles
-    <div className="min-h-screen w-full font-sans bg-background-light dark:bg-background-dark text-secondary dark:text-slate-200 transition-colors duration-300">
+    <div className="min-h-screen w-full font-sans text-secondary dark:text-slate-200 transition-colors duration-300">
       
       {/* Wrapper to center content nicely */}
       <div className="flex flex-col min-h-screen">
