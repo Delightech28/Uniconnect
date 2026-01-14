@@ -574,11 +574,9 @@ return (
 		</div>
 		{/* Logo (top-left) */}
 		<div className="absolute top-6 left-6 z-20">
-			<NavLink to={logoTarget} className="flex items-center gap-4 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
-				<div className="size-6 text-primary">
-					<svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
-				</div>
-				<h2 className="text-xl font-bold leading-tight tracking-tight">UniSpace</h2>
+			<NavLink to={logoTarget} className="flex items-center gap-0 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
+				<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+				<h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
 			</NavLink>
 		</div>
 
@@ -714,19 +712,19 @@ value={formData.registerAs} onChange={handleInputChange}>
 <div>
 	<label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="institution">Select Institution</label>
 
-	<div className="relative border border-[#cfdbe7] dark:border-slate-600 rounded-lg overflow-hidden">
-		<button type="button" onClick={() => setInstitutionOpen(!institutionOpen)} className="block w-full bg-background-light p-4 text-base text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800 dark:text-white flex items-center justify-between">
+	<div className="relative">
+		<button type="button" onClick={() => setInstitutionOpen(!institutionOpen)} className="block w-full bg-background-light p-4 text-base text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800 dark:text-white flex items-center justify-between border border-[#cfdbe7] dark:border-slate-600 rounded-lg">
 			<span className={`${formData.institution ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{formData.institution || 'Search and select your institution'}</span>
 			<span className="material-symbols-outlined">{institutionOpen ? 'expand_less' : 'expand_more'}</span>
 		</button>
 
 		{institutionOpen && (
-			<div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-800 border border-[#cfdbe7] dark:border-slate-700 rounded-lg p-3 max-h-64 overflow-auto">
-				<div className="flex gap-3 mb-3">
-					<label className="inline-flex items-center gap-2 text-white"><input type="radio" name="instCat" value="federal" checked={institutionCategory==='federal'} onChange={() => setInstitutionCategory('federal')} /> <span className="text-sm">Federal</span></label>
-					<label className="inline-flex items-center gap-2 text-white"><input type="radio" name="instCat" value="state" checked={institutionCategory==='state'} onChange={() => setInstitutionCategory('state')} /> <span className="text-sm">State</span></label>
-					<label className="inline-flex items-center gap-2 text-white"><input type="radio" name="instCat" value="private" checked={institutionCategory==='private'} onChange={() => setInstitutionCategory('private')} /> <span className="text-sm">Private</span></label>
-					<label className="inline-flex items-center gap-2 ml-auto text-white"><input type="radio" name="instCat" value="all" checked={institutionCategory==='all'} onChange={() => setInstitutionCategory('all')} /> <span className="text-sm">All</span></label>
+			<div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-800 border border-[#cfdbe7] dark:border-slate-700 rounded-lg p-3 max-h-64 overflow-auto shadow-lg">
+				<div className="flex gap-3 mb-3 flex-wrap">
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="federal" checked={institutionCategory==='federal'} onChange={() => setInstitutionCategory('federal')} /> <span className="text-sm">Federal</span></label>
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="state" checked={institutionCategory==='state'} onChange={() => setInstitutionCategory('state')} /> <span className="text-sm">State</span></label>
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="private" checked={institutionCategory==='private'} onChange={() => setInstitutionCategory('private')} /> <span className="text-sm">Private</span></label>
+					<label className="inline-flex items-center gap-2 ml-auto text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="all" checked={institutionCategory==='all'} onChange={() => setInstitutionCategory('all')} /> <span className="text-sm">All</span></label>
 				</div>
 
 				<div className="mb-2">
@@ -739,7 +737,7 @@ value={formData.registerAs} onChange={handleInputChange}>
 					)}
 					{filteredInstitutions.map(inst => (
 						<li key={inst.name} className="py-2">
-							<button type="button" onClick={() => selectInstitution(inst.name)} className={`w-full text-left text-sm p-1 rounded hover:bg-background-light dark:hover:bg-slate-700 ${formData.institution===inst.name ? 'font-bold text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
+							<button type="button" onClick={() => selectInstitution(inst.name)} className={`w-full text-left text-sm p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${formData.institution===inst.name ? 'font-bold text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
 								{inst.name}
 							</button>
 						</li>

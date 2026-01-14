@@ -20,7 +20,8 @@ const createWavFile = (base64Audio) => {
  */
 const PodcastPlayer = ({ 
   audioData, 
-  transcript, 
+  transcript,
+  onExit,
   isDarkMode 
 }) => {
   const audioRef = useRef(null);
@@ -130,6 +131,17 @@ const PodcastPlayer = ({
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
       />
+
+      {/* Header with Exit Button */}
+      <div className={`border-b transition-colors p-4 flex justify-between items-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Podcast Player</h2>
+        <button
+          onClick={onExit}
+          className={`px-3 py-2 rounded-lg font-semibold text-sm transition-colors ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          Exit
+        </button>
+      </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-white dark:bg-secondary">
         

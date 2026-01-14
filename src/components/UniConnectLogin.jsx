@@ -91,11 +91,9 @@ return (
         </div>
         {/* Logo (top-left) */}
         <div className="absolute top-6 left-6 z-20">
-            <NavLink to={logoTarget} className="flex items-center gap-4 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
-                <div className="size-6 text-primary">
-                    <svg fill="currentColor" viewBox="0 0 48 48"><path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
-                </div>
-                <h2 className="text-xl font-bold leading-tight tracking-tight">UniSpace</h2>
+            <NavLink to={logoTarget} className="flex items-center gap-0 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
+                <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+                <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
             </NavLink>
         </div>
 

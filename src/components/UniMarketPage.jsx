@@ -8,7 +8,7 @@ import AppHeader from './AppHeader';
 const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
 { name: 'Marketplace', path: '/unimarket', active: true },
-{ name: 'Uni Doc', path: '/uni-doc', active: false },
+{ name: 'UniDoc', path: '/uni-doc', active: false },
 { name: 'Wallet', path: '/uni-wallet', active: false },
 ];
 const categories = ['All Categories', 'Electronics', 'Textbooks', 'Fashion', 'Services', 'Furniture'];

@@ -15,13 +15,9 @@ dark:border-slate-700 px-4 md:px-10 py-3 bg-white dark:bg-secondary">
     <div className="flex items-center gap-8"> 
       <div className="flex items-center gap-4 text-secondary 
 dark:text-white"> 
-        <div className="size-6 text-primary"> 
-          <svg fill="currentColor" viewBox="0 0 48 48" 
-xmlns="http://www.w3.org/2000/svg"><path d="M44 
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg> 
-        </div> 
+        <img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" /> 
         <h2 className="text-xl font-bold leading-tight 
-tracking-[-0.015em]">UniSpace</h2> 
+tracking-[-0.015em] -ml-3">niSpace</h2> 
       </div> 
       <nav className="hidden md:flex items-center gap-6"> 
         <a className="text-secondary dark:text-white text-sm 
@@ -29,7 +25,7 @@ font-medium" href="#">Dashboard</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium" href="#">Marketplace</a> 
         <a className="text-secondary dark:text-white text-sm 
-font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Uni Doc</a> 
+font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">UniDoc</a> 
         <a className="text-primary dark:text-primary font-bold text-sm" 
 href="#">Wallet</a> 
       </nav> 

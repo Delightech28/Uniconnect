@@ -22,13 +22,9 @@ const UniConnectWelcome = () => {
           <div className="max-w-[1280px] mx-auto px-4 md:px-10 lg:px-20 py-3 flex items-center justify-between">
             
             {/* Logo */}
-            <div className="flex items-center gap-4">
-              <div className="w-6 h-6 text-[#07bc0c]">
-                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z" fill="currentColor"></path>
-                </svg>
-              </div>
-              <h2 className="text-lg font-bold leading-tight tracking-tight">UniSpace</h2>
+            <div className="flex items-center gap-0">
+              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+              <h2 className="text-lg font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
             </div>
 
             {/* Desktop Navigation */}

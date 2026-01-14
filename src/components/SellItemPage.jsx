@@ -11,7 +11,7 @@ import useVerified from '../hooks/useVerified';
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
 { name: 'Marketplace', href: '#', active: true },
-{ name: 'Uni Doc', href: 'https://uni-space-study.vercel.app', active: false },
+{ name: 'UniDoc', href: 'https://uni-space-study.vercel.app', active: false },
 { name: 'Wallet', href: '#', active: false },
 ];
 const categories = ['Electronics', 'Textbooks', 'Fashion', 'Services',

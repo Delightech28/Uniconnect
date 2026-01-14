@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
+import uni7 from '../assets/uni7.jpg';
 // --- Data for Features and Testimonials (Makes JSX cleaner) ---
 const featuresData = [
 {
@@ -14,9 +15,9 @@ id: 'unimarket',
 },
 {
 icon: 'school',
-title: 'Uni Doc',
+title: 'UniDoc',
 description: 'Ace your exams. Get AI-powered study notes, paste questions, and collaborative study groups.',
-id: 'Uni Doc',
+id: 'UniDoc',
 },
 {
 icon: 'newspaper',
@@ -38,7 +39,7 @@ name: 'Chiamaka Okoro',
 image:
 'https://lh3.googleusercontent.com/aida-public/AB6AXuBr_eHQZx19URplTvUsnRJLkKhF6ZnzMeNaCdzhK2keoFSKTtA66hyixxybvFAMgYPzQV4GgFaB-LcFKFFvbucSg6GwUbabN0waaXjAeZatkk66eSW6bvlyMTXz6BW3X9g_QHKmNTIipnaUTr78Ou1I1Dh99TSaDMX-pJt01AZ7zo7tsoQf4ALxbEAHbcTusHHyfxlIn9DicnjJdzWoV4L9-iLxuRMCcKkSUCDCmp6CLcQG64qI3RHt0XxrJnDHI1ZJYUtndZYwNbO3',
 rating: 4.5,
-quote: '"Uni Doc\'s AI notes are a game-changer. I finally understood that difficult course. Highly recommend!"',
+quote: '"UniDoc\'s AI notes are a game-changer. I finally understood that difficult course. Highly recommend!"',
 },
 {
 name: 'Musa Ibrahim',
@@ -97,7 +98,8 @@ const { darkMode, toggleTheme } = useTheme();
 // theme handled by useTheme
 const navLinks = [
 { title: 'UniMarket', href: '/unimarket' },
-{ title: 'Uni Doc', href: '/uni-doc' },
+{ title: 'UniDoc', href: '/uni-doc' },
+{ title: 'StudyHub', href: '/ai-tool' },
 { title: 'CampusFeed', href: '#campusfeed' },
 ];
 return (
@@ -110,15 +112,9 @@ border-b border-gray-200 dark:border-gray-700">
 justify-between">
 <div className="flex items-center gap-4 text-secondary
 dark:text-primary">
-<div className="size-8 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
+<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-16 w-16 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
-tracking-tight"><Link to="/">UniSpace</Link></h2>
+tracking-tight -ml-8"><Link to="/">niSpace</Link></h2>
 </div>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-8">
@@ -226,16 +222,11 @@ Learn More
 </button>
 </div>
 </div>
-<div className="relative h-64 lg:h-auto">
+<div className="relative h-96 lg:h-[24rem]">
 <img className="rounded-xl object-cover w-full h-full
 shadow-2xl" alt="Diverse group of Nigerian students collaborating and
 socializing"
-src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxXSAGAjpl
-c_fWNMdlrE8qDK9ZkYCTzJXRB0vk4baFEwcQMOput5St-q_gKCHSQD
-ZhS4R8jmKBohxLa1BmHqkkmn5aiPkMAir0BQVnw6wuIljUto9MpIdb7O
-CBByJFkbjNCtSxXGtpkmTZyJr-cDZmyrCSoYis3j-BgC_-uqfhbNbBAJryN
-Rdm8wN4oHiNbYaA0xWpF0HvpYHTExs3t7Mq_lPL21J5Qa__b1r6vyZd
-AOTIPQTrD5jvP0zVvD015ZlOuuOHvZ1NETN2" />
+src={uni7} />
 </div>
 </div>
 </div>
@@ -260,7 +251,7 @@ gap-8">
 {featuresData.map((feature) => {
 const getLink = () => {
 if (feature.title === 'UniMarket') return '/unimarket';
-if (feature.title === 'Uni Doc') return '/uni-doc';
+if (feature.title === 'UniDoc') return '/uni-doc';
 return '#';
 };
 

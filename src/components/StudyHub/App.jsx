@@ -10,9 +10,9 @@ import ChatInterface from './components/Chat/ChatInterface';
 import QuizConfig from './components/Quiz/QuizConfig';
 import QuizGame from './components/Quiz/QuizGame';
 import QuizReview from './components/Quiz/QuizReview';
-import PodcastConfig from './components/Podcast/PodcastConfig';
-import PodcastPlayer from './components/Podcast/PodcastPlayer';
-import { analyzeTopics, generateQuiz, generatePodcastContent } from './services/geminiService';
+import PodcastConfig from "./components/Podcast/PodcastConfig";
+import PodcastPlayer from "./components/Podcast/PodcastPlayer";
+import { analyzeTopics, generateQuiz, generatePodcastContent } from "./services/geminiService";
 
 /**
  * App Mode Constants
@@ -164,6 +164,27 @@ const StudyHubApp = () => {
     setMode(APP_MODES.CHAT);
   };
 
+  const handleChatExit = () => {
+    setChatSettings(null);
+    setMode(APP_MODES.DASHBOARD);
+  };
+
+  const handlePodcastConfigBack = () => {
+    setMode(APP_MODES.DASHBOARD);
+  };
+
+  const handlePodcastPlayerExit = () => {
+    setPodcastData(null);
+    setPodcastSettings(null);
+    setMode(APP_MODES.DASHBOARD);
+  };
+
+  const handleQuizGameExit = () => {
+    setMode(APP_MODES.DASHBOARD);
+    setQuizData(null);
+    setQuizResults(null);
+  };
+
   const handleReset = () => {
     setFile(null);
     setTopics([]);
@@ -171,6 +192,8 @@ const StudyHubApp = () => {
     setQuizData(null);
     setQuizResults(null);
     setPodcastData(null);
+    setChatSettings(null);
+    setPodcastSettings(null);
     setUnlockedTopics(new Set());
   };
 
@@ -199,7 +222,7 @@ const StudyHubApp = () => {
             <div className="relative w-32 h-32 mx-auto">
               <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
                 <circle
-                  className={isDarkMode ? 'text-slate-800' : 'text-slate-200'}
+                  className="text-slate-200 dark:text-slate-800"
                   strokeWidth="8"
                   stroke="currentColor"
                   fill="transparent"
@@ -263,6 +286,7 @@ const StudyHubApp = () => {
             topics={chatSettings.topics || topics}
             tone={chatSettings.tone}
             accent={chatSettings.accent}
+            onExit={handleChatExit}
           />
         )}
         
@@ -271,6 +295,7 @@ const StudyHubApp = () => {
             topics={topics}
             unlockedTopics={unlockedTopics}
             onStart={handleStartQuizGenerate}
+            onBack={() => setMode(APP_MODES.DASHBOARD)}
           />
         )}
         
@@ -278,6 +303,7 @@ const StudyHubApp = () => {
           <QuizGame
             questions={quizData}
             onComplete={handleQuizComplete}
+            onExit={handleQuizGameExit}
           />
         )}
         
@@ -304,6 +330,7 @@ const StudyHubApp = () => {
           <PodcastConfig
             topics={topics}
             onStart={handleStartPodcastGen}
+            onBack={handlePodcastConfigBack}
           />
         )}
         
@@ -311,6 +338,7 @@ const StudyHubApp = () => {
           <PodcastPlayer
             audioData={podcastData.audioData}
             transcript={podcastData.transcript}
+            onExit={handlePodcastPlayerExit}
           />
         )}
       </div>

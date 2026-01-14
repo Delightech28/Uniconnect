@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Send, Volume2, VolumeX, Plus, Loader2, Copy, Check, AlertCircle, MessageCircle, Settings, ChevronDown, FileText } from 'lucide-react';
-import { initializeChatWithContext, speakText } from '../../services/geminiService';
-import PDFModal from '../PDFModal';
+import React, { useEffect, useRef, useState } from "react";
+import { Send, Volume2, VolumeX, Plus, Loader2, Copy, Check, AlertCircle, MessageCircle, Settings, ChevronDown, FileText } from "lucide-react";
+import { initializeChatWithContext, speakText } from "../../services/geminiService";
+import PDFModal from "../PDFModal";
 
 /**
  * FormattedText component for rendering rich text
@@ -40,7 +40,8 @@ const ChatInterface = ({
   topics, 
   tone = 'FRIENDLY', 
   accent = 'en-US', 
-  isDarkMode 
+  isDarkMode,
+  onExit
 }) => {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -186,7 +187,7 @@ const ChatInterface = ({
 
       {/* Header */}
       <div className="border-b transition-colors p-4 flex items-center justify-between bg-white dark:bg-secondary border-slate-100 dark:border-slate-700">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-[#07bc0c]/20 text-[#07bc0c]' : 'bg-[#07bc0c]/10 text-[#07bc0c]'}`}>
             <MessageCircle className="w-5 h-5" />
           </div>
@@ -195,13 +196,20 @@ const ChatInterface = ({
             <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{topics.join(', ')}</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onExit}
+            className={`px-3 py-2 rounded-lg font-semibold text-sm transition-colors ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            ← Back
+          </button>
+        </div>
 
       {/* Settings Panel */}
       {showSettings && (
@@ -214,6 +222,7 @@ const ChatInterface = ({
           </button>
         </div>
       )}
+      </div>
 
       {/* Messages */}
       <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
@@ -286,40 +295,40 @@ const ChatInterface = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className={`border-t transition-colors p-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-        <div className="flex gap-3">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="Ask something..."
-            className={`flex-1 px-4 py-3 rounded-lg border resize-none font-medium outline-none transition-all ${
-              isDarkMode
-                ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-[#07bc0c]'
-                : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#07bc0c]'
-            }`}
-            rows="3"
-          />
-          <button
-            onClick={handleSend}
-            disabled={isLoading || !input.trim()}
-            className={`px-4 rounded-lg font-bold transition-all flex items-center gap-2 shrink-0 ${
-              isLoading || !input.trim()
-                ? isDarkMode ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-400'
-                : isDarkMode ? 'bg-[#07bc0c] text-slate-900 hover:bg-[#07bc0c]/90' : 'bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90'
-            }`}
-          >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </button>
-        </div>
+    {/* Input */}
+    <div className={`border-t transition-colors p-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className="flex gap-3">
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Ask something..."
+          className={`flex-1 px-4 py-3 rounded-lg border resize-none font-medium outline-none transition-all ${
+            isDarkMode
+              ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-[#07bc0c]'
+              : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#07bc0c]'
+          }`}
+          rows="3"
+        />
+        <button
+          onClick={handleSend}
+          disabled={isLoading || !input.trim()}
+          className={`px-4 rounded-lg font-bold transition-all flex items-center gap-2 shrink-0 ${
+            isLoading || !input.trim()
+              ? isDarkMode ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-400'
+              : isDarkMode ? 'bg-[#07bc0c] text-slate-900 hover:bg-[#07bc0c]/90' : 'bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90'
+          }`}
+        >
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        </button>
       </div>
+    </div>
     </div>
   );
 };

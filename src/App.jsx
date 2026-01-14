@@ -17,7 +17,8 @@ import NotificationsPage from "./components/NotificationsPage";
 import UniMarketPage from "./components/UniMarketPage";
 import SellItemPage from "./components/SellItemPage";
 import MyListingsPage from "./components/MyListingPage";
-import StudyHubApp from "./components/StudyHub/App";
+import StudyHubApp from "./components/studyhub/App";
+import AIToolApp from "./components/Ai-tool/App";
 import QuizPage from "./components/QuizPage";
 import DocumentInfo from "./components/DocumentInfo";
 import ChatInterface from "./components/ChatInterface";
@@ -67,6 +68,7 @@ function App() {
         <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
         <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
         <Route path="/uni-doc" element={<StudyHubApp />} />
+        <Route path="/ai-tool" element={<AIToolApp />} />
         <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/chat-interface" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />

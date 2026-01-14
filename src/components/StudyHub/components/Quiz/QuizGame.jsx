@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Timer, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Timer, ArrowRight, ArrowLeft, CheckCircle2, X } from 'lucide-react';
 
 /**
  * QuizGame component for playing quiz
@@ -7,10 +7,11 @@ import { Timer, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
  * @param {Array} props.questions - Quiz questions
  * @param {Object} props.settings - Quiz settings
  * @param {Function} props.onFinish - Callback when quiz finishes
+ * @param {Function} props.onExit - Callback to exit quiz
  * @param {boolean} [props.isDarkMode] - Dark mode toggle
  * @param {string} props.topic - Quiz topic
  */
-const QuizGame = ({ questions, settings, onFinish, isDarkMode, topic }) => {
+const QuizGame = ({ questions, settings, onFinish, onExit, isDarkMode, topic }) => {
   const scrollContainerRef = useRef(null);
   const cardRef = useRef(null);
   
@@ -129,6 +130,13 @@ const QuizGame = ({ questions, settings, onFinish, isDarkMode, topic }) => {
   const progress = ((currentIndex + 1) / questions.length) * 100;
   const timerPct = (timeLeft / settings.timePerQuestion) * 100;
 
+  const handleExit = () => {
+    if (window.confirm('Are you sure you want to exit the quiz? Your progress will be lost.')) {
+      clearQuizStorage();
+      onExit();
+    }
+  };
+
   return (
     <div className="h-full w-full flex flex-col overflow-hidden select-none transition-colors duration-300 bg-white dark:bg-secondary">
       {/* Immersive Header */}
@@ -145,12 +153,21 @@ const QuizGame = ({ questions, settings, onFinish, isDarkMode, topic }) => {
             </div>
           </div>
 
-          <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <Timer className={`w-5 h-5 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-[#07bc0c]'}`} />
-            <div className="flex flex-col items-end">
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Time Left</p>
-              <span className={`font-mono font-black text-2xl leading-none ${timeLeft < 10 ? 'text-red-500' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>{timeLeft}s</span>
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl shadow-sm border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <Timer className={`w-5 h-5 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-[#07bc0c]'}`} />
+              <div className="flex flex-col items-end">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Time Left</p>
+                <span className={`font-mono font-black text-2xl leading-none ${timeLeft < 10 ? 'text-red-500' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>{timeLeft}s</span>
+              </div>
             </div>
+            <button
+              onClick={handleExit}
+              className={`p-2.5 rounded-lg transition-colors ${isDarkMode ? 'text-slate-400 hover:bg-slate-900 hover:text-red-400' : 'text-slate-600 hover:bg-slate-100 hover:text-red-600'}`}
+              title="Exit quiz"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
         

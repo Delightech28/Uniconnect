@@ -28,11 +28,7 @@ const ReferralReward = () => {
             
             {/* Logo Section */}
             <div className="flex items-center gap-4">
-              <div className="size-6 text-[#07bc0c]">
-                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z" fill="currentColor"></path>
-                </svg>
-              </div>
+              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-6 w-6 object-contain" />
               <h2 className="text-lg font-bold leading-tight tracking-tight">UniConnect</h2>
             </div>
 

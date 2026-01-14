@@ -29,7 +29,7 @@ bg-background-light dark:bg-slate-800 items-center justify-center pl-4
 rounded-l-lg border-r-0"> 
                 <span 
 className="material-symbols-outlined">search</span> 
-            </div> 
+            </div>
             <input className="form-input flex w-full min-w-0 flex-1 
 resize-none overflow-hidden rounded-lg text-secondary dark:text-white 
 focus:outline-0 focus:ring-0 border-none bg-background-light 
@@ -39,7 +39,7 @@ leading-normal" placeholder="Search" />
         </div> 
     </label> 
 ); 
- 
+
  
 
 const NavLinks = () => ( 
@@ -49,7 +49,9 @@ font-medium leading-normal py-2" href="#">Dashboard</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="#">Marketplace</a> 
         <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Uni Doc</a> 
+font-medium leading-normal py-2" href="/uni-doc">UniDoc</a> 
+        <a className="text-secondary dark:text-white text-sm 
+font-medium leading-normal py-2 cursor-pointer" href="/uni-doc">StudyHub</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium leading-normal py-2" href="/campusfeed">CampusFeed</a> 
     <a className="text-secondary dark:text-white text-sm 

@@ -10,17 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.31.0",
     "@vercel/analytics": "^1.6.1",
     "firebase": "^12.6.0",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.408.0",
-    "pdfjs-dist": "^2.16.105",
+    "pdfjs-dist": "^5.4.530",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.5",
-    "remark-gfm": "^4.0.1",
-    "@google/genai": "^1.31.0"
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
