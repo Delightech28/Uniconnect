@@ -97,24 +97,27 @@ const { darkMode, toggleTheme } = useTheme();
 	}, []);
 // theme handled by useTheme
 const navLinks = [
-{ title: 'UniMarket', href: '/unimarket' },
-{ title: 'UniDoc', href: '/uni-doc' },
-{ title: 'StudyHub', href: '/ai-tool' },
-{ title: 'CampusFeed', href: '#campusfeed' },
+{ title: 'Dashboard', href: '/dashboard' },
+{ title: 'Marketplace', href: '/unimarket' },
+{ title: 'StudyHub', href: '/uni-doc' },
+{ title: 'UniDoc', href: '/ai-tool' },
+{ title: 'CampusFeed', href: '/campusfeed' },
+{ title: 'Wallet', href: '/uni-wallet' },
+{ title: 'Referral', href: '/student-referral' },
+{ title: 'Pricing', href: '/pricing' },
 ];
 return (
-<div className="relative flex min-h-screen w-full flex-col
-overflow-x-hidden">
-<header className="sticky top-0 z-50 bg-background-light/80
+<div className="w-full h-screen flex flex-col overflow-x-hidden">
+<header className="sticky top-0 z-50 w-full bg-background-light/80
 dark:bg-background-dark/80 backdrop-blur-sm px-4 lg:px-10 py-3
 border-b border-gray-200 dark:border-gray-700">
 <div className="max-w-7xl mx-auto flex items-center
 justify-between">
 <div className="flex items-center gap-4 text-secondary
 dark:text-primary">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-16 w-16 mb-1 object-contain" />
+<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
-tracking-tight -ml-8"><Link to="/">niSpace</Link></h2>
+tracking-tight -ml-7"><Link to="/">niSpace</Link></h2>
 </div>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-8">
@@ -188,7 +191,7 @@ Sign Up
 </div>
 )}
 </header>
-<main className="flex-1">
+<main className="flex-1 overflow-y-auto">
 {/* Hero Section */}
 <section className="relative">
 <div className="max-w-7xl mx-auto px-4 lg:px-10 py-20
@@ -318,7 +321,6 @@ Get Started Now
 </div>
 </div>
 </section>
-</main>
 {/* Footer */}
 <footer className="bg-background-light dark:bg-background-dark
 border-t border-gray-200 dark:border-gray-700">
@@ -338,6 +340,7 @@ Service</a>
 </div>
 </div>
 </footer>
+</main>
 </div>
 );
 };

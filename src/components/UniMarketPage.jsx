@@ -111,9 +111,9 @@ useEffect(() => {
 	}
 }, []);
 return (
-<div className="relative flex min-h-screen w-full flex-col">
+<div className="w-full h-screen flex flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-<main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
+<main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-7xl mx-auto">
 <div className="flex flex-col md:flex-row md:items-center
 md:justify-between gap-4 mb-8">

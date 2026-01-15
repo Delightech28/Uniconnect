@@ -28,8 +28,8 @@ const ReferralReward = () => {
             
             {/* Logo Section */}
             <div className="flex items-center gap-4">
-              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-6 w-6 object-contain" />
-              <h2 className="text-lg font-bold leading-tight tracking-tight">UniConnect</h2>
+              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+              <h2 className="text-lg font-bold leading-tight tracking-tight -ml-3">niConnect</h2>
             </div>
 
             {/* Desktop Navigation */}

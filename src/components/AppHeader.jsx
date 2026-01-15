@@ -11,11 +11,85 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userAvatar, setUserAvatar] = useState('/default_avatar.png');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [inactivityTimer, setInactivityTimer] = useState(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
   const navigate = useNavigate();
+
+  const INACTIVITY_TIMEOUT = 3000; // 3 seconds of inactivity before hiding
+
+  // Track scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollPosition(window.scrollY);
+      // Always show header when scrolling
+      setIsHeaderVisible(true);
+      
+      // If scrolled down, reset inactivity timer
+      if (window.scrollY > 0) {
+        if (inactivityTimer) {
+          clearTimeout(inactivityTimer);
+        }
+
+        const timer = setTimeout(() => {
+          setIsHeaderVisible(false);
+        }, INACTIVITY_TIMEOUT);
+
+        setInactivityTimer(timer);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [inactivityTimer]);
+
+  // Handle user activity to show/hide header (only when scrolled down)
+  useEffect(() => {
+    const handleUserActivity = () => {
+      // Always show header
+      setIsHeaderVisible(true);
+
+      // If at top of page, don't apply fade out
+      if (scrollPosition === 0) {
+        if (inactivityTimer) {
+          clearTimeout(inactivityTimer);
+        }
+        return;
+      }
+
+      // Clear existing timer
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+
+      // Set new timer to hide header after inactivity (only if scrolled down)
+      const timer = setTimeout(() => {
+        setIsHeaderVisible(false);
+      }, INACTIVITY_TIMEOUT);
+
+      setInactivityTimer(timer);
+    };
+
+    // Add event listeners
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+
+    return () => {
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+    };
+  }, [inactivityTimer, scrollPosition]);
 
   // Fetch current user's avatar from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -51,109 +125,140 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary">
+      <header className={`sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-gray-700 px-4 sm:px-10 py-3 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm transition-all duration-300 ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="flex items-center gap-4 lg:gap-8">
-          <NavLink to="/dashboard" className="flex items-center gap-0 text-secondary dark:text-white hover:opacity-80 transition-opacity">
+          <NavLink to={currentUser ? "/dashboard" : "/"} className="flex items-center gap-0 text-secondary hover:opacity-80 transition-opacity">
             <img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain"/>
             <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
           </NavLink>
-            <nav className="hidden lg:flex items-center gap-6">
-              <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                Dashboard
-              </NavLink>
-              <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                Marketplace
-              </NavLink>
-              <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                StudyHub
-              </NavLink>
-              <NavLink to="/ai-tool" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                UniDoc
-              </NavLink>
-              <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                CampusFeed
-              </NavLink>
-              <NavLink to="/uni-wallet" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                Wallet
-              </NavLink>
-              <NavLink to="/student-referral" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:text-primary'}`}>
-                Referral
-              </NavLink>
-            </nav>
+          <nav className="hidden lg:flex items-center gap-6">
+            <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Marketplace
+            </NavLink>
+            <NavLink to="/ai-tool" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              UniDoc
+            </NavLink>
+            <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              StudyHub
+            </NavLink>
+            <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              CampusFeed
+            </NavLink>
+            <NavLink to="/uni-wallet" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Wallet
+            </NavLink>
+            <NavLink to="/student-referral" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Referral
+            </NavLink>
+            <NavLink to="/pricing" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary'}`}>
+              Pricing
+            </NavLink>
+          </nav>
         </div>
         <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
-          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white" aria-label="Toggle dark mode">
+          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light text-secondary" aria-label="Toggle dark mode">
             <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
           </button>
-          <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
-            <span className="material-symbols-outlined">notifications</span>
-            {unreadCount > 0 && (
-              <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </div>
-            )}
-          </button>
-          {verified ? (
-            <button onClick={() => navigate('/inbox')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white">
-              <span className="material-symbols-outlined">mail</span>
-              {unreadCount > 0 && (
-                <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </div>
+
+          {currentUser ? (
+            <>
+              <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light text-secondary">
+                <span className="material-symbols-outlined">notifications</span>
+                {unreadCount > 0 && (
+                  <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </div>
+                )}
+              </button>
+              {verified ? (
+                <button onClick={() => navigate('/inbox')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light text-secondary">
+                  <span className="material-symbols-outlined">mail</span>
+                  {unreadCount > 0 && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <button onClick={() => {
+                  if (verifyingLoading) return toast('Checking verification...');
+                  if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
+                  toast('Complete verification to access Inbox');
+                }} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light/60 text-secondary" title="Locked until verified">
+                  <span className="material-symbols-outlined">mail</span>
+                </button>
               )}
-            </button>
-          ) : (
-            <button onClick={() => {
-              if (verifyingLoading) return toast('Checking verification...');
-              if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
-              toast('Complete verification to access Inbox');
-            }} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light/60 dark:bg-slate-800/60 text-secondary dark:text-white" title="Locked until verified">
-              <span className="material-symbols-outlined">mail</span>
-            </button>
-          )}
-          <div className="relative">
-            <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800">
-              <div className="bg-center bg-no-repeat w-8 h-8 rounded-full bg-cover" style={{backgroundImage: `url("${userAvatar}")`}}></div>
-            </button>
-            {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary rounded-md shadow-lg py-1 z-10">
-                <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
-                <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
-                <button onClick={() => navigate(registerAs === 'student' ? '/unispace-upgrade' : '/guest-upgrade')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Premium</button>
-                <button onClick={async () => { await auth.signOut(); navigate('/'); setIsProfileOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800">Logout</button>
+              <div className="relative">
+                <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light">
+                  <div className="bg-center bg-no-repeat w-8 h-8 rounded-full bg-cover" style={{backgroundImage: `url("${userAvatar}")`}}></div>
+                </button>
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                    <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-background-light">Profile</button>
+                    <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-background-light">Settings</button>
+                    <button onClick={() => navigate(registerAs === 'student' ? '/unispace-upgrade' : '/guest-upgrade')} className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-background-light">Premium</button>
+                    <button onClick={async () => { await auth.signOut(); navigate('/'); setIsProfileOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-background-light">Logout</button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login" className="hidden sm:flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-transparent border border-secondary text-secondary text-sm font-bold tracking-wide hover:bg-secondary/10">
+                Login
+              </NavLink>
+              <NavLink to="/signup" className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary/90">
+                Sign Up
+              </NavLink>
+            </>
+          )}
+
           <div className="lg:hidden">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary dark:text-white">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary">
               <span className="material-symbols-outlined text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
             </button>
           </div>
         </div>
       </header>
       {isMenuOpen && (
-        <nav className="lg:hidden bg-white dark:bg-secondary border-b border-slate-200 dark:border-slate-700 py-2">
-          <NavLink to="/dashboard" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+        <nav className="lg:hidden bg-white border-b border-slate-200 py-2 flex flex-col items-center gap-2">
+          <NavLink to="/dashboard" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             Dashboard
           </NavLink>
-          <NavLink to="/unimarket" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/unimarket" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             Marketplace
           </NavLink>
-          <NavLink to="/uni-doc" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/uni-doc" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             StudyHub
           </NavLink>
-          <NavLink to="/ai-tool" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/ai-tool" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             UniDoc
           </NavLink>
-          <NavLink to="/campusfeed" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/campusfeed" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             CampusFeed
           </NavLink>
-          <NavLink to="/uni-wallet" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/uni-wallet" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             Wallet
           </NavLink>
-          <NavLink to="/student-referral" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `block w-full text-left px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <NavLink to="/student-referral" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
             Referral
           </NavLink>
+          <NavLink to="/pricing" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:bg-background-light'}`}>
+            Pricing
+          </NavLink>
+          {!currentUser && (
+            <div className='flex items-center gap-4 px-4 py-3 mt-2'>
+              <NavLink to="/login" onClick={() => setIsMenuOpen(false)} className="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-transparent border border-secondary text-secondary font-bold">
+                Login
+              </NavLink>
+              <NavLink to="/signup" onClick={() => setIsMenuOpen(false)} className="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white font-bold">
+                Sign Up
+              </NavLink>
+            </div>
+          )}
         </nav>
       )}
     </>

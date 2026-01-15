@@ -95,9 +95,9 @@ const UniWalletPage = () => {
   const { darkMode, toggleTheme } = useTheme();
  
   return ( 
-    <div className="relative flex min-h-screen w-full flex-col"> 
+    <div className="w-full h-screen flex flex-col"> 
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
-      <main className="flex-1 px-4 sm:px-10 py-8"> 
+      <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8"> 
         <div className="max-w-4xl mx-auto"> 
           <h1 className="text-secondary dark:text-white text-3xl font-bold 
 leading-tight font-display mb-8">My UniWallet</h1> 

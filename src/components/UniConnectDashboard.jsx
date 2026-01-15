@@ -205,7 +205,7 @@ const UniConnectDashboard = () => {
     }
   };
 return (
-<div className="relative flex min-h-screen w-full flex-col">
+<div className="w-full h-screen flex flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 {/* --- Mobile Menu --- */}
 {isMenuOpen && (

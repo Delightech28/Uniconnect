@@ -6,6 +6,7 @@ import { auth } from '../firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import AppHeader from './AppHeader';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
 email: '',
@@ -78,26 +79,9 @@ const handleSubmit = async (e) => {
     }
 };
 return (
-    <div className="min-h-screen flex flex-col auth-split relative">
-        {/* Dark Mode Toggle - Fixed at top right */}
-        <div className="absolute top-6 right-6 z-20">
-            <button
-                onClick={() => toggleTheme()}
-                className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200 hover:shadow-lg transition-shadow"
-                aria-label="Toggle dark mode"
-            >
-                <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
-            </button>
-        </div>
-        {/* Logo (top-left) */}
-        <div className="absolute top-6 left-6 z-20">
-            <NavLink to={logoTarget} className="flex items-center gap-0 text-secondary dark:text-white hover:opacity-80 transition-opacity" aria-label="UniSpace">
-                <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
-                <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
-            </NavLink>
-        </div>
-
-        <div className="flex flex-1 auth-split">
+    <div className="w-full h-screen flex flex-col">
+        <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+        <div className="flex flex-1 overflow-y-auto auth-split relative">
             {/* Left: Hero image (desktop) */}
                 <div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden">
                     {/* Centered floating image on login page */}

@@ -44,6 +44,7 @@ import CampusFeed from "./components/CampusFeed";
 import UniSpaceUpgrade from "./components/UniSpaceUpgrade";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestUpgrade from "./components/GuestUpgrade";
+import PricingPage from "./components/PricingPage";
 function App() {
   return (
     <>
@@ -94,6 +95,7 @@ function App() {
         <Route path="/campusfeed" element={<ProtectedRoute><CampusFeed /></ProtectedRoute>} />
         <Route path="/unispace-upgrade" element={<ProtectedRoute><UniSpaceUpgrade /></ProtectedRoute>} />
         <Route path="/guest-upgrade" element={<ProtectedRoute><GuestUpgrade /></ProtectedRoute>} />
+        <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       </Router>
     </>

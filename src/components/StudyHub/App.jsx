@@ -198,14 +198,14 @@ const StudyHubApp = () => {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col bg-white dark:bg-secondary transition-colors">
+    <div className="w-full h-screen flex flex-col transition-colors">
       
       {/* Header - Using Main App Header */}
       <AppHeader />
       
       {/* Home/Reset Button */}
       {mode !== APP_MODES.UPLOAD && (
-        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-end bg-white dark:bg-secondary">
+        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-end bg-white">
           <button
             onClick={handleReset}
             className="px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"

@@ -81,12 +81,10 @@ export default function CampusFeed() {
     }
   }, []);
   return (
-    <div className="font-display">
-      <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
-        <div className="layout-container flex h-full grow flex-col">
-          <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+    <div className="w-full h-screen flex flex-col">
+      <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
-          <main className="flex-1 px-4 sm:px-10 py-8">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8">
             <div className="layout-content-container flex flex-col max-w-3xl mx-auto">
               {/* Page Title & Action */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -110,8 +108,6 @@ export default function CampusFeed() {
               </div>
             </div>
           </main>
-        </div>
-      </div>
     </div>
   );
 }

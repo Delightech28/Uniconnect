@@ -65,7 +65,7 @@ whitespace-nowrap px-6 py-4 md:px-10 md:py-5 bg-content-light
 dark:bg-content-dark rounded-xl border border-border-light
 dark:border-border-dark">
 <div className="flex items-center gap-0">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1object-contain" />
+<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-text-primary-light dark:text-text-primary-dark
 text-xl font-bold tracking-tight -ml-3">niSpace</h2>
 </div>
