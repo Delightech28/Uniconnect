@@ -47,6 +47,7 @@ import GuestUpgrade from "./components/GuestUpgrade";
 import PricingPage from "./components/PricingPage";
 function App() {
   return (
+    console.log("Rendering App.jsx"),
     <>
       <Toaster position="top-right" />
       <Analytics />
