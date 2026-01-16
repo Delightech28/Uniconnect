@@ -1,4 +1,5 @@
 import React, { useState } from 'react'; 
+import { useTheme } from '../hooks/useTheme';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
 const USER_QR_CODE_URL = 
@@ -14,13 +15,9 @@ dark:border-slate-700 px-4 md:px-10 py-3 bg-white dark:bg-secondary">
     <div className="flex items-center gap-8"> 
       <div className="flex items-center gap-4 text-secondary 
 dark:text-white"> 
-        <div className="size-6 text-primary"> 
-          <svg fill="currentColor" viewBox="0 0 48 48" 
-xmlns="http://www.w3.org/2000/svg"><path d="M44 
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg> 
-        </div> 
+        <img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" /> 
         <h2 className="text-xl font-bold leading-tight 
-tracking-[-0.015em]">UniSpace</h2> 
+tracking-[-0.015em] -ml-3">niSpace</h2> 
       </div> 
       <nav className="hidden md:flex items-center gap-6"> 
         <a className="text-secondary dark:text-white text-sm 
@@ -28,7 +25,7 @@ font-medium" href="#">Dashboard</a>
         <a className="text-secondary dark:text-white text-sm 
 font-medium" href="#">Marketplace</a> 
         <a className="text-secondary dark:text-white text-sm 
-font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">Uni Doc</a> 
+font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">UniDoc</a> 
         <a className="text-primary dark:text-primary font-bold text-sm" 
 href="#">Wallet</a> 
       </nav> 
@@ -252,6 +249,7 @@ text-lg">download</span>
 // --- Main Page Component --- 
 function WalletPage() { 
   const [balance, setBalance] = useState(15000); 
+  const { darkMode, toggleTheme } = useTheme();
  
   const handleSendMoney = (amount) => { 
     if (balance >= amount) { 
@@ -266,6 +264,17 @@ function WalletPage() {
     <div className="bg-background-light dark:bg-background-dark 
 font-display text-secondary dark:text-slate-200 min-h-screen"> 
   
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => toggleTheme()}
+          className="flex items-center justify-center size-12 rounded-full bg-white dark:bg-gray-800 shadow-md text-slate-700 dark:text-slate-200"
+          aria-label="Toggle dark mode"
+        >
+          <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+        </button>
+      </div>
+
       <div className="relative flex h-auto w-full flex-col"> 
         <AppHeader /> 
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 

@@ -9,7 +9,7 @@ import AppHeader from './AppHeader';
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
 { label: 'Marketplace', path: '/unimarket' },
-{ label: 'Uni Doc', path: 'https://uni-space-study.vercel.app', external: true },
+{ label: 'UniDoc', path: 'https://uni-space-study.vercel.app', external: true },
 { label: 'CampusFeed', path: '/campusfeed' },
 { label: 'Wallet', path: '/uni-wallet' }
 ];
@@ -82,15 +82,9 @@ text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
 const Logo = () => (
 <div className="flex items-center gap-4 text-secondary
 dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
+<img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniSpace</h2>
+tracking-tight -ml-3">niSpace</h2>
 </div>
 );
 const ProgressCircle = ({ percentage }) => (
@@ -211,7 +205,7 @@ const UniConnectDashboard = () => {
     }
   };
 return (
-<div className="relative flex min-h-screen w-full flex-col">
+<div className="w-full h-screen flex flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 {/* --- Mobile Menu --- */}
 {isMenuOpen && (

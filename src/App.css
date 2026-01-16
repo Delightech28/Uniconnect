@@ -1,0 +1,77 @@
+/* Light Mode: Professional shadows with black and green accent */
+@layer components {
+  /* Apply shadow to all common card/container elements in light mode */
+  body .border-solid,
+  body button:not(.hover\:shadow-none),
+  body [class*="rounded"],
+  body .bg-white {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 2px rgba(7, 188, 12, 0.2) !important;
+  }
+
+  /* Enhanced shadows for interactive elements */
+  .light button {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(7, 188, 12, 0.15);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .light button:hover {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12), 0 0 4px rgba(7, 188, 12, 0.25);
+  }
+
+  /* Input fields and forms */
+  .light input,
+  .light textarea,
+  .light select {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(7, 188, 12, 0.1);
+  }
+
+  .light input:focus,
+  .light textarea:focus,
+  .light select:focus {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(7, 188, 12, 0.15);
+  }
+
+  /* Navigation elements */
+  .light nav,
+  .light header {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 1px rgba(7, 188, 12, 0.1);
+  }
+}
+
+/* Dark Mode: Ensure smooth appearance with subtle green tints */
+@layer components {
+  .dark [class*="bg-"] {
+    transition: background-color 0.3s ease;
+  }
+}
+
+/* Split-page hero image animations for auth pages */
+@keyframes pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes floatY {
+  0% { transform: translateY(0px) translateX(0px) scale(1); }
+  50% { transform: translateY(-12px) translateX(6px) scale(1.03); }
+  100% { transform: translateY(0px) translateX(0px) scale(1); }
+}
+
+.bg-pan {
+  background-size: 140% 140%;
+  animation: pan 28s ease-in-out infinite;
+}
+
+.float-1 { animation: floatY 6s ease-in-out infinite; }
+.float-2 { animation: floatY 9s ease-in-out infinite; animation-delay: 1.2s; }
+.float-3 { animation: floatY 11s ease-in-out infinite; animation-delay: 0.6s; }
+
+.auth-deco { mix-blend-mode: screen; filter: blur(40px); opacity: 0.7; }
+
+/* Make sure the auth split looks good on smaller screens */
+@media (max-width: 767px) {
+  .auth-split { flex-direction: column-reverse; }
+  .auth-hero { height: 40vh; }
+}
+

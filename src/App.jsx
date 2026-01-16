@@ -17,7 +17,8 @@ import NotificationsPage from "./components/NotificationsPage";
 import UniMarketPage from "./components/UniMarketPage";
 import SellItemPage from "./components/SellItemPage";
 import MyListingsPage from "./components/MyListingPage";
-import StudyHubPage from "./components/StudyHubPage";
+import StudyHubApp from "./components/studyhub/App";
+import AIToolApp from "./components/Ai-tool/App";
 import QuizPage from "./components/QuizPage";
 import DocumentInfo from "./components/DocumentInfo";
 import ChatInterface from "./components/ChatInterface";
@@ -43,8 +44,10 @@ import CampusFeed from "./components/CampusFeed";
 import UniSpaceUpgrade from "./components/UniSpaceUpgrade";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestUpgrade from "./components/GuestUpgrade";
+import PricingPage from "./components/PricingPage";
 function App() {
   return (
+    console.log("Rendering App.jsx"),
     <>
       <Toaster position="top-right" />
       <Analytics />
@@ -66,7 +69,8 @@ function App() {
         <Route path="/unimarket" element={<UniMarketPage />} />
         <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
         <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
-        <Route path="/uni-doc" element={<StudyHubPage />} />
+        <Route path="/uni-doc" element={<StudyHubApp />} />
+        <Route path="/ai-tool" element={<AIToolApp />} />
         <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/chat-interface" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
@@ -92,6 +96,7 @@ function App() {
         <Route path="/campusfeed" element={<ProtectedRoute><CampusFeed /></ProtectedRoute>} />
         <Route path="/unispace-upgrade" element={<ProtectedRoute><UniSpaceUpgrade /></ProtectedRoute>} />
         <Route path="/guest-upgrade" element={<ProtectedRoute><GuestUpgrade /></ProtectedRoute>} />
+        <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       </Router>
     </>

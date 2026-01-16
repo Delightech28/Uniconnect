@@ -1,20 +1,336 @@
 import React, { useState } from 'react';
+import uni3 from '../assets/uni3.jpg';
+import { useTheme } from '../hooks/useTheme';
 import { auth, db, storage } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useNavigate } from 'react-router-dom';
-// --- Data for select options ---
-const institutions = [
-'University of Lagos',
-'Ahmadu Bello University',
-'University of Ibadan',
-'Obafemi Awolowo University',
-'University of Nigeria, Nsukka',
-];
+import { useNavigate, Link, NavLink } from 'react-router-dom';
+import AppHeader from './AppHeader';
+// --- Data for select options (grouped by category) ---
+const universityData = {
+	federal: [
+		'Abubakar Tafawa Balewa University, Bauchi',
+		'Adeyemi Federal University of Education, Ondo',
+		'Admiralty University Ibusa, Delta State',
+		'African Aviation and Aerospace University',
+		'Ahmadu Bello University, Zaria',
+		'Air Force Institute of Technology, Kaduna',
+		'Alex Ekwueme University, Ndufu-Alike, Ebonyi State',
+		'Alvan Ikoku Federal University of Education, Owerri, Imo State',
+		'Bayero University, Kano',
+		'David Nweze Umahi Federal University of Medical Sciences, Uburu',
+		'Federal University Gashua, Yobe',
+		'Federal University of Agriculture and Developmental Studies, Iragbuji, Osun State',
+		'Federal University of Agriculture Bassam-Biri, Bayelsa',
+		'Federal University of Agriculture, Abeokuta',
+		'Federal University of Agriculture, Mubi',
+		'Federal University of Agriculture, Zuru, Kebbi State',
+		'Federal University of Allied Health Sciences, Enugu',
+		'Federal University of Applied Sciences, Kachia, Kaduna State',
+		'Federal University of Education Kontagora, Niger State',
+		'Federal University of Education Pankshin, Plateau State',
+		'Federal University of Education, Zaria, Kaduna State',
+		'Federal University of Environment and Technology, Tai Town, Ogoniland, Rivers State',
+		'Federal University of Health Sciences Kwale, Delta State',
+		'Federal University of Health Sciences, Azare, Bauchi State',
+		'Federal University of Health Sciences, Ila Orangun, Osun State',
+		'Federal University of Health Sciences, Katsina',
+		'Federal University of Health Sciences, Otukpo, Benue State',
+		'Federal University of Medicine and Medical Sciences, Abeokuta',
+		'Federal University of Petroleum Resources, Effurun',
+		'Federal University of Technology and Environmental Studies, Iyin-Ekiti, Ekiti State',
+		'Federal University of Technology, Akure',
+		'Federal University of Technology, Babura, Jigawa State',
+		'Federal University of Technology, Ikot Abasi, Akwa Ibom State',
+		'Federal University of Technology, Minna',
+		'Federal University of Technology, Owerri',
+		'Federal University of Transportation Daura, Katsina',
+		'Federal University, Birnin Kebbi',
+		'Federal University, Dutse, Jigawa State',
+		'Federal University, Dutsin-Ma, Katsina',
+		'Federal University, Gusau Zamfara',
+		'Federal University, Kashere, Gombe State',
+		'Federal University, Lafia, Nasarawa State',
+		'Federal University, Lokoja, Kogi State',
+		'Federal University, Otuoke, Bayelsa',
+		'Federal University, Oye-Ekiti, Ekiti State',
+		'Federal University, Wukari, Taraba State',
+		'Joseph Sarwuan Tarka University, Makurdi',
+		'Michael Okpara University of Agricultural Umudike',
+		'Modibbo Adama University of Technology, Yola',
+		'National Open University of Nigeria, Abuja',
+		'National University of Science and Technology, Abuja',
+		'Nigeria Police Academy Wudil',
+		'Nigerian Army University Biu',
+		'Nigerian Defence Academy Kaduna',
+		'Nigerian Maritime University Okerenkoko, Delta State',
+		'Nnamdi Azikiwe University, Awka',
+		'Obafemi Awolowo University, Ile-Ife',
+		'Tai Solarin Federal University of Education, Ijagun, Ijebu Ode',
+		'University of Abuja, Gwagwalada',
+		'University of Benin',
+		'University of Calabar',
+		'University of Ibadan',
+		'University of Ilorin',
+		'University of Jos',
+		'University of Lagos',
+		'University of Maiduguri',
+		'University of Maritime Studies, Oron, Akwa Ibom State',
+		'University of Nigeria, Nsukka',
+		'University of Port-Harcourt',
+		'University of Uyo',
+		'Usumanu Danfodiyo University',
+	],
+	state: [
+		'AbdulKadir Kure University, Minna Niger State',
+		'Abdulsalam Abubakar University of Agriculture and Climate Action, Mokwa, Niger State',
+		'Abia State University, Uturu',
+		'Adamawa State University Mubi',
+		'Adekunle Ajasin University, Akungba',
+		'Akwa Ibom State University, Ikot Akpaden',
+		'Aliko Dangote university of Science & Technology, Wudil',
+		'Ambrose Alli University, Ekpoma',
+		'Bamidele Olumilua University of Science and Technology Ikere, Ekiti State',
+		'Bauchi State University, Gadau',
+		'Bayelsa Medical University',
+		'Benue State University of Agriculture Science and Technology, Ihugh',
+		'Benue State University, Makurdi',
+		'Bornu State University, Maiduguri',
+		'Chukwuemeka Odumegwu Ojukwu University, Uli',
+		'Confluence University of Science and Technology Osara, Kogi',
+		'Cross River University of Education and Entrepeneurship, Akampa, Cross River State',
+		'Delta State University Abraka',
+		'Delta University of Science and Technology, Ozoro',
+		'Dennis Osadebe University, Asaba',
+		'Ebonyi State University of ICT, Science and Technology, Oferekpe, Ebonyi State',
+		'Ebonyi State University, Abakaliki',
+		'Edo State University Uzairue',
+		'Ekiti State University',
+		'Emanuel Alayande University of Education Oyo',
+		'Enugu State University of Science and Technology, Enugu',
+		'First Technical University Ibadan',
+		'Gombe State University, Gombe',
+		'Gombe State University of Science and Technology',
+		'Ibrahim Badamasi Babangida University, Lapai',
+		'Ignatius Ajuru University of Education, Rumuolumeni',
+		'Imo State University, Owerri',
+		'Kaduna State University, Kaduna',
+		'Kebbi State University of Science and Technology, Aliero',
+		'Kingsley Ozumba Mbadiwe University Ogboko, Imo State',
+		'Kogi State University, Kabba',
+		'Kwara State University of Education, Ilorin, Kwara State',
+		'Kwara State University, Ilorin',
+		'Ladoke Akintola University of Technology, Ogbomoso',
+		'Lagos State University of Education, Ijanikin',
+		'Lagos State University of Science and Technology Ikorodu',
+		'Lagos State University, Ojo',
+		'Moshood Abiola University of Science and Technology Abeokuta',
+		'Nasarawa State University Keffi',
+		'Niger Delta University Yenagoa',
+		'Olabisi Onabanjo University, Ago Iwoye',
+		'Olusegun Agagu University of Sc. & Tech., Okitipupa, Ondo',
+		'Osun State University Osogbo',
+		'Plateau State University Bokkos',
+		'Prince Abubakar Audu University Anyigba',
+		'Rivers State University',
+		'Shehu Shagari University of Education, Sokoto',
+		'Sokoto State University',
+		'State University of Medical and Applied Sciences, Igbo-Eno, Enugu',
+		'Sule Lamido University, Kafin Hausa, Jigawa',
+		'Taraba State University, Jalingo',
+		'Umar Musa Yar\'Adua University Katsina',
+		'University of Aeronautics and Aerospace Engineering Ezza, Ebonyi State',
+		'University of Africa Toru Orua, Bayelsa State',
+		'University of Agriculture and Environmental Sciences Umuagwo, Imo State',
+		'University of Cross River State, Calabar',
+		'University of Delta, Agbor',
+		'University of Ilesa, Osun State',
+		'University of Medical Sciences, Ondo City, Ondo State',
+		'Yobe State University, Damaturu',
+		'Yusuf Maitama Sule University Kano',
+		'Zamfara State University',
+	],
+	private: [
+		'Abdulrasaq Abubakar Toyin University, Oke-Ogba, Ganmo, Ilorin, Kwara State',
+		'Achievers University, Owo',
+		'Adeleke University, Ede',
+		'Afe Babalola University, Ado-Ekiti - Ekiti State',
+		'African University of Economics, FCT, Abuja',
+		'African University of Science and Technology, Abuja',
+		'Ahman Pategi University, Kwara State',
+		'Ajayi Crowther University, Ibadan',
+		'Al-Ansar University, Maiduguri, Borno',
+		'Al-Bayan University, Ankpa, Kogi State',
+		'Aletheia University, Ago-Iwoye Ogun State',
+		'Al-Hikmah University, Ilorin',
+		'Al-Istiqama University, Sumaila, Kano State',
+		'Al-Muhibbah Open University, Abuja',
+		'Al-Qalam University, Katsina',
+		'Amadeus University, Amizi, Abia State',
+		'Amaj University, Kwali, Abuja',
+		'American Open University, Ogun State',
+		'American University of Nigeria, Yola',
+		'Anan University, Kwall, Plateau State',
+		'Anchor University Ayobo Lagos State',
+		'Arthur Javis University Akpoyubo Cross river State',
+		'Atiba University Oyo',
+		'Augustine University',
+		'Ave Maria University, Piyanko, Nasarawa State',
+		'Azione Verde University, Imo State',
+		'Azman University, Kano State',
+		'Baba Ahmed University, Kano State',
+		'Babcock University, Ilishan-Remo',
+		'Baze University',
+		'Bells University of Technology, Otta',
+		'Benson Idahosa University, Benin City',
+		'Bingham University, New Karu',
+		'Bowen University, Iwo',
+		'Bridget University, Mbaise, Imo State',
+		'British Canadian University, Obufu Cross River State',
+		'Caleb University, Lagos',
+		'Canadian University of Nigeria, Abuja',
+		'Capital City University, Kano State',
+		'Caritas University, Enugu',
+		'Chrisland University',
+		'Christopher University Mowe',
+		'Claretian University of Nigeria, Nekede, Imo State',
+		'Clifford University Owerrinta Abia State',
+		'Coal City University Enugu State',
+		'College of Petroleum and Energy Studies, Kaduna State',
+		'Cosmopolitan University Abuja',
+		'Covenant University Ota',
+		'Crawford University Igbesa',
+		'Crescent University',
+		'Dominican University Ibadan Oyo State',
+		'Dominion University Ibadan, Oyo State',
+		'Edusoko University, Bida, Niger State',
+		'Edwin Clark University, Kaigbodo',
+		'Eko University of Medical and Health Sciences Ijanikin, Lagos',
+		'El-Amin University, Minna, Niger State',
+		'Elizade University, Ilara-Mokin',
+		'Elrazi Medical University Yargaya University, Kano State',
+		'Eranova University, Abuja',
+		'European University of Nigeria, Duboyi, FCT',
+		'Evangel University, Akaeze',
+		'Fountain University, Oshogbo',
+		'Franco British International University, Kaduna State',
+		'Gerar University of Medical Science Imope Ijebu, Ogun State',
+		'Glorious Vision University, Ogwa, Edo State',
+		'Godfrey Okoye University, Ugwuomu-Nike - Enugu State',
+		'Greenfield University, Kaduna',
+		'Greenland University, Jigawa State',
+		'Gregory University, Uturu',
+		'Hallmark University, Ijebi Itele, Ogun',
+		'Havilla University, Nde-Ikom, Cross River State',
+		'Hensard University, Toru-Orua, Sagbama, Bayelsa State',
+		'Hezekiah University, Umudi',
+		'Hillside University of Science and Technology, Okemisi, Ekiti State',
+		'Huda University, Gusau, Zamafara State',
+		'Iconic Open University, Sokoto State',
+		'Igbinedion University Okada',
+		'Isaac Balami University of Aeronautics and Management, Lagos State',
+		'James Hope University, Lagos, Lagos State',
+		'JEFAP University, Niger State',
+		'Jewel University, Gombe state',
+		'Jimoh Babalola University, Kwara State',
+		'Joseph Ayo Babalola University, Ikeji-Arakeji',
+		'Karl-Kumm University, Vom, Plateau State',
+		'Kevin Eze University, Mgbowo, Enugu State',
+		'Khadija University, Majia, Jigawa State',
+		'Khalifa Isiyaku Rabiu University, Kano',
+		'Kings University, Ode Omu',
+		'Kola Daisi University Ibadan, Oyo State',
+		'Kwararafa University, Wukari',
+		'Landmark University, Omu-Aran',
+		'Lead City University, Ibadan',
+		'Leadership University, Abuja',
+		'Legacy University, Okija Anambra State',
+		'Lens University, Ilemona, Kwara State',
+		'Lighthouse University, Evbobanosa, Edo State',
+		'Lux Mundi University Umuahia, Abia State',
+		'Madonna University, Okija',
+		'Maduka University, Ekwegbe, Enugu State',
+		'Maranatha University, Lagos',
+		'Margaret Lawrence University, Umunede, Delta State',
+		'Maryam Abacha American University of Nigeria, Kano State',
+		'Mcpherson University, Seriki Sotayo, Ajebo',
+		'Mercy Medical University, Iwo, Ogun State',
+		'Mewar International University, Masaka, Nasarawa State',
+		'Micheal & Cecilia Ibru University',
+		'Minaret University, Ikirun, Osun State',
+		'Miva Open University, Abuja FCT',
+		'Monarch University, Iyesi-Ota, Ogun State',
+		'Mountain Top University',
+		'Mudiame University, Irrua, Edo State',
+		'Muhammad Kamalud University Kwara',
+		'New City University, Ayetoro, Ogun State',
+		'Newgate University, Minna, Niger State',
+		'Nigerian British University, Asa, Abia State',
+		'Nigerian University of Technology and Management, Apapa, Lagos State',
+		'Nile University of Nigeria, Abuja',
+		'North Eastern University, Gombe',
+		'NorthWest University Sokoto State',
+		'Novena University, Ogume',
+		'Obong University, Obong Ntak',
+		'Oduduwa University, Ipetumodu - Osun State',
+		'Ojaja University Eiyenkorin, Kwara State',
+		'PAMO University of Medical Sciences, Portharcourt',
+		'Pan-Atlantic University, Lagos',
+		'Paul University, Awka - Anambra State',
+		'PeaceLand University, Enugu State',
+		'Peter University, Achina-Onneh Anambra State',
+		'Philomath University, Kuje, Abuja',
+		'Phoenix University, Agwada, Nasarawa State',
+		'Precious Cornerstone University, Oyo',
+		'Prime University, Kuje, FCT Abuja',
+		'Rayhaan University, Kebbi',
+		"Redeemer's University, Ede",
+		'Renaissance University, Enugu',
+		'Rhema University, Obeama-Asa - Rivers State',
+		'Ritman University, Ikot Ekpene, Akwa Ibom',
+		'Saisa University of Medical Sciences and Technology, Sokoto State',
+		'Salem University, Lokoja',
+		'Sam Maris University, Ondo',
+		'Shanahan University Onitsha, Anambra State',
+		'Skyline University, Kano',
+		'Southern Atlantic University, Uyo, Akwa Ibom State',
+		'Southwestern University, Oku Owa',
+		'Spiritan University, Nneochi Abia State',
+		'Sports University, Idumuje, Ugboko, Delta State',
+		'Summit University, Offa',
+		'Tansian University, Umunya',
+		'Tazkiyah University, Kaduna State',
+		'The Duke Medical University, Calabar, Cross River State',
+		'Thomas Adewumi University, Oko-Irese, Kwara State',
+		'Tonine Iredia University of Communication, Benin City, Edo State',
+		'Topfaith University, Mkpatak, Akwa Ibom State',
+		'Trinity University Ogun State',
+		'Unique Open University, Lagos State',
+		'University of Fortune, Igbotako, Ondo State',
+		'University of Mkar, Mkar',
+		'University of Offa, Kwara State',
+		'University on the Niger, Umunya, Anambra state',
+		'Venite University, Iloro-Ekiti, Ekiti State',
+		'Veritas University, Abuja',
+		'Vision University, Ikogbo, Ogun State',
+		'Wellspring University, Evbuobanosa - Edo State',
+		'Wesley University Ondo',
+		'West Midlands Open University, Ibadan, Oyo State',
+		'Western Delta University, Oghara Delta State',
+		'Westland University Iwo, Osun State',
+		'Wigwe University, Isiokpo Rivers State',
+	],
+};
 const UniConnectRegistration = () => {
 const navigate = useNavigate();
+// logo target: landing for anonymous, dashboard for logged-in
+const logoTarget = auth && auth.currentUser ? '/dashboard' : '/';
+const { darkMode, toggleTheme } = useTheme();
 const [step, setStep] = useState(1);
+	const [institutionOpen, setInstitutionOpen] = useState(false);
+	const [institutionCategory, setInstitutionCategory] = useState('federal');
+	const [institutionSearch, setInstitutionSearch] = useState('');
 const [formData, setFormData] = useState({
 email: '',
 password: '',
@@ -22,7 +338,7 @@ displayName: '',
 bio: '',
 interests: [],
 registerAs: 'student',
-institution: institutions[0], // Set default institution
+		institution: '', // selected institution
 documentType: 'University ID',
 file: null,
 });
@@ -65,6 +381,20 @@ const handleInputChange = (e) => {
       [id]: value,
     }));
   }
+};
+
+// Helpers for institution selection
+const allInstitutions = Object.entries(universityData).flatMap(([k, list]) => list.map(name => ({ name, category: k })));
+const filteredInstitutions = allInstitutions.filter(i => {
+	if (institutionCategory && institutionCategory !== 'all' && i.category !== institutionCategory) return false;
+	if (!institutionSearch) return true;
+	return i.name.toLowerCase().includes(institutionSearch.toLowerCase());
+});
+
+const selectInstitution = (name) => {
+	setFormData(prev => ({ ...prev, institution: name }));
+	setInstitutionOpen(false);
+	setInstitutionSearch('');
 };
 const handleNext = async (e) => {
 	e.preventDefault();
@@ -232,10 +562,35 @@ const handleSubmit = async (e) => {
 const progressPercentage = step === 1 ? 50 : 100;
 const stepText = step === 1 ? 'Step 1 of 2' : 'Step 2 of 2';
 return (
-<div className="relative flex min-h-screen flex-col justify-center
-overflow-hidden p-4">
-<div className="m-auto flex w-full max-w-lg flex-col items-center
-rounded-xl p-6 sm:p-8 shadow-lg bg-white dark:bg-gray-800">
+	<div className="w-full h-screen flex flex-col">
+		<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+		<div className="flex flex-1 overflow-y-auto auth-split relative">
+			{/* Left: Hero image (desktop) */}
+					<div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden">
+						{/* Centered floating image --- occupies ~70% of the hero, rounded, tilted and contained */}
+						<div className="relative w-full flex items-center justify-center py-12 px-8">
+							{/* scaled up image container (~5x) with existing hover animation preserved; float animation added */}
+						<div className="max-w-[350%] w-[350%] min-h-[620px] transform -rotate-3 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-1 relative">
+							<img src={uni3} alt="Campus hero" className="w-full h-full object-cover block" />
+								{/* Bottom overlay for title/description (low-opacity background, legible) */}
+								<div className="absolute left-4 right-4 bottom-6 flex justify-center">
+									<div className="bg-black/40 backdrop-blur-sm rounded-md px-4 py-3 text-white max-w-[90%]">
+										<h3 className="text-lg md:text-2xl font-extrabold">UniSpace — Join your campus community</h3>
+										<p className="text-xs md:text-sm mt-1">Find classmates, sell and buy books, and connect across campus. Professional, private, and made for students.</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						{/* soft overlay + decorative accents (reduced and repositioned so image doesn't touch edges) */}
+						<div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-black/6 pointer-events-none rounded-3xl" />
+						<div className="absolute -left-6 -top-6 w-32 h-32 rounded-full bg-primary/20 auth-deco float-1" />
+						<div className="absolute right-10 bottom-10 w-44 h-44 rounded-full bg-[#07bc0c]/12 auth-deco float-2" />
+						{/* decorative text moved into image overlay to keep the hero clean */}
+					</div>
+
+			{/* Right: Form */}
+			<div className="w-full md:w-1/2 flex items-center justify-center p-6 pt-24">
+				<div className="m-auto flex w-full max-w-lg flex-col items-center rounded-xl p-6 sm:p-8 shadow-lg bg-white dark:bg-gray-800">
 <div className="w-full">
 {step !== 'success' && (
 <div className="mb-8">
@@ -339,17 +694,43 @@ value={formData.registerAs} onChange={handleInputChange}>
 </div>
 {formData.registerAs === 'student' && (
 <div>
-<label className="mb-2 block text-sm font-medium
-text-slate-700 dark:text-slate-300" htmlFor="institution">Select
-Institution</label>
-<select className="form-select block w-full rounded-lg
-border-slate-300 bg-background-light p-4 text-base text-slate-900
-focus:border-primary focus:ring-primary dark:border-slate-600
-dark:bg-slate-800 dark:text-white" id="institution"
-value={formData.institution} onChange={handleInputChange}>
-{institutions.map(inst => <option key={inst}
-value={inst}>{inst}</option>)}
-</select>
+	<label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="institution">Select Institution</label>
+
+	<div className="relative">
+		<button type="button" onClick={() => setInstitutionOpen(!institutionOpen)} className="block w-full bg-background-light p-4 text-base text-slate-900 focus:border-primary focus:ring-primary dark:bg-slate-800 dark:text-white flex items-center justify-between border border-[#cfdbe7] dark:border-slate-600 rounded-lg">
+			<span className={`${formData.institution ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{formData.institution || 'Search and select your institution'}</span>
+			<span className="material-symbols-outlined">{institutionOpen ? 'expand_less' : 'expand_more'}</span>
+		</button>
+
+		{institutionOpen && (
+			<div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-800 border border-[#cfdbe7] dark:border-slate-700 rounded-lg p-3 max-h-64 overflow-auto shadow-lg">
+				<div className="flex gap-3 mb-3 flex-wrap">
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="federal" checked={institutionCategory==='federal'} onChange={() => setInstitutionCategory('federal')} /> <span className="text-sm">Federal</span></label>
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="state" checked={institutionCategory==='state'} onChange={() => setInstitutionCategory('state')} /> <span className="text-sm">State</span></label>
+					<label className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="private" checked={institutionCategory==='private'} onChange={() => setInstitutionCategory('private')} /> <span className="text-sm">Private</span></label>
+					<label className="inline-flex items-center gap-2 ml-auto text-slate-900 dark:text-slate-300"><input type="radio" name="instCat" value="all" checked={institutionCategory==='all'} onChange={() => setInstitutionCategory('all')} /> <span className="text-sm">All</span></label>
+				</div>
+
+				<div className="mb-2">
+					<input type="search" value={institutionSearch} onChange={(e) => setInstitutionSearch(e.target.value)} placeholder="Search university..." className="block w-full rounded-md border border-[#cfdbe7] dark:border-slate-600 bg-background-light dark:bg-slate-900 text-slate-900 dark:text-white p-2" />
+				</div>
+
+				<ul className="divide-y divide-slate-100 dark:divide-slate-700">
+					{filteredInstitutions.length === 0 && (
+						<li className="py-2 text-sm text-slate-500">No results found.</li>
+					)}
+					{filteredInstitutions.map(inst => (
+						<li key={inst.name} className="py-2">
+							<button type="button" onClick={() => selectInstitution(inst.name)} className={`w-full text-left text-sm p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${formData.institution===inst.name ? 'font-bold text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
+								{inst.name}
+							</button>
+						</li>
+					))}
+				</ul>
+			</div>
+		)}
+	</div>
+
 </div>
 )}
 <button type="submit" className="flex w-full cursor-pointer
@@ -357,6 +738,13 @@ items-center justify-center rounded-lg bg-primary px-5 py-4 text-base
 font-bold tracking-wide text-white hover:bg-primary/90">
 Next
 </button>
+<p className="text-text-primary dark:text-gray-300 text-sm
+text-center">
+I have an account{' '}
+<Link to="/login" className="text-primary font-bold underline">
+Login
+</Link>
+</p>
 </form>
 </div>
 )}
@@ -418,6 +806,13 @@ items-center justify-center rounded-lg bg-primary px-5 py-4 text-base
 font-bold tracking-wide text-white hover:bg-primary/90">
 Submit
 </button>
+<p className="text-text-primary dark:text-gray-300 text-sm
+text-center">
+I have an account{' '}
+<Link to="/login" className="text-primary font-bold underline">
+Login
+</Link>
+</p>
 </form>
 </div>
 )}
@@ -487,10 +882,11 @@ font-bold tracking-wide text-white hover:bg-primary/90 mt-6">
 </button>
 </div>
 )}
-
-</div>
-</div>
-</div>
-);
+				</div>
+			</div>
+		</div>
+	</div>
+	</div>
+	);
 };
 export default UniConnectRegistration;

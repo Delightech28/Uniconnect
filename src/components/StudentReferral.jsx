@@ -100,15 +100,9 @@ const StudentReferral = () => {
   };
 
   return (
-    // Main Container unified with app styles
-    <div className="min-h-screen w-full font-sans bg-background-light dark:bg-background-dark text-secondary dark:text-slate-200 transition-colors duration-300">
-      
-      {/* Wrapper to center content nicely */}
-      <div className="flex flex-col min-h-screen">
-        <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-
-        {/* --- Main Content --- */}
-        <main className="flex-1 flex justify-center py-8 px-4 md:px-10 lg:px-20">
+    <div className="w-full h-screen flex flex-col">
+      <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+      <main className="flex-1 overflow-y-auto flex justify-center py-8 px-4 md:px-10 lg:px-20">
           <div className="max-w-[960px] w-full flex flex-col gap-8 md:gap-12">
             
             {/* Hero Section */}
@@ -215,7 +209,6 @@ const StudentReferral = () => {
 
           </div>
         </main>
-      </div>
     </div>
   );
 };

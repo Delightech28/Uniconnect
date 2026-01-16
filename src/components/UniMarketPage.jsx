@@ -8,7 +8,7 @@ import AppHeader from './AppHeader';
 const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
 { name: 'Marketplace', path: '/unimarket', active: true },
-{ name: 'Uni Doc', path: '/uni-doc', active: false },
+{ name: 'UniDoc', path: '/uni-doc', active: false },
 { name: 'Wallet', path: '/uni-wallet', active: false },
 ];
 const categories = ['All Categories', 'Electronics', 'Textbooks', 'Fashion', 'Services', 'Furniture'];
@@ -111,9 +111,9 @@ useEffect(() => {
 	}
 }, []);
 return (
-<div className="relative flex min-h-screen w-full flex-col">
+<div className="w-full h-screen flex flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-<main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
+<main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-7xl mx-auto">
 <div className="flex flex-col md:flex-row md:items-center
 md:justify-between gap-4 mb-8">

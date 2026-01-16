@@ -48,17 +48,11 @@ aria-label="Toggle dark mode"
 <header className="flex items-center justify-between
 whitespace-nowrap border-b border-solid border-gray-200
 dark:border-gray-700 px-6 sm:px-10 py-4">
-<div className="flex items-center gap-4 text-black
+<div className="flex items-center gap-0 text-black
 dark:text-white">
-<div className="size-6 text-primary">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
+<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
-tracking-tight">UniSpace</h2>
+tracking-tight -ml-3">niSpace</h2>
 </div>
 </header>
 <main className="flex flex-1 justify-center py-10 sm:py-20 px-4">

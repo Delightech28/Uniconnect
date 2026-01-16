@@ -64,16 +64,10 @@ const Header = ({ darkMode, toggleDarkMode }) => (
 whitespace-nowrap px-6 py-4 md:px-10 md:py-5 bg-content-light
 dark:bg-content-dark rounded-xl border border-border-light
 dark:border-border-dark">
-<div className="flex items-center gap-4">
-<div className="text-primary size-7">
-<svg fill="currentColor" viewBox="0 0 48 48"
-xmlns="http://www.w3.org/2000/svg">
-<path d="M44
-4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path>
-</svg>
-</div>
+<div className="flex items-center gap-0">
+<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-text-primary-light dark:text-text-primary-dark
-text-xl font-bold tracking-tight">UniSpace</h2>
+text-xl font-bold tracking-tight -ml-3">niSpace</h2>
 </div>
 <button
 onClick={toggleDarkMode}
