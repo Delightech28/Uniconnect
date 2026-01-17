@@ -17,7 +17,7 @@ import NotificationsPage from "./components/NotificationsPage";
 import UniMarketPage from "./components/UniMarketPage";
 import SellItemPage from "./components/SellItemPage";
 import MyListingsPage from "./components/MyListingPage";
-import StudyHubApp from "./components/studyhub/App";
+import StudyHubApp from "./components/StudyHub/App";
 import AIToolApp from "./components/Ai-tool/App";
 import QuizPage from "./components/QuizPage";
 import DocumentInfo from "./components/DocumentInfo";
