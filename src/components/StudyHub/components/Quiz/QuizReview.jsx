@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, RotateCcw, ArrowRight, TrendingUp, AlertTriangle, Target, Star, Info, Eye, BrainCircuit, Check, X, Lightbulb, ChevronDown, ChevronUp, Loader2, FileSearch } from 'lucide-react';
 import { getQuizFeedback } from '../../services/geminiService';
 import PDFModal from '../PDFModal';
+import Footer from './Footer';
 
 /**
  * FormattedText component for rendering rich text with markdown
@@ -274,3 +275,6 @@ const QuizReview = ({
 };
 
 export default QuizReview;
+
+
+

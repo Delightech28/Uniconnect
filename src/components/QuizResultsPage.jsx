@@ -82,6 +82,7 @@ text-sm">{description}</p>
  
 // --- Main Page Component --- 
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 const QuizResultsPage = () => { 
     const { darkMode, toggleTheme } = useTheme(); 
@@ -205,3 +206,6 @@ mr-2">refresh</span><span>Retake Quiz</span>
   
 }; 
 export default QuizResultsPage;
+
+
+

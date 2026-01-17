@@ -5,6 +5,7 @@ import { query, collection, where, orderBy, onSnapshot, deleteDoc, doc } from 'f
 import { onAuthStateChanged } from 'firebase/auth';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 // --- Data Layer ---
 // Removed static mock data; now fetches from Firestore in component
 const listingsData = [
@@ -71,8 +72,8 @@ ${statusClasses}`}>{status}</span>;
 const ActionButtons = ({ status, onDelete }) => {
 return (
 <div className="flex justify-end items-center gap-2">
-<button className="p-2 text-slate-500 hover:text-primary
-dark:text-slate-400 dark:hover:text-primary">
+<button className="p-2 text-slate-500 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary
+dark:text-slate-400 dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary">
 <span className="material-symbols-outlined">visibility</span>
 </button>
 {status === "Expired" ? (
@@ -186,15 +187,16 @@ function MyListingsPage() {
   };
 
 return (
-// The main container div gets the body classes
+<>
+{/* The main container div gets the body classes */}
 <div className="bg-background-light dark:bg-background-dark
-font-display text-secondary dark:text-slate-200 min-h-screen">
+font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <div className="relative flex h-auto w-full flex-col group/design-root
 overflow-x-hidden">
 <div className="layout-container flex h-full grow flex-col">
 {/* Main Content */}
-<main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
+<main className="flex-1 flex-col px-4 sm:px-6 lg:px-10 py-8">
 <div className="layout-content-container flex flex-col max-w-7xl
 mx-auto">
 <div className="flex flex-col sm:flex-row justify-between
@@ -306,10 +308,13 @@ dark:text-slate-400">Expires in: {formatExpiresIn(item.createdAt)}</span>
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 </div>
 </div>
-
+</>
 );
 }
 export default MyListingsPage;
+
+

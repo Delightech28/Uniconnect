@@ -1,6 +1,7 @@
 import React from 'react';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 const TermsOfServicePage = () => {
   // Navigation links data to keep the sidebar clean
@@ -54,7 +55,7 @@ const TermsOfServicePage = () => {
                   {navLinks.map((link) => (
                     <a 
                       key={link.id}
-                      className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary py-2 px-3 rounded-md transition-colors font-medium" 
+                      className="text-slate-600 dark:text-slate-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary py-2 px-3 rounded-md transition-colors font-medium" 
                       href={`#${link.id}`}
                     >
                       {link.label}
@@ -108,14 +109,17 @@ const TermsOfServicePage = () => {
         {/* Footer */}
         <footer className="flex items-center justify-center p-6 border-t border-slate-200 dark:border-slate-800 mt-10">
           <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
-            <a className="hover:text-primary" href="#">Terms of Service</a>
-            <a className="hover:text-primary" href="#">Privacy Policy</a>
+            <a className="hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" href="#">Terms of Service</a>
+            <a className="hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" href="#">Privacy Policy</a>
             <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
+      <Footer darkMode={darkMode} />
       </div>
     </div>
   );
 };
 
 export default TermsOfServicePage;
+
+

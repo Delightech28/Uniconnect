@@ -7,6 +7,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 // --- Data for select options (grouped by category) ---
 const universityData = {
 	federal: [
@@ -562,15 +563,16 @@ const handleSubmit = async (e) => {
 const progressPercentage = step === 1 ? 50 : 100;
 const stepText = step === 1 ? 'Step 1 of 2' : 'Step 2 of 2';
 return (
+	<div>
 	<div className="w-full h-screen flex flex-col">
 		<AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 		<div className="flex flex-1 overflow-y-auto auth-split relative">
 			{/* Left: Hero image (desktop) */}
-					<div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden">
+					<div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden h-screen">
 						{/* Centered floating image --- occupies ~70% of the hero, rounded, tilted and contained */}
-						<div className="relative w-full flex items-center justify-center py-12 px-8">
+						<div className="relative w-full flex items-center justify-center py-1 px-8 pt-10">
 							{/* scaled up image container (~5x) with existing hover animation preserved; float animation added */}
-						<div className="max-w-[350%] w-[350%] min-h-[620px] transform -rotate-3 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-1 relative">
+						<div className="max-w-[250%] w-[250%] min-h-[620px] transform -rotate-3 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-1 relative">
 							<img src={uni3} alt="Campus hero" className="w-full h-full object-cover block" />
 								{/* Bottom overlay for title/description (low-opacity background, legible) */}
 								<div className="absolute left-4 right-4 bottom-6 flex justify-center">
@@ -589,7 +591,7 @@ return (
 					</div>
 
 			{/* Right: Form */}
-			<div className="w-full md:w-1/2 flex items-center justify-center p-6 pt-24">
+			<div className="w-full md:w-1/2 flex items-center justify-center p-6 pt-10 pb-20">
 				<div className="m-auto flex w-full max-w-lg flex-col items-center rounded-xl p-6 sm:p-8 shadow-lg bg-white dark:bg-gray-800">
 <div className="w-full">
 {step !== 'success' && (
@@ -730,7 +732,6 @@ value={formData.registerAs} onChange={handleInputChange}>
 			</div>
 		)}
 	</div>
-
 </div>
 )}
 <button type="submit" className="flex w-full cursor-pointer
@@ -885,8 +886,12 @@ font-bold tracking-wide text-white hover:bg-primary/90 mt-6">
 				</div>
 			</div>
 		</div>
-	</div>
+		</div>
+		</div>
+		<Footer darkMode={darkMode} />
 	</div>
 	);
 };
 export default UniConnectRegistration;
+
+

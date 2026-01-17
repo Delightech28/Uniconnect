@@ -4,6 +4,8 @@ import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/fires
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
  
 // --- Helper Components --- 
  
@@ -350,7 +352,7 @@ function CreatePostPage() {
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
-text-text-light dark:text-text-dark min-h-screen"> 
+text-text-light dark:text-text-dark min-h-screen flex flex-col"> 
             <div className="flex flex-1 justify-center py-5"> 
                 <div className="w-full max-w-[960px] flex-1"> 
                     <header className="flex items-center justify-between 
@@ -429,9 +431,12 @@ text-sm font-medium hover:bg-primary-accent">
                         </div> 
                     </main> 
                 </div> 
-            </div> 
+            </div>
+            <Footer darkMode={darkMode} />
         </div> 
     ); 
 } 
  
 export default CreatePostPage; 
+
+

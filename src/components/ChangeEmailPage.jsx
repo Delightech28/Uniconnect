@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'; 
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
  
 // --- Static Data (No Backend) --- 
 const CURRENT_USER_EMAIL = 'adekunle.a@university.edu.ng'; 
@@ -82,7 +83,7 @@ function ChangeEmailPage() {
     }; 
  
     return ( 
-        <div className="bg-background-light dark:bg-background-dark font-display min-h-screen"> 
+        <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col"> 
             {/* Dark Mode Toggle */}
             <div className="absolute top-4 right-4 z-10">
                 <button
@@ -94,7 +95,7 @@ function ChangeEmailPage() {
                 </button>
             </div>
             {/* Header could be here */} 
-            <main className="px-4 sm:px-6 lg:px-10 py-8"> 
+            <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-5xl mx-auto"> 
                     <div className="flex items-center gap-3 mb-8"> 
                         <a href="#" className="flex items-center justify-center p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"> 
@@ -177,8 +178,11 @@ function ChangeEmailPage() {
                     </div> 
                 </div> 
             </main> 
-        </div> 
+            <Footer darkMode={darkMode} />
+        </div>
     ); 
 } 
  
 export default ChangeEmailPage;
+
+

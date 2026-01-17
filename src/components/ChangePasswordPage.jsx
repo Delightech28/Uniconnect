@@ -5,6 +5,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast'; 
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 // --- Helper Components & Logic --- 
 // A component for displaying a password validation rule 
 const PasswordRule = ({ isValid, text }) => (
@@ -172,7 +173,7 @@ passwords;
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
-font-display min-h-screen"> 
+font-display min-h-screen flex flex-col"> 
             {/* Dark Mode Toggle */}
             <div className="absolute top-4 right-4 z-10">
                 <button
@@ -184,7 +185,7 @@ font-display min-h-screen">
                 </button>
             </div>
             {/* Header could be here */} 
-            <main className="px-4 sm:px-6 lg:px-10 py-8"> 
+            <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-2xl mx-auto">
                     {authLoading ? (
                         <div className="text-center py-8">
@@ -193,7 +194,7 @@ font-display min-h-screen">
                     ) : (
                         <>
                             <div className="flex items-center gap-4 pb-8"> 
-                                <button onClick={() => navigate(-1)} className="text-secondary dark:text-white hover:text-primary"> 
+                                <button onClick={() => navigate(-1)} className="text-secondary dark:text-white hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary"> 
                                     <span 
 className="material-symbols-outlined">arrow_back</span> 
                                 </button> 
@@ -270,8 +271,11 @@ password has been updated.</span>
                     )} 
                 </div> 
             </main> 
-        </div> 
+            <Footer darkMode={darkMode} />
+        </div>
     ); 
 } 
  
 export default ChangePasswordPage; 
+
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Timer, ArrowRight, ArrowLeft, CheckCircle2, X } from 'lucide-react';
+import Footer from './Footer';
 
 /**
  * QuizGame component for playing quiz
@@ -264,3 +265,6 @@ const QuizGame = ({ questions, settings, onFinish, onExit, isDarkMode, topic }) 
 };
 
 export default QuizGame;
+
+
+

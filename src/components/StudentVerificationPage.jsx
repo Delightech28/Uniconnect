@@ -1,5 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Footer from './Footer';
+import { useTheme } from '../hooks/useTheme';
 
 const progressSteps = ['Upload Document', 'Review Pending', 'Verification Complete'];
 
@@ -234,6 +236,7 @@ const StudentVerificationPage = () => {
               </div>
             </div>
           </footer>
+        <Footer darkMode={darkMode} />
         </div>
       </div>
     </div>
@@ -241,3 +244,5 @@ const StudentVerificationPage = () => {
 };
 
 export default StudentVerificationPage;
+
+

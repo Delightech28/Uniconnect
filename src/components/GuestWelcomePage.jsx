@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate } from 'react-router-dom';
+import Footer from './Footer';
 // --- Data for the feature list (cleaner than hardcoding in JSX) ---
 const guestFeatures = [
 {
@@ -29,7 +30,7 @@ const { darkMode, toggleTheme } = useTheme();
 const navigate = useNavigate();
 return (
 <div className="relative flex min-h-screen w-full flex-col
-overflow-x-hidden">
+overflow-x-hidden bg-background-light dark:bg-background-dark">
 {/* Dark Mode Toggle - Added for interactivity demo */}
 <div className="absolute top-4 right-4 z-10">
 <button
@@ -97,9 +98,12 @@ hover:bg-primary/10 dark:hover:bg-primary/10">
 Verify to become a Student
 </button>
 </div>
-</div>
-</div>
-</div>
+      </div>
+    </div>
+    <Footer darkMode={darkMode} />
+  </div>
 );
 };
 export default GuestWelcomePage;
+
+

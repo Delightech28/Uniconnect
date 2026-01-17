@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Footer from './Footer';
 const userImage =
 "https://lh3.googleusercontent.com/a/ACg8ocK_1YyM922Y1m_mZJiw8-e2pZk2q2qG9U9qY_U0p9qC=s96-c"; 
 // Replace The initial conversation state
@@ -160,3 +161,6 @@ text-xl">arrow_upward</span>
 );
 };
 export default ChatInterface;
+
+
+

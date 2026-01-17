@@ -4,6 +4,8 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import useVerified from '../hooks/useVerified';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 const MY_AVATAR_URL = null; // will load from auth user profile
 
@@ -495,8 +497,11 @@ text-text-secondary-light dark:text-text-secondary-dark">
                     )} 
                 </section> 
             </main> 
+        <Footer darkMode={darkMode} />
         </div> 
     ); 
 } 
  
 export default InboxPage; 
+
+

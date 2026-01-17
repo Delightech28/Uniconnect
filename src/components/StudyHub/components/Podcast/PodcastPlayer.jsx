@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, RotateCcw, Volume2, Maximize2, Download, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import Footer from './Footer';
 
 /**
  * Creates a WAV file from base64 audio data
@@ -315,3 +316,6 @@ const PodcastPlayer = ({
 };
 
 export default PodcastPlayer;
+
+
+

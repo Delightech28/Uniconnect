@@ -6,6 +6,7 @@ import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import Footer from './Footer';
 // --- Initial Data for Notifications ---
 const initialNotificationsData = [
 {
@@ -109,6 +110,12 @@ const NotificationsPage = () => {
 const { darkMode, toggleTheme } = useTheme();
 const [notifications, setNotifications] =
 useState([]);
+
+// Load initial notifications
+useEffect(() => {
+  setNotifications(initialNotificationsData);
+}, []);
+
 const markAsRead = (id) => {
 setNotifications(
 notifications.map((n) => (n.id === id ? { ...n, unread: false } : n))
@@ -160,7 +167,10 @@ shadow-md">
 
       </div>
     </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 export default NotificationsPage;
+
+

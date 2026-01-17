@@ -13,6 +13,7 @@ import QuizReview from './components/Quiz/QuizReview';
 import PodcastConfig from "./components/Podcast/PodcastConfig";
 import PodcastPlayer from "./components/Podcast/PodcastPlayer";
 import { analyzeTopics, generateQuiz, generatePodcastContent } from "./services/geminiService";
+import Footer from '../Footer';
 
 /**
  * App Mode Constants
@@ -347,3 +348,6 @@ const StudyHubApp = () => {
 };
 
 export default StudyHubApp;
+
+
+

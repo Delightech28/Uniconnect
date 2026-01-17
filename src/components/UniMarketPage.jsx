@@ -4,6 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import { auth, db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
@@ -111,6 +112,7 @@ useEffect(() => {
 	}
 }, []);
 return (
+	<div>
 <div className="w-full h-screen flex flex-col">
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 py-8">
@@ -173,6 +175,10 @@ dark:text-white">No items found</p>
 </div>
 </main>
 </div>
+<Footer darkMode={darkMode} />
+</div>
 );
 };
 export default UniMarketPage;
+
+

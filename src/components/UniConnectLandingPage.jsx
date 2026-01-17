@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 import uni7 from '../assets/uni7.jpg';
 // --- Data for Features and Testimonials (Makes JSX cleaner) ---
 const featuresData = [
@@ -108,22 +109,22 @@ const navLinks = [
 ];
 return (
 <div className="w-full h-screen flex flex-col overflow-x-hidden">
-<header className="sticky top-0 z-50 w-full bg-background-light/80
-dark:bg-background-dark/80 backdrop-blur-sm px-4 lg:px-10 py-3
+<header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 backdrop-blur-sm px-4 lg:px-10 py-3
 border-b border-gray-200 dark:border-gray-700">
 <div className="max-w-7xl mx-auto flex items-center
 justify-between">
 <div className="flex items-center gap-4 text-secondary
 dark:text-primary">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+<img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
 tracking-tight -ml-7"><Link to="/">niSpace</Link></h2>
 </div>
 {/* Desktop Navigation */}
 <nav className="hidden md:flex items-center gap-8">
 {navLinks.map(link => (
-<Link key={link.title} to={link.href} className="text-sm font-medium
-hover:text-primary dark:hover:text-primary">
+<Link key={link.title} to={link.href} className={`text-sm font-medium transition-colors ${
+darkMode ? 'text-white hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+}`}>
 {link.title}
 </Link>
 ))}
@@ -164,12 +165,12 @@ text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
 </div>
 {/* Mobile Menu */}
 {isMenuOpen && (
-<div className="md:hidden mt-4 bg-background-light
-dark:bg-background-dark">
+<div className="md:hidden mt-4 bg-white dark:bg-slate-900">
 <nav className="flex flex-col items-center gap-4 py-4">
 {navLinks.map(link => (
-<Link key={link.title} to={link.href} className="text-lg font-medium
-hover:text-primary" onClick={() =>
+<Link key={link.title} to={link.href} className={`text-lg font-medium transition-colors ${
+darkMode ? 'text-white hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+}`} onClick={() =>
 setIsMenuOpen(false)}>
 {link.title}
 </Link>
@@ -322,26 +323,11 @@ Get Started Now
 </div>
 </section>
 {/* Footer */}
-<footer className="bg-background-light dark:bg-background-dark
-border-t border-gray-200 dark:border-gray-700">
-<div className="max-w-7xl mx-auto px-4 lg:px-10 py-8">
-<div className="flex flex-col md:flex-row justify-between
-items-center gap-6">
-<div className="text-sm text-gray-500 dark:text-gray-400">© {new Date().getFullYear()} UniSpace. All Rights Reserved.</div>
-<div className="flex gap-6">
-<a className="text-sm hover:text-primary" href="#">About
-Us</a>
-<a className="text-sm hover:text-primary"
-href="#">Contact</a>
-<a className="text-sm hover:text-primary" href="#">FAQ</a>
-<a className="text-sm hover:text-primary" href="#">Terms of
-Service</a>
-</div>
-</div>
-</div>
-</footer>
+<Footer darkMode={darkMode} />
 </main>
 </div>
 );
 };
 export default UniConnectLandingPage;
+
+

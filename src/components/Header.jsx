@@ -44,19 +44,19 @@ leading-normal" placeholder="Search" />
 
 const NavLinks = () => ( 
     <> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="#">Dashboard</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="#">Marketplace</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="/uni-doc">UniDoc</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2 cursor-pointer" href="/uni-doc">StudyHub</a>
-        <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="/campusfeed">CampusFeed</a> 
-    <a className="text-secondary dark:text-white text-sm 
-font-medium leading-normal py-2" href="#">Wallet</a> 
-    <Link className="text-secondary dark:text-white text-sm font-medium leading-normal py-2" to="/student-referral">Referral</Link>
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 transition-colors" href="#">Dashboard</a> 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 transition-colors" href="#">Marketplace</a> 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 transition-colors" href="/uni-doc">UniDoc</a> 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 cursor-pointer transition-colors" href="/uni-doc">StudyHub</a>
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 transition-colors" href="/campusfeed">CampusFeed</a> 
+    <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+font-medium leading-normal py-2 transition-colors" href="#">Wallet</a> 
+    <Link className="text-secondary dark:text-white dark:hover:text-green-400 text-sm font-medium leading-normal py-2 transition-colors" to="/student-referral">Referral</Link>
     </> 
 ); 
  
@@ -76,19 +76,15 @@ bg-cover rounded-full size-10"
             {isDropdownOpen && ( 
                 <div  
                     onMouseLeave={() => setIsDropdownOpen(false)}  
-                    className="absolute right-0 mt-2 w-48 bg-white 
-dark:bg-dark-card rounded-md shadow-lg py-1 z-20" 
+                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-md shadow-lg py-1 z-20" 
                 > 
-                    <a className="block px-4 py-2 text-sm text-secondary 
-dark:text-dark-text hover:bg-background-light dark:hover:bg-slate-800" 
+                    <a className="block px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800 transition-colors" 
 href="#">Profile</a>
 
 
-                    <Link className="block px-4 py-2 text-sm text-secondary 
-dark:text-dark-text hover:bg-background-light dark:hover:bg-slate-800" 
+                    <Link className="block px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800 transition-colors" 
 to="/settings">Settings</Link>
-                    <a className="block px-4 py-2 text-sm text-secondary 
-dark:text-dark-text hover:bg-background-light dark:hover:bg-slate-800" 
+                    <a className="block px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800 transition-colors" 
 href="#">Logout</a> 
                 </div> 
             )} 
@@ -102,7 +98,7 @@ const Header = ({ avatarUrl }) => {
     return ( 
         <header className="flex items-center justify-between 
 whitespace-nowrap border-b border-solid border-slate-200 
-dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-dark-card"> 
+dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-slate-900"> 
             <div className="flex items-center gap-8"> 
                 <Logo /> 
                 <SearchBar /> 
@@ -113,7 +109,7 @@ dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-dark-card">
 /></nav> 
                 <button className="flex max-w-[480px] cursor-pointer 
 items-center justify-center overflow-hidden rounded-lg h-10 
-bg-background-light dark:bg-slate-800 text-secondary dark:text-white 
+bg-background-light dark:bg-slate-800 text-secondary dark:text-white dark:hover:text-green-400 
 gap-2 text-sm font-bold min-w-0 px-2.5"> 
                     <span 
 className="material-symbols-outlined">notifications</span> 
@@ -124,14 +120,13 @@ className="material-symbols-outlined">notifications</span>
  
 
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} 
-className="lg:hidden text-secondary dark:text-white"> 
+className="lg:hidden text-secondary dark:text-white dark:hover:text-green-400"> 
                 <span className="material-symbols-outlined">{isMenuOpen 
 ? 'close' : 'menu'}</span> 
             </button> 
  
             {isMenuOpen && ( 
-                <div className="absolute top-full left-0 w-full bg-white 
-dark:bg-dark-card lg:hidden z-10 shadow-md"> 
+                <div className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 lg:hidden z-10 shadow-md"> 
                     <nav className="flex flex-col items-center gap-4 
 p-4"><NavLinks /></nav> 
                 </div> 
@@ -141,3 +136,5 @@ p-4"><NavLinks /></nav>
 }; 
  
 export default Header; 
+
+

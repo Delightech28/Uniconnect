@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, ArrowLeft, CheckCircle2, User } from 'lucide-react';
 import { jsPDF } from "jspdf";
+import Footer from './Footer';
 
 const ResultMode = {
   SOLVE: 'SOLVE',
@@ -231,3 +232,6 @@ const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
 };
 
 export default ResultDisplay;
+
+
+

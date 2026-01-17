@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 
 // Data for StudyHub Plans
 const studyPlans = [
@@ -308,9 +309,12 @@ const PayGoCard = ({ title, price, desc, img }) => {
             <span>Pay from Wallet</span>
           </button>
         </div>
+      <Footer darkMode={darkMode} />
       </div>
     </div>
   );
 };
 
 export default UniSpaceUpgrade;
+
+

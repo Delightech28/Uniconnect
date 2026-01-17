@@ -1,10 +1,11 @@
 import React from 'react';
+import Footer from './Footer';
 const SuggestedQuestion = ({ question, onSelect }) => (
 <button
 onClick={() => onSelect(question)}
 className="w-full text-left text-sm p-3 rounded-lg
 bg-background-light dark:bg-slate-800 text-secondary
-dark:text-dark-subtext hover:bg-primary/10 hover:text-primary
+dark:text-dark-subtext hover:bg-primary/10 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary
 dark:hover:bg-primary/20 transition-colors"
 >
 "{question}"
@@ -67,3 +68,6 @@ onSelect={onSelectQuestion} />
 );
 };
 export default DocumentInfo;
+
+
+

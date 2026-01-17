@@ -4,6 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
+import Footer from './Footer';
 // --- Data for Links and Icons (Cleaner than hardcoding in JSX) ---
 const footerLinks = [
 { name: 'Terms of Service', href: '#' },
@@ -65,7 +66,7 @@ whitespace-nowrap px-6 py-4 md:px-10 md:py-5 bg-content-light
 dark:bg-content-dark rounded-xl border border-border-light
 dark:border-border-dark">
 <div className="flex items-center gap-0">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+<img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-text-primary-light dark:text-text-primary-dark
 text-xl font-bold tracking-tight -ml-3">niSpace</h2>
 </div>
@@ -88,7 +89,7 @@ gap-y-4">
 {footerLinks.map((link) => (
 <a key={link.name} href={link.href}
 className="text-text-secondary-light dark:text-text-secondary-dark
-hover:text-primary dark:hover:text-primary text-base">
+hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary text-base">
 {link.name}
 </a>
 ))}
@@ -97,7 +98,7 @@ hover:text-primary dark:hover:text-primary text-base">
 {socialIcons.map((social) => (
 <a key={social.name} href={social.href}
 className="text-text-secondary-light dark:text-text-secondary-dark
-hover:text-primary dark:hover:text-primary">
+hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary">
 {social.icon}
 </a>
 ))}
@@ -195,13 +196,13 @@ Go to Dashboard
 		dark:border-border-dark">
 		<button onClick={() => navigate('/contact-support')} className="flex cursor-pointer items-center
 			justify-center rounded-lg h-10 px-4 text-text-secondary-light 
-			dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
+			dark:text-text-secondary-dark hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary
 			text-sm font-bold grow">
 			Contact Support
 		</button>
 		<button onClick={() => navigate('/faq')} className="flex cursor-pointer items-center
 			justify-center rounded-lg h-10 px-4 text-text-secondary-light
-			dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary
+			dark:text-text-secondary-dark hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary
 			text-sm font-bold grow">
 			Read our Verification FAQ
 		</button>
@@ -216,3 +217,6 @@ Go to Dashboard
 );
 };
 export default VerificationPendingPage;
+
+
+

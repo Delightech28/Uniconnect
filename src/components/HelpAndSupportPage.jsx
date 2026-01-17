@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 // --- Data for FAQs and Contact Methods ---
 const faqs = [
 {
@@ -128,7 +129,10 @@ View Full FAQ
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 export default HelpAndSupportPage;
+
+

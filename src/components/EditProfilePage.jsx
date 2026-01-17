@@ -4,7 +4,8 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useTheme } from '../hooks/useTheme'; 
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer'; 
 const initialProfileData = { 
 displayName: '',
 bio: '',
@@ -221,7 +222,7 @@ function EditProfilePage() {
 
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
-font-display min-h-screen"> 
+font-display min-h-screen flex flex-col"> 
       {/* Dark Mode Toggle */}
       <div className="absolute top-4 right-4 z-10">
         <button
@@ -233,7 +234,7 @@ font-display min-h-screen">
         </button>
       </div>
       {/* <AppHeader /> */} 
-      <main className="py-10"> 
+      <main className="flex-1 py-10"> 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"> 
           <div className="mb-8"> 
             <h1 className="text-3xl font-bold text-secondary 
@@ -366,9 +367,12 @@ font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opac
           </div> 
  
  
-</div> 
-</main> 
-</div> 
-); 
+        </div> 
+      </main> 
+      <Footer darkMode={darkMode} />
+    </div> 
+  ); 
 } 
 export default EditProfilePage; 
+
+

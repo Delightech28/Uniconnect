@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 // --- Data for Reminder List ---
 const reminderItems = [
 {
@@ -17,7 +18,7 @@ const Header = () => (
 whitespace-nowrap border-b border-solid border-gray-200
 dark:border-gray-700 px-6 sm:px-10 py-4">
 <div className="flex items-center gap-0 text-black dark:text-white">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+<img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
 tracking-tight -ml-3">niSpace</h2>
 </div>
@@ -172,7 +173,10 @@ Submit Documents
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 export default ReuploadVerificationPage;
+
+

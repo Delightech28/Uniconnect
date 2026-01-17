@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import Footer from './Footer';
 // --- Data Layer (No Backend) ---
 // This array holds all the quiz questions and answers.
 const quizData = [
@@ -56,6 +57,7 @@ explanation: "Any point on the PPF curve represents an efficient allocation of r
 ];
 // --- Helper Components ---
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 // QuizOption Component
 const QuizOption = ({ option, index, selectedAnswer, correctAnswer,
 onSelect, isAnswered }) => {
@@ -156,7 +158,7 @@ quizData.length) * 100;
 if (showResults) {
 return (
 <div className="bg-background-light dark:bg-background-dark
-font-display text-secondary dark:text-slate-200 min-h-screen">
+font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col">
 <AppHeader />
 <main className="flex-1 px-4 py-8">
 <div className="max-w-2xl mx-auto bg-white
@@ -186,19 +188,20 @@ className="material-symbols-outlined">refresh</span>
 </div>
 </main>
 </div>
+    <Footer darkMode={darkMode} />
 );
 }
 return (
 <div className="bg-background-light dark:bg-background-dark
-font-display text-secondary dark:text-slate-200 min-h-screen">
-<div className="relative flex h-auto w-full flex-col">
+font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col">
+<div className="relative flex flex-1 h-auto w-full flex-col">
 <AppHeader />
 <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
 <div className="flex flex-col max-w-4xl mx-auto">
 <div className="flex items-center gap-4 mb-4">
 
 <a className="flex items-center gap-1 text-slate-500
-dark:text-slate-400 hover:text-primary dark:hover:text-primary" href="#">
+dark:text-slate-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" href="#">
 <span
 className="material-symbols-outlined">arrow_back</span>
 <span className="text-sm font-medium">Back to Study
@@ -313,7 +316,11 @@ className="material-symbols-outlined">arrow_forward</span>
 </div>
 </main>
 </div>
+    <Footer darkMode={darkMode} />
 </div>
 );
 }
 export default QuizPage;
+
+
+

@@ -5,6 +5,7 @@ import FileUpload from './components/FileUpload';
 import ResultDisplay from './components/ResultDisplay';
 import { generateContentStream } from './services/geminiService';
 import { HelpCircle, Brain, Layers, AlertCircle, BookOpen, FileText, Zap, ScanLine, Loader2, Cpu } from 'lucide-react';
+import Footer from './Footer';
 
 const ResultMode = {
   SOLVE: 'SOLVE',
@@ -261,7 +262,11 @@ const App = () => {
         )}
       </main>
     </div>
+    <Footer darkMode={darkMode} />
   );
 };
 
 export default App;
+
+
+

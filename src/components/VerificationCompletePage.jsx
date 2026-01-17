@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 // --- Data for the "What's Next?" section (cleaner than hardcoding) ---
 const whatsNextFeatures = [
@@ -105,7 +106,7 @@ whitespace-nowrap border-b border-solid border-gray-200
 dark:border-gray-700 px-6 sm:px-10 py-4">
 <div className="flex items-center gap-0 text-black
 dark:text-white">
-<img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+<img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
 tracking-tight -ml-3">niSpace</h2>
 </div>
@@ -163,7 +164,10 @@ Visit our Support Center
 </a>
 </p>
 </footer>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 export default VerificationCompletePage;
+
+

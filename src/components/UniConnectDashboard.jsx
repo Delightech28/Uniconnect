@@ -5,6 +5,7 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
@@ -82,7 +83,7 @@ text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
 const Logo = () => (
 <div className="flex items-center gap-4 text-secondary
 dark:text-white">
-<img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+<img src="/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
 <h2 className="text-xl font-bold leading-tight
 tracking-tight -ml-3">niSpace</h2>
 </div>
@@ -334,7 +335,10 @@ font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 export default UniConnectDashboard;
+
+

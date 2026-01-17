@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 // This data would typically come from an API, but for this example, it's hardcoded.
 const transactions = [ 
@@ -143,8 +145,11 @@ dark:divide-slate-700">
 transaction={tx} />)} 
         </tbody> 
       </table> 
-    </div> 
+    </div>
+  <Footer darkMode={darkMode} />
   </div> 
 ); 
  
 export default TransactionHistory; 
+
+

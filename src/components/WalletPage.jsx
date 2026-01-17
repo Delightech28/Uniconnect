@@ -1,5 +1,6 @@
 import React, { useState } from 'react'; 
 import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
 const USER_QR_CODE_URL = 
@@ -15,7 +16,7 @@ dark:border-slate-700 px-4 md:px-10 py-3 bg-white dark:bg-secondary">
     <div className="flex items-center gap-8"> 
       <div className="flex items-center gap-4 text-secondary 
 dark:text-white"> 
-        <img src="/src/assets/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" /> 
+        <img src="/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" /> 
         <h2 className="text-xl font-bold leading-tight 
 tracking-[-0.015em] -ml-3">niSpace</h2> 
       </div> 
@@ -215,7 +216,7 @@ dark:bg-slate-800 text-secondary dark:text-white pr-10"
                         /> 
                         <button onClick={handleCopy} className="absolute 
 right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 
-hover:text-primary"> 
+hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary"> 
                             <span 
 className="material-symbols-outlined">{isCopied ? 'check' : 
 'content_copy'}</span> 
@@ -262,7 +263,7 @@ function WalletPage() {
    
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
-font-display text-secondary dark:text-slate-200 min-h-screen"> 
+font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col"> 
   
       {/* Dark Mode Toggle */}
       <div className="absolute top-4 right-4 z-10">
@@ -275,7 +276,7 @@ font-display text-secondary dark:text-slate-200 min-h-screen">
         </button>
       </div>
 
-      <div className="relative flex h-auto w-full flex-col"> 
+      <div className="relative flex flex-1 h-auto w-full flex-col"> 
         <AppHeader /> 
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
           <div className="flex flex-col max-w-7xl mx-auto"> 
@@ -310,9 +311,12 @@ leading-tight">
           </div> 
         </main> 
       </div> 
+      <Footer darkMode={darkMode} />
     </div> 
   ); 
  
  
-} 
+}
 export default WalletPage; 
+
+

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 
 // --- Configuration Data ---
 
@@ -307,9 +308,12 @@ const GuestUpgrade = () => {
 
           <div className="h-10"></div>
         </div>
+        <Footer darkMode={darkMode} />
       </div>
     </div>
   );
 };
 
 export default GuestUpgrade;
+
+

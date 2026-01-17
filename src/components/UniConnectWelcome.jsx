@@ -1,8 +1,11 @@
  import React, { useState } from 'react';
 import { Menu, X, ArrowRight, ExternalLink } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 const UniConnectWelcome = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { darkMode } = useTheme();
 
   // Custom colors from the original HTML
   const colors = {
@@ -23,7 +26,7 @@ const UniConnectWelcome = () => {
             
             {/* Logo */}
             <div className="flex items-center gap-0">
-              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+              <img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
               <h2 className="text-lg font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
             </div>
 
@@ -153,9 +156,12 @@ const UniConnectWelcome = () => {
             </div>
           </div>
         </main>
+      <Footer darkMode={darkMode} />
       </div>
     </div>
   );
 };
 
 export default UniConnectWelcome;
+
+

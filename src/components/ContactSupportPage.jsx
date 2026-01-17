@@ -5,6 +5,7 @@ import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
+import Footer from './Footer';
 
 const ContactSupportPage = () => {
   const { darkMode, toggleTheme } = useTheme();
@@ -213,14 +214,17 @@ const ContactSupportPage = () => {
         {/* Footer */}
         <footer className="flex items-center justify-center p-6 border-t border-slate-200 dark:border-slate-800 mt-10">
           <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
-            <a className="hover:text-primary" href="#">Terms of Service</a>
-            <a className="hover:text-primary" href="#">Privacy Policy</a>
+            <a className="hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" href="#">Terms of Service</a>
+            <a className="hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" href="#">Privacy Policy</a>
             <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
+      <Footer darkMode={darkMode} />
       </div>
     </div>
   );
 };
 
 export default ContactSupportPage;
+
+

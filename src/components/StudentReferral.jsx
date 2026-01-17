@@ -1,6 +1,7 @@
   import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 import { 
   Menu, 
   X, 
@@ -226,3 +227,5 @@ const StepItem = ({ icon, title, desc }) => (
 );
 
 export default StudentReferral;
+
+

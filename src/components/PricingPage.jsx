@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 
 const PricingPage = () => {
   const navigate = useNavigate();
+  const { darkMode } = useTheme();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [cardIndex, setCardIndex] = useState(1); // Start with Premium (center)
 
@@ -288,8 +291,11 @@ const PricingPage = () => {
           </div>
         </section>
       </main>
+      <Footer darkMode={darkMode} />
     </div>
   );
 };
 
 export default PricingPage;
+
+

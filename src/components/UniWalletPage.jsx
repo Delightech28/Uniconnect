@@ -130,8 +130,12 @@ href="#">View Full Transaction History</a>
           </div> 
         </div> 
       </main> 
-    </div> 
+    </div>
+    <Footer darkMode={darkMode} /> 
   ); 
 }; 
  
 export default UniWalletPage; 
+
+
+

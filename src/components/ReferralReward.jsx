@@ -1,4 +1,6 @@
  import React, { useState } from 'react';
+import { useTheme } from '../hooks/useTheme';
+import Footer from './Footer';
 import { 
   Menu, 
   X, 
@@ -28,7 +30,7 @@ const ReferralReward = () => {
             
             {/* Logo Section */}
             <div className="flex items-center gap-4">
-              <img src="/src/assets/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
+              <img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
               <h2 className="text-lg font-bold leading-tight tracking-tight -ml-3">niConnect</h2>
             </div>
 
@@ -137,8 +139,11 @@ const ReferralReward = () => {
 
         </div>
       </main>
+    <Footer darkMode={darkMode} />
     </div>
   );
 };
 
 export default ReferralReward;
+
+

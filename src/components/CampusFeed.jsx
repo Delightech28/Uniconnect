@@ -6,20 +6,21 @@ import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc,
 import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Footer from './Footer';
 
 const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onShare }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
     <div className="flex items-center gap-4">
-      <button onClick={onToggleLike} className={`flex items-center gap-1.5 ${liked ? 'text-primary' : 'hover:text-primary'} dark:hover:text-primary`}>
+      <button onClick={onToggleLike} className={`flex items-center gap-1.5 ${liked ? 'text-primary' : 'hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'} dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary`}>
         <span className="material-symbols-outlined text-xl">thumb_up</span>
         <span className="text-sm font-medium">{likes}</span>
       </button>
-      <button onClick={onToggleComments} className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
+      <button onClick={onToggleComments} className="flex items-center gap-1.5 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary">
         <span className="material-symbols-outlined text-xl">chat_bubble</span>
         <span className="text-sm font-medium">{comments}</span>
       </button>
     </div>
-    <button onClick={onShare} className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary">
+    <button onClick={onShare} className="flex items-center gap-1.5 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary">
       <span className="material-symbols-outlined text-xl">share</span>
       <span className="text-sm font-medium">Share</span>
     </button>
@@ -41,7 +42,7 @@ const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, on
         <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">{text}</p>
       </div>
       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1.5 px-2">
-        <button onClick={() => onToggleLike && onToggleLike(postId, commentId)} className={`hover:text-primary font-medium ${liked ? 'text-primary' : ''}`}>Like</button>
+        <button onClick={() => onToggleLike && onToggleLike(postId, commentId)} className={`hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary font-medium ${liked ? 'text-primary' : ''}`}>Like</button>
         <span>·</span>
         <span>{time}</span>
         {likes > 0 && (
@@ -109,6 +110,7 @@ export default function CampusFeed() {
             </div>
           </main>
     </div>
+    <Footer darkMode={darkMode} />
   );
 }
 
@@ -380,3 +382,6 @@ function PostItem({ post }) {
     </article>
   );
 }
+
+
+

@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '../firebase';
+import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
+import Footer from './Footer';
+import toast from 'react-hot-toast';
+import useVerified from '../hooks/useVerified';
 // --- Data Layer (No Backend) ---
 // In a real app, you would fetch this object from an API based on a product ID.
 const productData = { 
@@ -24,15 +33,6 @@ imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA3PseYjpIvW1kpMj2
     long: 'Comes with original charger. Battery life is still great. Perfect for coding, assignments, and entertainment. Selling because I recently upgraded. Price is slightly negotiable. Meet-up on campus only.', 
   }, 
 }; 
-
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../firebase';
-import { useTheme } from '../hooks/useTheme';
-import AppHeader from './AppHeader';
-import toast from 'react-hot-toast';
-import useVerified from '../hooks/useVerified';
 
 // --- Main Page Component --- 
 function ProductDetailsPage() {
@@ -244,14 +244,14 @@ function ProductDetailsPage() {
 
   return ( 
     <div className="bg-background-light dark:bg-background-dark 
-font-display text-secondary dark:text-slate-200 min-h-screen"> 
-      <div className="relative flex h-auto w-full flex-col"> 
+font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col flex-col"> 
+      <div className="relative flex flex-1 h-auto w-full flex-col"> 
         <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
-        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
+        <main className="flex-1 flex-col px-4 sm:px-6 lg:px-10 py-8"> 
           <div className="flex flex-col max-w-7xl mx-auto"> 
             <div className="mb-6"> 
               <button className="flex items-center gap-2 text-sm text-slate-600 
-dark:text-slate-300 hover:text-primary dark:hover:text-primary" onClick={() => navigate('/unimarket')}> 
+dark:text-slate-300 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary" onClick={() => navigate('/unimarket')}> 
                 <span 
 className="material-symbols-outlined">arrow_back</span> 
                 Back to Marketplace 
@@ -362,8 +362,11 @@ max-w-none text-slate-600 dark:text-slate-300">
           </div> 
         </main> 
       </div> 
+      <Footer darkMode={darkMode} />
     </div> 
   );
 } 
  
 export default ProductDetailsPage; 
+
+

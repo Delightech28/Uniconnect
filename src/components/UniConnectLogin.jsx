@@ -7,6 +7,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
 email: '',
@@ -79,15 +80,16 @@ const handleSubmit = async (e) => {
     }
 };
 return (
+    <div>
     <div className="w-full h-screen flex flex-col">
         <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
         <div className="flex flex-1 overflow-y-auto auth-split relative">
             {/* Left: Hero image (desktop) */}
                 <div className="auth-hero hidden md:flex md:w-1/2 relative items-center justify-center overflow-hidden">
                     {/* Centered floating image on login page */}
-                    <div className="relative w-full flex items-center justify-center py-12 px-8">
+                    <div className="relative w-full flex items-center justify-center py-12 px-8 mt-20">
                         {/* scaled up login hero (~5x) with preserved hover animation and added float */}
-                        <div className="max-w-[350%] w-[350%] min-h-[400px] transform -rotate-6 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-2 relative">
+                        <div className=" mt-5 max-w-[350%] w-[350%] min-h-[400px] transform -rotate-6 rounded-3xl overflow-hidden shadow-2xl transition-transform duration-700 ease-in-out hover:rotate-0 hover:scale-[1.02] float-2 relative">
                             <img src={uni4} alt="Welcome hero" className="w-full h-full object-cover block" />
                             <div className="absolute left-4 right-4 bottom-6 flex justify-center">
                                 <div className="bg-black/40 backdrop-blur-sm rounded-md px-4 py-3 text-white max-w-[90%]">
@@ -98,8 +100,8 @@ return (
                         </div>
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/6 pointer-events-none rounded-3xl" />
-                    <div className="absolute left-6 top-6 w-36 h-36 rounded-full bg-primary/20 auth-deco" />
-                </div>
+                    <div className="absolute left-6 -top-1 w-36 h-36 rounded-full bg-primary/20 auth-deco" />
+                    </div>
 
             {/* Right: Form */}
             <div className="w-full md:w-1/2 flex items-center justify-center p-6 pt-24">
@@ -183,7 +185,7 @@ className="material-symbols-outlined">{showPassword ? 'visibility_off'
 </div>
 </div>
 <button onClick={() => navigate('/change-password')} type="button" className="text-primary text-sm leading-normal pb-3
-pt-1 px-0 text-right underline cursor-pointer hover:text-primary/80">
+pt-1 px-0 text-right underline cursor-pointer hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary/80">
 Forgot Password?
 </button>
 {errorMessage && (
@@ -208,7 +210,11 @@ Sign Up
                 </div>
             </div>
         </div>
+        </div>
+        <Footer darkMode={darkMode} />
     </div>
 );
 };
 export default UniConnectLogin;
+
+

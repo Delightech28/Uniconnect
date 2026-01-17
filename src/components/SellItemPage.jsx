@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
+import Footer from './Footer';
 // --- Data for UI elements ---
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
@@ -177,7 +178,7 @@ text-slate-400 dark:text-slate-500">cloud_upload</span>
 dark:text-slate-400">
 <label htmlFor="file-upload" className="relative
 cursor-pointer rounded-md font-medium text-primary
-hover:text-primary/80"><span>Upload files</span><input
+hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary/80"><span>Upload files</span><input
 id="file-upload" name="file-upload" type="file" multiple
 className="sr-only" onChange={handleFileChange}/></label>
 <p className="pl-1">or drag and drop</p>
@@ -514,8 +515,11 @@ Listing</span>
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 }
 
 export default SellItemPage;
+
+

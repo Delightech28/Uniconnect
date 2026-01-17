@@ -5,6 +5,7 @@
  import { useTheme } from '../hooks/useTheme';
  import AppHeader from './AppHeader';
  import { useNavigate } from 'react-router-dom';
+ import Footer from './Footer';
  
 // --- Static Data (No Backend) --- 
 const initialSettings = { 
@@ -294,9 +295,9 @@ soon."></SettingsSection>
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
-font-display min-h-screen text-secondary dark:text-slate-200"> 
+font-display min-h-screen flex flex-col text-secondary dark:text-slate-200"> 
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-            <main className="px-4 sm:px-6 lg:px-10 py-8"> 
+            <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
                 <div className="max-w-5xl mx-auto"> 
                     <h1 className="text-secondary dark:text-white 
 tracking-light text-3xl font-bold leading-tight pb-8">Settings</h1> 
@@ -331,8 +332,11 @@ rounded-xl shadow-md p-6 lg:p-8">
                     </div> 
                 </div> 
             </main> 
-        </div> 
+            <Footer darkMode={darkMode} />
+        </div>
     ); 
 } 
  
 export default SettingsPage;
+
+

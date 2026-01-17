@@ -5,6 +5,7 @@ import AppHeader from './AppHeader';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { query, collection, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import Footer from './Footer';
 
 // --- Main Dashboard Component ---
 const GuestDashboard = () => {
@@ -234,8 +235,11 @@ font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </main>
+<Footer darkMode={darkMode} />
 </div>
 );
 };
 
 export default GuestDashboard;
+
+
