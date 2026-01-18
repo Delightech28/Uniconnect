@@ -1,0 +1,114 @@
+/* ===== StudyHub Comprehensive Styling ===== */
+/* ===== NAVBAR / HEADER STYLING - OVERRIDE TAILWIND ===== */
+
+/* Override light mode */
+.studyhub-container header {
+  background-color: #f5f8f6 !important;
+  background: #f5f8f6 !important;
+}
+
+/* Override dark mode Tailwind classes */
+.studyhub-container.dark header,
+.studyhub-container.dark header.dark\:bg-slate-900\/90,
+.studyhub-container.dark header[class*="bg-slate-900"] {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+/* Ensure no other bg classes override */
+.studyhub-container.dark header[class] {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+}
+/* ROOT CONTAINER */
+.studyhub-container {
+  background-color: #f5f8f6;
+  color: #333333;
+}
+
+.studyhub-container.dark {
+  /* Gradient background for the entire page */
+  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%, #1a2412 50%, #0a2e0a 75%, #1e4004 100%);
+  background-attachment: fixed;
+  color: #e8edf0;
+}
+
+/* ===== ENSURE GRADIENT VISIBILITY ===== */
+.studyhub-container.dark > div {
+  background-color: transparent !important;
+}
+
+.studyhub-container.dark main {
+  background-color: transparent !important;
+}
+
+/* ===== TEXT & TYPOGRAPHY ===== */
+.studyhub-container.dark h1,
+.studyhub-container.dark h2,
+.studyhub-container.dark h3,
+.studyhub-container.dark h4,
+.studyhub-container.dark h5,
+.studyhub-container.dark h6,
+.studyhub-container.dark p,
+.studyhub-container.dark span,
+.studyhub-container.dark div,
+.studyhub-container.dark li {
+  color: #e8edf0 !important;
+}
+
+/* ===== CARDS & CONTAINERS (Blue-like color) ===== */
+.studyhub-container.dark [class*="bg-white"],
+.studyhub-container.dark .card,
+.studyhub-container.dark [class*="border"],
+.studyhub-container.dark .rounded-lg,
+.studyhub-container.dark .rounded-xl,
+.studyhub-container.dark section,
+.studyhub-container.dark article,
+.studyhub-container.dark [role="article"],
+.studyhub-container.dark .modal,
+.studyhub-container.dark .dialog {
+  background-color: #1a2f4f !important;
+  border-color: #2a4070 !important;
+}
+
+/* ===== BUTTONS (Different blue shade) ===== */
+.studyhub-container.dark button,
+.studyhub-container.dark [role="button"],
+.studyhub-container.dark .btn,
+.studyhub-container.dark [class*="px-"][class*="py-"][class*="rounded"] {
+  background-color: #2a5a9f !important;
+  color: #ffffff !important;
+  border-color: #3a6ab5 !important;
+}
+
+.studyhub-container.dark button:hover,
+.studyhub-container.dark [role="button"]:hover {
+  background-color: #3a6ab5 !important;
+}
+
+/* ===== INPUT FIELDS ===== */
+.studyhub-container.dark input,
+.studyhub-container.dark textarea,
+.studyhub-container.dark select {
+  background-color: #142039 !important;
+  color: #e8edf0 !important;
+  border-color: #2a4070 !important;
+}
+
+.studyhub-container.dark input::placeholder,
+.studyhub-container.dark textarea::placeholder {
+  color: #8b95a6 !important;
+}
+
+/* Light mode styling */
+.studyhub-container h1,
+.studyhub-container h2,
+.studyhub-container h3 {
+  color: #333333;
+}
+
+.studyhub-container button {
+  background-color: #07bc0c;
+  color: white;
+}
+
+

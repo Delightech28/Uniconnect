@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Play, Volume2, Users, Clock, Globe, Radio } from 'lucide-react';
-import Footer from './Footer';
 
 /**
  * PodcastConfig component for podcast settings

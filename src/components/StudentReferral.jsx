@@ -101,6 +101,7 @@ const StudentReferral = () => {
   };
 
   return (
+    <div>
     <div className="w-full h-screen flex flex-col">
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
       <main className="flex-1 overflow-y-auto flex justify-center py-8 px-4 md:px-10 lg:px-20">
@@ -210,6 +211,8 @@ const StudentReferral = () => {
 
           </div>
         </main>
+        </div>
+        <Footer darkMode={darkMode} />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'; 
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import Footer from './Footer';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
@@ -7,62 +8,6 @@ const USER_QR_CODE_URL =
 "https://lh3.googleusercontent.com/aida-public/AB6AXuB9mbCQRsr1v804IMr0itFrO0mR4Hczkqufh2VXblir8Pe2vq6fGM7L8hwSFuNn_ocJ9Z8H1VGiIFv2EfB5sI7Fm8Vq6RreGN2bwEDftmjxWul8v6KmxYn6vykNKoSc6_8vT5x2M1-FbC-PBHF7SA78FhXbF2KQKBmeGr9NvEtpsZTMI7Sa7_CehrFJV7eMWiq116JJxaFMCN9WWmXeA5lXdRIgR2MaxuHtDBGieXDcIs15PCrHUTtc_FsaEqLiebeeOgS57eUF7eq_"; 
  
 // --- Reusable Components --- 
- 
-// Header Component 
-const AppHeader = () => ( 
-  <header className="flex items-center justify-between 
-whitespace-nowrap border-b border-solid border-slate-200 
-dark:border-slate-700 px-4 md:px-10 py-3 bg-white dark:bg-secondary"> 
-    <div className="flex items-center gap-8"> 
-      <div className="flex items-center gap-4 text-secondary 
-dark:text-white"> 
-        <img src="/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" /> 
-        <h2 className="text-xl font-bold leading-tight 
-tracking-[-0.015em] -ml-3">niSpace</h2> 
-      </div> 
-      <nav className="hidden md:flex items-center gap-6"> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="#">Dashboard</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="#">Marketplace</a> 
-        <a className="text-secondary dark:text-white text-sm 
-font-medium" href="https://uni-space-study.vercel.app" target="_blank" rel="noopener noreferrer">UniDoc</a> 
-        <a className="text-primary dark:text-primary font-bold text-sm" 
-href="#">Wallet</a> 
-      </nav> 
-    </div> 
-    <div className="flex flex-1 justify-end gap-2 md:gap-6"> 
- 
- 
-      <button className="flex items-center justify-center rounded-lg h-10 
-w-10 bg-background-light dark:bg-slate-800 text-secondary 
-dark:text-white"> 
-        <span 
-className="material-symbols-outlined">notifications</span> 
-      </button> 
-      <div className="relative group"> 
-        <div 
-          className="bg-center bg-no-repeat aspect-square bg-cover 
-rounded-full size-10" 
-          style={{ backgroundImage: 
-`url("https://lh3.googleusercontent.com/aida-public/AB6AXuB7ipoCz1oX
- pOpPWDhv675AUHutItgtQM7aFzX0fh0jgdBvLu18QlYHkP0F9ptNxVjSL
- 8c3CjKVBzKqa_0ddF2S584SR7N3hNfVN1wEpUrQbD-R1FEFUI295_ke
- _YUaiu8Ws2kQpWnucSO2RB5bJNXsnqp9jQy-5BDKmJQsxlsF50hUdrS
- yxbN6z-_pdvyDcSvAT5YaxfHhB8vzPRVfHJdStsyavQVcWMAi2j3wANM
- AlXCMc7EZufyPm5dcm8tH0DULaghvwkZ3-YAI")` }} 
-        /> 
-        <div className="absolute right-0 mt-2 w-48 bg-white 
-dark:bg-secondary rounded-md shadow-lg py-1 hidden 
-group-hover:block z-10"> 
-          <a className="block px-4 py-2 text-sm text-secondary 
-dark:text-white hover:bg-background-light dark:hover:bg-slate-800" 
-href="#">Profile</a> 
-        </div> 
-      </div> 
-    </div> 
-  </header> 
-); 
  
 // Send Money Form Component 
 const SendMoneyForm = ({ onSend }) => { 

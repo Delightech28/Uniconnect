@@ -57,7 +57,6 @@ explanation: "Any point on the PPF curve represents an efficient allocation of r
 ];
 // --- Helper Components ---
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 // QuizOption Component
 const QuizOption = ({ option, index, selectedAnswer, correctAnswer,
 onSelect, isAnswered }) => {
@@ -157,6 +156,7 @@ const progressPercentage = ((currentQuestionIndex + 1) /
 quizData.length) * 100;
 if (showResults) {
 return (
+	<div>
 <div className="bg-background-light dark:bg-background-dark
 font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col">
 <AppHeader />
@@ -189,6 +189,7 @@ className="material-symbols-outlined">refresh</span>
 </main>
 </div>
     <Footer darkMode={darkMode} />
+	</div>
 );
 }
 return (

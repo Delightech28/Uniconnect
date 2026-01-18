@@ -41,7 +41,6 @@ import FAQPage from "./components/FAQPage";
 import ContactSupportPage from "./components/ContactSupportPage";
 import TermsOfServicePage from "./components/TermsOfServicePage";
 import CampusFeed from "./components/CampusFeed";
-import UniSpaceUpgrade from "./components/UniSpaceUpgrade";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestUpgrade from "./components/GuestUpgrade";
 import PricingPage from "./components/PricingPage";
@@ -69,8 +68,8 @@ function App() {
         <Route path="/unimarket" element={<UniMarketPage />} />
         <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
         <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
-        <Route path="/uni-doc" element={<StudyHubApp />} />
-        <Route path="/ai-tool" element={<AIToolApp />} />
+        <Route path="/study-hub" element={<StudyHubApp />} />
+        <Route path="/uni-doc" element={<AIToolApp />} />
         <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/chat-interface" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
@@ -94,7 +93,6 @@ function App() {
         <Route path="/contact-support" element={<ContactSupportPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
         <Route path="/campusfeed" element={<ProtectedRoute><CampusFeed /></ProtectedRoute>} />
-        <Route path="/unispace-upgrade" element={<ProtectedRoute><UniSpaceUpgrade /></ProtectedRoute>} />
         <Route path="/guest-upgrade" element={<ProtectedRoute><GuestUpgrade /></ProtectedRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
       </Routes>

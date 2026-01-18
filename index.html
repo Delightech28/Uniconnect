@@ -2,8 +2,58 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo/green_whitebg.png?v=2" sizes="1024x1024" />
-    <link rel="shortcut icon" type="image/png" href="/logo/green_whitebg.png?v=2" sizes="1024x1024" />
+    <!-- Favicon - Dynamically scaled with border radius -->
+    <link rel="icon" type="image/png" href="/logo/white_greenbg.png" />
+    <script>
+      (function() {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          const radius = 80;
+          
+          // Draw rounded rectangle background
+          ctx.fillStyle = 'white';
+          ctx.beginPath();
+          ctx.moveTo(radius, 0);
+          ctx.lineTo(512 - radius, 0);
+          ctx.quadraticCurveTo(512, 0, 512, radius);
+          ctx.lineTo(512, 512 - radius);
+          ctx.quadraticCurveTo(512, 512, 512 - radius, 512);
+          ctx.lineTo(radius, 512);
+          ctx.quadraticCurveTo(0, 512, 0, 512 - radius);
+          ctx.lineTo(0, radius);
+          ctx.quadraticCurveTo(0, 0, radius, 0);
+          ctx.fill();
+          
+          // Clip to rounded rectangle and draw image
+          ctx.beginPath();
+          ctx.moveTo(radius, 0);
+          ctx.lineTo(512 - radius, 0);
+          ctx.quadraticCurveTo(512, 0, 512, radius);
+          ctx.lineTo(512, 512 - radius);
+          ctx.quadraticCurveTo(512, 512, 512 - radius, 512);
+          ctx.lineTo(radius, 512);
+          ctx.quadraticCurveTo(0, 512, 0, 512 - radius);
+          ctx.lineTo(0, radius);
+          ctx.quadraticCurveTo(0, 0, radius, 0);
+          ctx.clip();
+          
+          ctx.drawImage(img, 0, 0, 512, 512);
+          
+          const link = document.querySelector('link[rel="icon"]') || document.createElement('link');
+          link.rel = 'icon';
+          link.type = 'image/png';
+          link.href = canvas.toDataURL('image/png');
+          if (!document.querySelector('link[rel="icon"]')) {
+            document.head.appendChild(link);
+          }
+        };
+        img.src = '/logo/white_greenbg.png';
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>UniSpace</title>
     <script>

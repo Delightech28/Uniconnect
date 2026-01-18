@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { BookOpen, MessageSquare, Radio, Lock } from 'lucide-react';
-import Footer from './Footer';
 
 /**
  * Dashboard component showing mode selection

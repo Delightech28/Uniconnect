@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 
@@ -8,6 +8,7 @@ const Footer = ({ darkMode }) => {
 	const [loading, setLoading] = useState(false);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	useEffect(() => {
 		const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -15,6 +16,11 @@ const Footer = ({ darkMode }) => {
 		});
 		return () => unsubscribe();
 	}, []);
+
+	// Scroll to top when location changes
+	useEffect(() => {
+		window.scrollTo(0, 0);
+	}, [location.pathname]);
 
 	const handleProtectedLink = (href) => {
 		if (!isLoggedIn) {
@@ -50,25 +56,16 @@ const Footer = ({ darkMode }) => {
 		{ label: 'Pricing', href: '/pricing', protected: false },
 	];
 
-	const companyLinks = [
-		{ label: 'About Us', href: '#' },
-		{ label: 'Blog', href: '#' },
-		{ label: 'Careers', href: '#' },
-		{ label: 'Press Kit', href: '#' },
-	];
+	const companyLinks = [];
 
 	const resourcesLinks = [
 		{ label: 'Help Center', href: '/help-and-support' },
 		{ label: 'FAQ', href: '/faq' },
 		{ label: 'Contact Support', href: '/contact-support' },
-		{ label: 'Community', href: '#' },
 	];
 
 	const legalLinks = [
 		{ label: 'Terms of Service', href: '/terms-of-service' },
-		{ label: 'Privacy Policy', href: '#' },
-		{ label: 'Cookie Policy', href: '#' },
-		{ label: 'Compliance', href: '#' },
 	];
 
 	const socialLinks = [
@@ -177,26 +174,7 @@ const Footer = ({ darkMode }) => {
 						</ul>
 					</div>
 
-					{/* Company Links */}
-					<div>
-						<h5 className="font-semibold mb-4 text-sm lg:text-base">Company</h5>
-						<ul className="space-y-3">
-							{companyLinks.map((link) => (
-								<li key={link.label}>
-									<a
-										href={link.href}
-										className={`text-sm transition-colors ${
-											darkMode
-												? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
-												: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
-										}`}
-									>
-										{link.label}
-									</a>
-								</li>
-							))}
-						</ul>
-					</div>
+	
 
 					{/* Resources Links */}
 					<div>

@@ -2,6 +2,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
+import Footer from './Footer';
 import { auth, db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore'; 
 const navLinks = [ 
@@ -95,6 +96,7 @@ const UniWalletPage = () => {
   const { darkMode, toggleTheme } = useTheme();
  
   return ( 
+    <div>
     <div className="w-full h-screen flex flex-col"> 
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
       <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8"> 
@@ -130,8 +132,9 @@ href="#">View Full Transaction History</a>
           </div> 
         </div> 
       </main> 
+      </div>
+      <Footer darkMode={darkMode} />
     </div>
-    <Footer darkMode={darkMode} /> 
   ); 
 }; 
  

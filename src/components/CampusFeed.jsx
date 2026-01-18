@@ -82,6 +82,7 @@ export default function CampusFeed() {
     }
   }, []);
   return (
+    <div>
     <div className="w-full h-screen flex flex-col">
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
@@ -109,8 +110,9 @@ export default function CampusFeed() {
               </div>
             </div>
           </main>
+          </div>
+          <Footer darkMode={darkMode} />
     </div>
-    <Footer darkMode={darkMode} />
   );
 }
 

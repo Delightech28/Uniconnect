@@ -1,0 +1,114 @@
+/* ===== Ai-Tool Comprehensive Styling ===== */
+/* ===== NAVBAR / HEADER STYLING - OVERRIDE TAILWIND ===== */
+
+/* Override light mode */
+.aitool-container header {
+  background-color: #f5f8f6 !important;
+  background: #f5f8f6 !important;
+}
+
+/* Override dark mode Tailwind classes */
+.aitool-container.dark header,
+.aitool-container.dark header.dark\:bg-slate-900\/90,
+.aitool-container.dark header[class*="bg-slate-900"] {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+/* Ensure no other bg classes override */
+.aitool-container.dark header[class] {
+  background-color: rgba(15, 23, 42, 0.9)  !important;
+}
+/* ROOT CONTAINER */
+.aitool-container {
+  background-color: #f5f8f6;
+  color: #333333;
+}
+
+.aitool-container.dark {
+  /* Gradient background for the entire page */
+  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%, #1a2412 50%, #0a2e0a 75%, #1e4004 100%);
+  background-attachment: fixed;
+  color: #e8edf0;
+}
+
+/* ===== ENSURE GRADIENT VISIBILITY ===== */
+.aitool-container.dark > div {
+  background-color: transparent !important;
+}
+
+.aitool-container.dark main {
+  background-color: transparent !important;
+}
+
+/* ===== TEXT & TYPOGRAPHY ===== */
+.aitool-container.dark h1,
+.aitool-container.dark h2,
+.aitool-container.dark h3,
+.aitool-container.dark h4,
+.aitool-container.dark h5,
+.aitool-container.dark h6,
+.aitool-container.dark p,
+.aitool-container.dark span,
+.aitool-container.dark div,
+.aitool-container.dark li {
+  color: #e8edf0 !important;
+}
+
+/* ===== CARDS & CONTAINERS (Blue-like color) ===== */
+.aitool-container.dark [class*="bg-white"],
+.aitool-container.dark .card,
+.aitool-container.dark [class*="border"],
+.aitool-container.dark .rounded-lg,
+.aitool-container.dark .rounded-xl,
+.aitool-container.dark section,
+.aitool-container.dark article,
+.aitool-container.dark [role="article"],
+.aitool-container.dark .modal,
+.aitool-container.dark .dialog {
+  background-color: #1a2f4f !important;
+  border-color: #2a4070 !important;
+}
+
+/* ===== BUTTONS (Different blue shade) ===== */
+.aitool-container.dark button,
+.aitool-container.dark [role="button"],
+.aitool-container.dark .btn,
+.aitool-container.dark [class*="px-"][class*="py-"][class*="rounded"] {
+  background-color: #2a5a9f !important;
+  color: #ffffff !important;
+  border-color: #3a6ab5 !important;
+}
+
+.aitool-container.dark button:hover,
+.aitool-container.dark [role="button"]:hover {
+  background-color: #3a6ab5 !important;
+}
+
+/* ===== INPUT FIELDS ===== */
+.aitool-container.dark input,
+.aitool-container.dark textarea,
+.aitool-container.dark select {
+  background-color: #142039 !important;
+  color: #e8edf0 !important;
+  border-color: #2a4070 !important;
+}
+
+.aitool-container.dark input::placeholder,
+.aitool-container.dark textarea::placeholder {
+  color: #8b95a6 !important;
+}
+
+/* Light mode styling */
+.aitool-container h1,
+.aitool-container h2,
+.aitool-container h3 {
+  color: #333333;
+}
+
+.aitool-container button {
+  background-color: #07bc0c;
+  color: white;
+}
+
+

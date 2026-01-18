@@ -1,6 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { X, ExternalLink, FileText, Download, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
-import Footer from './Footer';
 
 /**
  * PDFModal component for displaying PDF files

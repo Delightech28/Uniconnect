@@ -1,6 +1,5 @@
 import React from 'react';
 import { FileText, X } from 'lucide-react';
-import Footer from './Footer';
 
 /**
  * FileQuickView component

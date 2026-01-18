@@ -5,20 +5,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import useVerified from '../hooks/useVerified';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import Footer from './Footer';
 
 const MY_AVATAR_URL = null; // will load from auth user profile
 
 // --- Helper Components ---
-const AppHeader = () => (
-        <header className="flex shrink-0 items-center justify-between 
-whitespace-nowrap border-b border-solid border-border-light 
-dark:border-border-dark px-6 sm:px-10 py-3 bg-panel-light 
-dark:bg-panel-dark">
-                {/* Header content... */}
-        </header>
-);
- 
 const ConversationItem = ({ convo, isActive, onSelect }) => (
     <div
         onClick={onSelect}

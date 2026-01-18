@@ -3,9 +3,11 @@ import AppHeader from '../AppHeader';
 import Header from './components/Header';
 import FileUpload from './components/FileUpload';
 import ResultDisplay from './components/ResultDisplay';
+import Footer from '../Footer';
 import { generateContentStream } from './services/geminiService';
+import { useTheme } from '../../hooks/useTheme';
 import { HelpCircle, Brain, Layers, AlertCircle, BookOpen, FileText, Zap, ScanLine, Loader2, Cpu } from 'lucide-react';
-import Footer from './Footer';
+import './aitool.css';
 
 const ResultMode = {
   SOLVE: 'SOLVE',
@@ -14,6 +16,7 @@ const ResultMode = {
 };
 
 const App = () => {
+  const { darkMode } = useTheme();
   const [activeView, setActiveView] = useState('solver');
   const [courseFiles, setCourseFiles] = useState([]);
   const [questionFiles, setQuestionFiles] = useState([]);
@@ -132,7 +135,16 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:text-gray-100 pb-4 md:pb-8 font-sans transition-colors">
+    <div className={`aitool-container ${darkMode ? 'dark' : ''}`}>
+    <style>{`
+      .aitool-container header {
+        background-color: #f5f8f6 !important;
+      }
+      .aitool-container.dark header {
+        background-color: rgba(15, 23, 42, 0.9) !important;
+      }
+    `}</style>
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 pb-4 md:pb-8 font-sans">
       <AppHeader />
       <Header 
         activeView={activeView} 
@@ -261,8 +273,9 @@ const App = () => {
           </div>
         )}
       </main>
+      <Footer darkMode={darkMode} />
     </div>
-    <Footer darkMode={darkMode} />
+    </div>
   );
 };
 

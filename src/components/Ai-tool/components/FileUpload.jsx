@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import { Upload, FileText, X, FileImage } from 'lucide-react';
-import Footer from './Footer';
 
 const FileUpload = ({ title, subtitle, files, onFilesAdded, onFileRemove, icon }) => {
   const fileInputRef = useRef(null);

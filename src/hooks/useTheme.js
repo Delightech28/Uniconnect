@@ -48,20 +48,23 @@ export const useTheme = () => {
     }
   }, [darkMode]);
 
-  const toggleTheme = async () => {
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    
+    // Update localStorage immediately for instant UI response
     try {
-      const user = auth.currentUser;
-      const next = !darkMode;
-      if (user) {
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, {
-          darkMode: next
-        });
-      }
-      setDarkMode(next);
-      try { window.localStorage.setItem('darkMode', next ? 'true' : 'false'); } catch (e) {}
-    } catch (error) {
-      console.error('Error updating theme preference:', error);
+      window.localStorage.setItem('darkMode', next ? 'true' : 'false');
+    } catch (e) {
+      // ignore
+    }
+
+    // Save to Firestore in background (don't wait for it)
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      updateDoc(userRef, { darkMode: next })
+        .catch(error => console.error('Error updating theme preference:', error));
     }
   };
 

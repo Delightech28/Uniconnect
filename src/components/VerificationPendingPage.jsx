@@ -4,7 +4,6 @@ import { useTheme } from '../hooks/useTheme';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import Footer from './Footer';
 // --- Data for Links and Icons (Cleaner than hardcoding in JSX) ---
 const footerLinks = [
 { name: 'Terms of Service', href: '#' },

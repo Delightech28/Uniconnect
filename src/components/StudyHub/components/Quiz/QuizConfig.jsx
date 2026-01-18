@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Play, List, Clock, BarChart } from 'lucide-react';
-import Footer from './Footer';
 
 /**
  * QuizConfig component for configuring quiz parameters

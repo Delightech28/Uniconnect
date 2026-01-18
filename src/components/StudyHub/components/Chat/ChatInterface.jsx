@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Send, Volume2, VolumeX, Plus, Loader2, Copy, Check, AlertCircle, MessageCircle, Settings, ChevronDown, FileText } from "lucide-react";
 import { initializeChatWithContext, speakText } from "../../services/geminiService";
 import PDFModal from "../PDFModal";
-import Footer from './Footer';
 
 /**
  * FormattedText component for rendering rich text

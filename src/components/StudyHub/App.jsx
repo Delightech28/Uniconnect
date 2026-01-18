@@ -14,6 +14,7 @@ import PodcastConfig from "./components/Podcast/PodcastConfig";
 import PodcastPlayer from "./components/Podcast/PodcastPlayer";
 import { analyzeTopics, generateQuiz, generatePodcastContent } from "./services/geminiService";
 import Footer from '../Footer';
+import './studyhub.css';
 
 /**
  * App Mode Constants
@@ -46,6 +47,7 @@ const LOADING_QUOTES = [
  * StudyHub Main App Component
  */
 const StudyHubApp = () => {
+  const { darkMode } = useTheme();
   const [mode, setMode] = useState(APP_MODES.UPLOAD);
   const [file, setFile] = useState(null);
   const [topics, setTopics] = useState([]);
@@ -199,7 +201,16 @@ const StudyHubApp = () => {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col transition-colors">
+    <div className={`studyhub-container ${darkMode ? 'dark' : ''}`}>
+    <style>{`
+      .studyhub-container header {
+        background-color: #f5f8f6 !important;
+      }
+      .studyhub-container.dark header {
+        background-color: rgba(15, 23, 42, 0.9) !important;
+      }
+    `}</style>
+    <div className="w-full h-screen flex flex-col">
       
       {/* Header - Using Main App Header */}
       <AppHeader />
@@ -343,6 +354,8 @@ const StudyHubApp = () => {
           />
         )}
       </div>
+      </div>
+      <Footer darkMode={darkMode} />
     </div>
   );
 };

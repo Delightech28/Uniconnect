@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import Footer from './Footer'; 
 const initialProfileData = { 
 displayName: '',
@@ -27,14 +28,6 @@ const allInterests = [
  
  
 // --- Helper Components --- 
-const AppHeader = () => ( 
-    <header className="flex items-center justify-between 
-whitespace-nowrap border-b border-solid border-slate-200 
-dark:border-slate-700 px-4 sm:px-10 py-3 bg-white dark:bg-secondary"> 
-        {/* Header content from HTML */} 
-    </header> 
-); 
- 
 const InterestTag = ({ interest, isSelected, onToggle }) => { 
     const baseClasses = "flex items-center gap-2 cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors";
     const selectedClasses = "bg-primary text-white border-primary"; 

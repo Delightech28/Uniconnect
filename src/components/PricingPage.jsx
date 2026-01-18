@@ -75,6 +75,7 @@ const PricingPage = () => {
   };
 
   return (
+    <div>
     <div className="w-full h-screen flex flex-col overflow-x-hidden">
       <AppHeader />
       
@@ -82,39 +83,53 @@ const PricingPage = () => {
         {/* Hero Section */}
         <section className="bg-background-light dark:bg-background-dark py-8 md:py-16">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <h1 className="text-5xl md:text-6xl font-extrabold text-secondary dark:text-white mb-4">
-                Upgrade Your <span className="text-primary drop-shadow-lg" style={{textShadow: '0 0 20px rgba(7, 188, 12, 0.6)'}}>Space</span>
-              </h1>
-              <p className="text-lg text-secondary dark:text-gray-300 max-w-3xl mx-auto mb-6">
-                Unlock the Potential of Innovation, Discover Advance tools Guilding Student Toward{' '}
-                <span className="text-primary font-bold">Creative, Precision</span> and timeless possibilities
-              </p>
-
-              {/* Billing Toggle - Like UniDoc Header */}
-              <div className="flex items-center justify-center mb-4">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-1 flex space-x-1 border border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setBillingCycle('monthly')}
-                    className={`flex items-center px-6 py-2 font-medium text-sm transition-all rounded-full whitespace-nowrap ${
-                      billingCycle === 'monthly'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-secondary dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('payAsYouGo')}
-                    className={`flex items-center px-6 py-2 font-medium text-sm rounded-full transition-all whitespace-nowrap ${
-                      billingCycle === 'payAsYouGo'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-secondary dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    Pay as you Go
-                  </button>
+            <div className="flex flex-col md:flex-row gap-8 justify-between items-start md:items-center mb-8">
+              <div className="flex flex-col gap-3 max-w-2xl">
+                <h1 className="text-5xl md:text-6xl font-extrabold text-secondary dark:text-white mb-4">
+                  Upgrade Your <span className="text-primary drop-shadow-lg" style={{textShadow: '0 0 20px rgba(7, 188, 12, 0.6)'}}>Space</span>
+                </h1>
+                <p className="text-lg text-secondary dark:text-gray-300 max-w-3xl">
+                  Unlock the Potential of Innovation, Discover Advance tools Guilding Student Toward{' '}
+                  <span className="text-primary font-bold">Creative, Precision</span> and timeless possibilities
+                </p>
+              </div>
+              
+              {/* Wallet Widget */}
+              <div className="w-full md:w-auto md:min-w-[300px] bg-white dark:bg-gray-900 rounded-xl p-6 border border-[#dbe6db] dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-[#07bb0d]/10 rounded-lg text-[#07bb0d]">
+                    <span className="material-symbols-outlined">account_balance_wallet</span>
+                  </div>
+                  <button className="text-sm font-medium text-[#07bb0d] hover:underline">Top Up</button>
                 </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal">Current Wallet Balance</p>
+                <p className="text-[#111811] dark:text-white tracking-light text-3xl font-bold leading-tight mt-1">₦5,400</p>
+              </div>
+            </div>
+
+            {/* Billing Toggle - Like UniDoc Header */}
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-1 flex space-x-1 border border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`flex items-center px-6 py-2 font-medium text-sm transition-all rounded-full whitespace-nowrap ${
+                    billingCycle === 'monthly'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-secondary dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingCycle('payAsYouGo')}
+                  className={`flex items-center px-6 py-2 font-medium text-sm rounded-full transition-all whitespace-nowrap ${
+                    billingCycle === 'payAsYouGo'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-secondary dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Pay as you Go
+                </button>
               </div>
             </div>
 
@@ -290,7 +305,23 @@ const PricingPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Policy Section */}
+        <section className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
+          <h3 className="text-xl font-bold text-secondary dark:text-white mb-4">Payment & Subscription Policy</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-gray-600 dark:text-gray-300">
+            <div>
+              <p className="font-bold text-secondary dark:text-white mb-2">How do deductions work?</p>
+              <p>All payments are deducted directly from your UniWallet balance. Ensure you have sufficient funds before selecting an option. If your balance is low, you will be prompted to top up via bank transfer or card.</p>
+            </div>
+            <div>
+              <p className="font-bold text-secondary dark:text-white mb-2">Can I cancel my subscription?</p>
+              <p>Yes, you can cancel monthly subscriptions at any time from your settings. Benefits will remain active until the end of the billing period. Pay-as-you-go purchases are non-refundable once used.</p>
+            </div>
+          </div>
+        </section>
       </main>
+      </div>
       <Footer darkMode={darkMode} />
     </div>
   );

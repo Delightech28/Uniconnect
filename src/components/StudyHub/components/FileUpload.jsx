@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { Upload, FileText, Brain, Zap, AlertTriangle } from 'lucide-react';
-import Footer from './Footer';
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;

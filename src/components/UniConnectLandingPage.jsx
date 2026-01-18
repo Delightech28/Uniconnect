@@ -100,8 +100,8 @@ const { darkMode, toggleTheme } = useTheme();
 const navLinks = [
 { title: 'Dashboard', href: '/dashboard' },
 { title: 'Marketplace', href: '/unimarket' },
-{ title: 'StudyHub', href: '/uni-doc' },
-{ title: 'UniDoc', href: '/ai-tool' },
+{ title: 'StudyHub', href: '/study-hub' },
+{ title: 'UniDoc', href: '/uni-doc' },
 { title: 'CampusFeed', href: '/campusfeed' },
 { title: 'Wallet', href: '/uni-wallet' },
 { title: 'Referral', href: '/student-referral' },
