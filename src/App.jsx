@@ -31,6 +31,7 @@ import ProductDetailsPage from "./components/ProductDetailsPage";
 import InboxPage from "./components/InboxPage";
 import Header from "./components/Header";
 import EditProfilePage from "./components/EditProfilePage";
+import ProfilePage from "./components/ProfilePage";
 import SettingsPage from "./components/SettingsPage";
 import ChangePasswordPage from "./components/ChangePasswordPage";
 import ChangeEmailPage from "./components/ChangeEmailPage";
@@ -83,6 +84,7 @@ function App() {
         <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
         <Route path="/header" element={<Header />} />
         <Route path="/edit-profile" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} /> 
         <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
         <Route path="/change-email" element={<ProtectedRoute><ChangeEmailPage /></ProtectedRoute>} />
