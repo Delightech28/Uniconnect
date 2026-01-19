@@ -177,7 +177,7 @@ const PricingCard = ({ title, subtitle, price, features, buttonText, isPopular, 
       
       <button className={`w-full py-3 px-4 font-bold rounded-lg transition-colors border ${isPopular 
           ? `${colors.bg} text-white ${colors.btnHover} shadow-sm border-transparent`
-          : 'bg-[#f5f8f6] dark:bg-gray-800 text-[#111811] dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600'
+          : 'bg-[#c2ebc2] dark:bg-gray-800 text-[#111811] dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600'
         }`}
       >
         {buttonText}
@@ -220,7 +220,7 @@ const GuestUpgrade = () => {
   const { darkMode, toggleTheme } = useTheme();
 
   return (
-    <div className="bg-[#f5f8f6] dark:bg-black text-[#111811] dark:text-white font-['Lexend'] min-h-screen flex flex-col overflow-x-hidden">
+    <div className="bg-[#c2ebc2] dark:bg-black text-[#111811] dark:text-white font-['Lexend'] min-h-screen flex flex-col overflow-x-hidden">
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
       {/* Main Content Area */}
@@ -315,5 +315,6 @@ const GuestUpgrade = () => {
 };
 
 export default GuestUpgrade;
+
 
 

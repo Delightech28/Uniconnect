@@ -6,6 +6,7 @@ import ResultDisplay from './components/ResultDisplay';
 import Footer from '../Footer';
 import { generateContentStream } from './services/geminiService';
 import { useTheme } from '../../hooks/useTheme';
+import { initDarkMode, toggleDarkModeLocal, syncDarkMode } from '../../utils/darkModeUtils';
 import { HelpCircle, Brain, Layers, AlertCircle, BookOpen, FileText, Zap, ScanLine, Loader2, Cpu } from 'lucide-react';
 import './aitool.css';
 
@@ -16,7 +17,8 @@ const ResultMode = {
 };
 
 const App = () => {
-  const { darkMode } = useTheme();
+  const { darkMode: globalDarkMode } = useTheme();
+  const [darkMode, setDarkMode] = useState(globalDarkMode);
   const [activeView, setActiveView] = useState('solver');
   const [courseFiles, setCourseFiles] = useState([]);
   const [questionFiles, setQuestionFiles] = useState([]);
@@ -44,6 +46,32 @@ const App = () => {
     error: null,
     result: null
   });
+
+  // Initialize local dark mode
+  useEffect(() => {
+    initDarkMode(setDarkMode);
+  }, []);
+
+  // Sync with global dark mode changes
+  useEffect(() => {
+    setDarkMode(globalDarkMode);
+    syncDarkMode(globalDarkMode);
+  }, [globalDarkMode]);
+
+  const handleDarkModeToggle = () => {
+    toggleDarkModeLocal(darkMode, setDarkMode);
+  };
+
+  // Initialize local dark mode
+  useEffect(() => {
+    initDarkMode(setDarkMode);
+  }, []);
+
+  // Sync with global dark mode changes
+  useEffect(() => {
+    setDarkMode(globalDarkMode);
+    syncDarkMode(globalDarkMode);
+  }, [globalDarkMode]);
 
   useEffect(() => {
     let interval;
@@ -138,14 +166,14 @@ const App = () => {
     <div className={`aitool-container ${darkMode ? 'dark' : ''}`}>
     <style>{`
       .aitool-container header {
-        background-color: #f5f8f6 !important;
+        background-color: #c2ebc2 !important;
       }
       .aitool-container.dark header {
         background-color: rgba(15, 23, 42, 0.9) !important;
       }
     `}</style>
     <div className="min-h-screen text-gray-900 dark:text-gray-100 pb-4 md:pb-8 font-sans">
-      <AppHeader />
+      <AppHeader darkMode={darkMode} toggleDarkMode={handleDarkModeToggle} />
       <Header 
         activeView={activeView} 
         onViewChange={(view) => { setActiveView(view); resetApp(); }} 
@@ -280,6 +308,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
+import { syncDarkMode } from '../utils/darkModeUtils';
 
 const Footer = ({ darkMode }) => {
 	const [email, setEmail] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [localDarkMode, setLocalDarkMode] = useState(darkMode);
 	const navigate = useNavigate();
 	const location = useLocation();
 
@@ -16,6 +18,12 @@ const Footer = ({ darkMode }) => {
 		});
 		return () => unsubscribe();
 	}, []);
+
+	// Sync dark mode locally
+	useEffect(() => {
+		setLocalDarkMode(darkMode);
+		syncDarkMode(darkMode);
+	}, [darkMode]);
 
 	// Scroll to top when location changes
 	useEffect(() => {
@@ -59,9 +67,9 @@ const Footer = ({ darkMode }) => {
 	const companyLinks = [];
 
 	const resourcesLinks = [
-		{ label: 'Help Center', href: '/help-and-support' },
-		{ label: 'FAQ', href: '/faq' },
-		{ label: 'Contact Support', href: '/contact-support' },
+		{ label: 'Help Center', href: '/help-and-support', protected: true },
+		{ label: 'FAQ', href: '/faq', protected: true },
+		{ label: 'Contact Support', href: '/contact-support', protected: true },
 	];
 
 	const legalLinks = [
@@ -76,9 +84,9 @@ const Footer = ({ darkMode }) => {
 	];
 
 	return (
-		<footer className={`${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} mt-16 lg:mt-24`}>
+		<footer className={`${localDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} border-t ${localDarkMode ? 'border-gray-800' : 'border-gray-200'} mt-16 lg:mt-24`}>
 			{/* Newsletter Section */}
-			<div className={`${darkMode ? 'bg-gradient-to-r from-primary to-green-600' : 'bg-gradient-to-r from-primary via-green-500 to-green-600'} py-12 lg:py-16`}>
+			<div className={`${localDarkMode ? 'bg-gradient-to-r from-primary to-green-600' : 'bg-gradient-to-r from-primary via-green-500 to-green-600'} py-12 lg:py-16`}>
 				<div className="max-w-6xl mx-auto px-4 lg:px-10">
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
 						<div>
@@ -119,7 +127,7 @@ const Footer = ({ darkMode }) => {
 							<img src="/logo/green_whitebg.png" alt="UniSpace" className="h-10 w-10 object-contain" />
 							<h4 className="text-lg font-bold">UniSpace</h4>
 						</div>
-						<p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+						<p className={`text-sm mb-6 ${localDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
 							Connecting students across Nigerian universities. Your campus community hub for learning, selling, and building meaningful connections.
 						</p>
 						{/* <div className="flex gap-4">
@@ -150,7 +158,7 @@ const Footer = ({ darkMode }) => {
 										<button
 											onClick={() => handleProtectedLink(link.href)}
 											className={`text-sm transition-colors ${
-												darkMode
+												localDarkMode
 													? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
 													: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
 											}`}
@@ -161,7 +169,7 @@ const Footer = ({ darkMode }) => {
 										<Link
 											to={link.href}
 											className={`text-sm transition-colors ${
-												darkMode
+												localDarkMode
 													? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
 													: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
 											}`}
@@ -182,16 +190,29 @@ const Footer = ({ darkMode }) => {
 						<ul className="space-y-3">
 							{resourcesLinks.map((link) => (
 								<li key={link.label}>
-									<Link
-										to={link.href}
-										className={`text-sm transition-colors ${
-											darkMode
-												? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
-												: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
-										}`}
-									>
-										{link.label}
-									</Link>
+									{link.protected ? (
+										<button
+											onClick={() => handleProtectedLink(link.href)}
+											className={`text-sm transition-colors ${
+												localDarkMode
+													? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+													: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+											}`}
+										>
+											{link.label}
+										</button>
+									) : (
+										<Link
+											to={link.href}
+											className={`text-sm transition-colors ${
+												localDarkMode
+													? 'text-gray-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+													: 'text-gray-600 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'
+											}`}
+										>
+											{link.label}
+										</Link>
+									)}
 								</li>
 							))}
 						</ul>
@@ -220,11 +241,11 @@ const Footer = ({ darkMode }) => {
 				</div>
 
 				{/* Divider */}
-				<div className={`h-px ${darkMode ? 'bg-gray-800' : 'bg-gray-200'} my-8`}></div>
+			<div className={`h-px ${localDarkMode ? 'bg-gray-800' : 'bg-gray-200'} my-8`}></div>
 
-				{/* Bottom Section */}
-				<div className="flex flex-col md:flex-row justify-between items-center gap-4">
-					<p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+			{/* Bottom Section */}
+			<div className="flex flex-col md:flex-row justify-between items-center gap-4">
+				<p className={`text-sm ${localDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
 						© {currentYear} UniSpace. All rights reserved.
 					</p>
 				</div>

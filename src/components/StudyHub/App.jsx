@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Home } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { initDarkMode, toggleDarkModeLocal, syncDarkMode } from '../../utils/darkModeUtils';
 import AppHeader from '../AppHeader';
 import FileUpload from './components/FileUpload';
 import PDFModal from './components/PDFModal';
@@ -47,7 +48,8 @@ const LOADING_QUOTES = [
  * StudyHub Main App Component
  */
 const StudyHubApp = () => {
-  const { darkMode } = useTheme();
+  const { darkMode: globalDarkMode } = useTheme();
+  const [darkMode, setDarkMode] = useState(globalDarkMode);
   const [mode, setMode] = useState(APP_MODES.UPLOAD);
   const [file, setFile] = useState(null);
   const [topics, setTopics] = useState([]);
@@ -61,6 +63,21 @@ const StudyHubApp = () => {
   const [chatSettings, setChatSettings] = useState(null);
   const [unlockedTopics, setUnlockedTopics] = useState(new Set());
   const [currentLoadingQuote, setCurrentLoadingQuote] = useState('');
+
+  // Initialize local dark mode
+  useEffect(() => {
+    initDarkMode(setDarkMode);
+  }, []);
+
+  // Sync with global dark mode changes
+  useEffect(() => {
+    setDarkMode(globalDarkMode);
+    syncDarkMode(globalDarkMode);
+  }, [globalDarkMode]);
+
+  const handleDarkModeToggle = () => {
+    toggleDarkModeLocal(darkMode, setDarkMode);
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -204,7 +221,7 @@ const StudyHubApp = () => {
     <div className={`studyhub-container ${darkMode ? 'dark' : ''}`}>
     <style>{`
       .studyhub-container header {
-        background-color: #f5f8f6 !important;
+        background-color: #c2ebc2 !important;
       }
       .studyhub-container.dark header {
         background-color: rgba(15, 23, 42, 0.9) !important;
@@ -213,7 +230,7 @@ const StudyHubApp = () => {
     <div className="w-full h-screen flex flex-col">
       
       {/* Header - Using Main App Header */}
-      <AppHeader />
+      <AppHeader darkMode={darkMode} toggleDarkMode={handleDarkModeToggle} />
       
       {/* Home/Reset Button */}
       {mode !== APP_MODES.UPLOAD && (
@@ -361,6 +378,7 @@ const StudyHubApp = () => {
 };
 
 export default StudyHubApp;
+
 
 
 

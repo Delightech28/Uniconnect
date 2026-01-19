@@ -226,7 +226,7 @@ font-display min-h-screen flex flex-col">
           <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
         </button>
       </div>
-      {/* <AppHeader /> */} 
+      <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
       <main className="flex-1 py-10"> 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"> 
           <div className="mb-8"> 

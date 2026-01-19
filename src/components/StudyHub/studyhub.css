@@ -3,8 +3,8 @@
 
 /* Override light mode */
 .studyhub-container header {
-  background-color: #f5f8f6 !important;
-  background: #f5f8f6 !important;
+  background-color: #c2ebc2 !important;
+  background: #c2ebc2 !important;
 }
 
 /* Override dark mode Tailwind classes */
@@ -70,18 +70,18 @@
   border-color: #2a4070 !important;
 }
 
-/* ===== BUTTONS (Different blue shade) ===== */
-.studyhub-container.dark button,
-.studyhub-container.dark [role="button"],
-.studyhub-container.dark .btn,
-.studyhub-container.dark [class*="px-"][class*="py-"][class*="rounded"] {
+/* ===== BUTTONS (Different blue shade) - EXCLUDE HEADER/FOOTER ===== */
+.studyhub-container.dark main button,
+.studyhub-container.dark main [role="button"],
+.studyhub-container.dark main .btn,
+.studyhub-container.dark main [class*="px-"][class*="py-"][class*="rounded"] {
   background-color: #2a5a9f !important;
   color: #ffffff !important;
   border-color: #3a6ab5 !important;
 }
 
-.studyhub-container.dark button:hover,
-.studyhub-container.dark [role="button"]:hover {
+.studyhub-container.dark main button:hover,
+.studyhub-container.dark main [role="button"]:hover {
   background-color: #3a6ab5 !important;
 }
 
@@ -106,9 +106,12 @@
   color: #333333;
 }
 
-.studyhub-container button {
+/* Only style buttons inside main content, not header/footer */
+.studyhub-container main button {
   background-color: #07bc0c;
   color: white;
 }
+
+
 
 

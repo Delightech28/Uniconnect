@@ -16,15 +16,15 @@ const ReferralReward = () => {
   // Custom colors matching your original config
   const colors = {
     primary: "#07bc0c",
-    bgLight: "#f5f8f6",
+    bgLight: "#c2ebc2",
     bgDark: "#102210"
   };
 
   return (
-    <div className="font-sans min-h-screen w-full flex flex-col bg-[#f5f8f6] dark:bg-[#102210] text-slate-900 dark:text-slate-50 transition-colors duration-300">
+    <div className="font-sans min-h-screen w-full flex flex-col bg-[#c2ebc2] dark:bg-[#102210] text-slate-900 dark:text-slate-50 transition-colors duration-300">
       
       {/* --- Header --- */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-[#f5f8f6]/80 dark:bg-[#102210]/90 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-[#c2ebc2]/80 dark:bg-[#102210]/90 backdrop-blur-md">
         <div className="max-w-[1280px] mx-auto px-4 md:px-10 lg:px-20 py-3">
           <div className="flex items-center justify-between">
             
@@ -145,5 +145,6 @@ const ReferralReward = () => {
 };
 
 export default ReferralReward;
+
 
 

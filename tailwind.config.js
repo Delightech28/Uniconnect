@@ -14,7 +14,7 @@ export default {
         primary: "#07bc0c",
         secondary: "#0A3D62",
         accent: "#FFD700",
-        "background-light": "#f5f8f6",
+        "background-light": "#a1e0a1",
         "background-dark": "transparent",
         "text-light": "#333333",
         "text-dark": "#F5F5F5",

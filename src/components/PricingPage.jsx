@@ -7,7 +7,7 @@ import Footer from './Footer';
 
 const PricingPage = () => {
   const navigate = useNavigate();
-  const { darkMode } = useTheme();
+  const { darkMode, toggleTheme } = useTheme();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [cardIndex, setCardIndex] = useState(1); // Start with Premium (center)
 
@@ -77,11 +77,11 @@ const PricingPage = () => {
   return (
     <div>
     <div className="w-full h-screen flex flex-col overflow-x-hidden">
-      <AppHeader />
+      <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
       
       <main className="flex-1 overflow-y-auto">
         {/* Hero Section */}
-        <section className="bg-background-light dark:bg-background-dark py-8 md:py-16">
+        <section className="bg-[#f5f8f6] dark:bg-gradient-to-b dark:from-[#050805] dark:to-[#1e4004] py-8 md:py-16">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row gap-8 justify-between items-start md:items-center mb-8">
               <div className="flex flex-col gap-3 max-w-2xl">

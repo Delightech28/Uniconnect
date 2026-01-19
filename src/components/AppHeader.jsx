@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import useVerified from '../hooks/useVerified';
 import toast from 'react-hot-toast';
+import { FaBell, FaEnvelope, FaUser, FaCog, FaSignOutAlt, FaMoon, FaSun } from 'react-icons/fa';
 
 const AppHeader = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -123,50 +124,59 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
   // hide/disable some features for unverified/failed users
   const { isLoading: verifyingLoading, verified, status, registerAs } = useVerified();
 
+  // Handle protected navigation
+  const handleProtectedNavigation = (href) => {
+    if (!currentUser) {
+      navigate('/login');
+    } else {
+      navigate(href);
+    }
+  };
+
   return (
     <>
-      <header className={`sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-background-light/80 dark:bg-slate-900/90 backdrop-blur-sm transition-all duration-300 ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <header className={`sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-background-light/80 dark:bg-slate-900/90 backdrop-blur-sm transition-all duration-300 ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{backgroundColor: darkMode ? 'rgba(15, 23, 42, 0.9)' : '#c2ebc2'}}>
         <div className="flex items-center gap-4 lg:gap-8">
           <NavLink to={currentUser ? "/dashboard" : "/"} className="flex items-center gap-0 text-secondary hover:opacity-80 transition-opacity">
             <img src="/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain"/>
             <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
           </NavLink>
           <nav className="hidden lg:flex items-center gap-6">
-            <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            <button onClick={() => handleProtectedNavigation("/dashboard")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Dashboard
-            </NavLink>
-            <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </button>
+            <button onClick={() => handleProtectedNavigation("/unimarket")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Marketplace
-            </NavLink>
+            </button>
             <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               UniDoc
             </NavLink>
             <NavLink to="/study-hub" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               StudyHub
             </NavLink>
-            <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            <button onClick={() => handleProtectedNavigation("/campusfeed")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               CampusFeed
-            </NavLink>
-            <NavLink to="/uni-wallet" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </button>
+            <button onClick={() => handleProtectedNavigation("/uni-wallet")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Wallet
-            </NavLink>
-            <NavLink to="/student-referral" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </button>
+            <button onClick={() => handleProtectedNavigation("/student-referral")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Referral
-            </NavLink>
+            </button>
             <NavLink to="/pricing" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Pricing
             </NavLink>
           </nav>
         </div>
         <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
-          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white hover:dark:text-green-400" aria-label="Toggle dark mode">
-            <span className="material-symbols-outlined">{darkMode ? 'light_mode' : 'dark_mode'}</span>
+          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-slate-700 dark:to-slate-800 text-yellow-600 dark:text-yellow-400 hover:shadow-lg dark:hover:shadow-yellow-400/20 transition-all duration-300 border border-yellow-300 dark:border-slate-600" aria-label="Toggle dark mode">
+            {darkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
           </button>
 
           {currentUser ? (
             <>
-              <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white hover:dark:text-green-400">
-                <span className="material-symbols-outlined">notifications</span>
+              <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-600 dark:text-blue-300 hover:shadow-lg dark:hover:shadow-blue-400/20 transition-all duration-300 border border-blue-300 dark:border-blue-700">
+                <FaBell size={20} />
                 {unreadCount > 0 && (
                   <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -174,8 +184,8 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                 )}
               </button>
               {verified ? (
-                <button onClick={() => navigate('/inbox')} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800 text-secondary dark:text-white hover:dark:text-green-400">
-                  <span className="material-symbols-outlined">mail</span>
+                <button onClick={() => navigate('/inbox')} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 text-purple-600 dark:text-purple-300 hover:shadow-lg dark:hover:shadow-purple-400/20 transition-all duration-300 border border-purple-300 dark:border-purple-700">
+                  <FaEnvelope size={20} />
                   {unreadCount > 0 && (
                     <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -187,8 +197,8 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   if (verifyingLoading) return toast('Checking verification...');
                   if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
                   toast('Complete verification to access Inbox');
-                }} className="relative flex items-center justify-center rounded-lg h-10 w-10 bg-background-light/60 dark:bg-slate-800/60 text-secondary dark:text-white hover:dark:text-green-400" title="Locked until verified">
-                  <span className="material-symbols-outlined">mail</span>
+                }} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700/40 dark:to-gray-600/40 text-gray-500 dark:text-gray-400 opacity-60 transition-all duration-300 border border-gray-400 dark:border-gray-600" title="Locked until verified">
+                  <FaEnvelope size={20} />
                 </button>
               )}
               <div className="relative">
@@ -196,11 +206,18 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   <div className="bg-center bg-no-repeat w-8 h-8 rounded-full bg-cover" style={{backgroundImage: `url("${userAvatar}")`}}></div>
                 </button>
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-md shadow-lg py-1 z-10">
-                    <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">Profile</button>
-                    <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">Settings</button>
-                    <button onClick={() => navigate(registerAs === 'student' ? '/pricing' : '/guest-upgrade')} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">Premium</button>
-                    <button onClick={async () => { await auth.signOut(); navigate('/'); setIsProfileOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">Logout</button>
+                  <div className="absolute right-0 mt-2 w-56 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-xl py-2 z-10 border border-gray-200 dark:border-gray-700">
+                    <button onClick={() => navigate('/edit-profile')} className="block w-full text-left px-5 py-3 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-blue-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors rounded-lg mx-2 mb-1">
+                      <FaUser className="text-blue-600 dark:text-blue-300" size={16} /> Profile
+                    </button>
+                    <button onClick={() => navigate('/settings')} className="block w-full text-left px-5 py-3 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-cyan-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors rounded-lg mx-2 mb-1">
+                      <FaCog className="text-cyan-600 dark:text-cyan-300" size={16} /> Settings
+                    </button>
+                    <button onClick={() => navigate(registerAs === 'student' ? '/pricing' : '/guest-upgrade')} className="block w-full text-left px-5 py-3 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-purple-50 dark:hover:bg-slate-700/50 transition-colors rounded-lg mx-2 mb-1">Premium ✨</button>
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                    <button onClick={async () => { await auth.signOut(); navigate('/'); setIsProfileOpen(false); }} className="block w-full text-left px-5 py-3 text-sm text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors rounded-lg mx-2">
+                      <FaSignOutAlt size={16} /> Logout
+                    </button>
                   </div>
                 )}
               </div>
@@ -225,27 +242,27 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
       </header>
       {isMenuOpen && (
         <nav className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 py-2 flex flex-col items-center gap-2">
-          <NavLink to="/dashboard" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <button onClick={() => { handleProtectedNavigation("/dashboard"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Dashboard
-          </NavLink>
-          <NavLink to="/unimarket" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          </button>
+          <button onClick={() => { handleProtectedNavigation("/unimarket"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Marketplace
-          </NavLink>
+          </button>
           <NavLink to="/uni-doc" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
             UniDoc
           </NavLink>
           <NavLink to="/study-hub" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
             StudyHub
           </NavLink>
-          <NavLink to="/campusfeed" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          <button onClick={() => { handleProtectedNavigation("/campusfeed"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             CampusFeed
-          </NavLink>
-          <NavLink to="/uni-wallet" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          </button>
+          <button onClick={() => { handleProtectedNavigation("/uni-wallet"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Wallet
-          </NavLink>
-          <NavLink to="/student-referral" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
+          </button>
+          <button onClick={() => { handleProtectedNavigation("/student-referral"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Referral
-          </NavLink>
+          </button>
           <NavLink to="/pricing" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
             Pricing
           </NavLink>
@@ -266,5 +283,6 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
 };
 
 export default AppHeader;
+
 
 

@@ -3,8 +3,8 @@
 
 /* Override light mode */
 .aitool-container header {
-  background-color: #f5f8f6 !important;
-  background: #f5f8f6 !important;
+  background-color: #c2ebc2 !important;
+  background: #c2ebc2 !important;
 }
 
 /* Override dark mode Tailwind classes */
@@ -70,18 +70,18 @@
   border-color: #2a4070 !important;
 }
 
-/* ===== BUTTONS (Different blue shade) ===== */
-.aitool-container.dark button,
-.aitool-container.dark [role="button"],
-.aitool-container.dark .btn,
-.aitool-container.dark [class*="px-"][class*="py-"][class*="rounded"] {
+/* ===== BUTTONS (Different blue shade) - EXCLUDE HEADER/FOOTER ===== */
+.aitool-container.dark main button,
+.aitool-container.dark main [role="button"],
+.aitool-container.dark main .btn,
+.aitool-container.dark main [class*="px-"][class*="py-"][class*="rounded"] {
   background-color: #2a5a9f !important;
   color: #ffffff !important;
   border-color: #3a6ab5 !important;
 }
 
-.aitool-container.dark button:hover,
-.aitool-container.dark [role="button"]:hover {
+.aitool-container.dark main button:hover,
+.aitool-container.dark main [role="button"]:hover {
   background-color: #3a6ab5 !important;
 }
 
@@ -106,9 +106,12 @@
   color: #333333;
 }
 
-.aitool-container button {
+/* Only style buttons inside main content, not header/footer */
+.aitool-container main button {
   background-color: #07bc0c;
   color: white;
 }
+
+
 
 

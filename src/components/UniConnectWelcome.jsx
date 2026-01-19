@@ -10,18 +10,18 @@ const UniConnectWelcome = () => {
   // Custom colors from the original HTML
   const colors = {
     primary: "#07bc0c",
-    bgLight: "#f5f8f6",
+    bgLight: "#c2ebc2",
     bgDark: "#102210"
   };
 
   return (
-    <div className="font-sans min-h-screen w-full flex flex-col bg-[#f5f8f6] dark:bg-[#102210] text-slate-900 dark:text-slate-50 transition-colors duration-300">
+    <div className="font-sans min-h-screen w-full flex flex-col bg-[#c2ebc2] dark:bg-[#102210] text-slate-900 dark:text-slate-50 transition-colors duration-300">
       
       {/* Wrapper to center content */}
       <div className="flex flex-col min-h-screen">
         
         {/* --- Header --- */}
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-[#f5f8f6]/80 dark:bg-[#102210]/90 backdrop-blur-md">
+        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-[#c2ebc2]/80 dark:bg-[#102210]/90 backdrop-blur-md">
           <div className="max-w-[1280px] mx-auto px-4 md:px-10 lg:px-20 py-3 flex items-center justify-between">
             
             {/* Logo */}
@@ -108,7 +108,7 @@ const UniConnectWelcome = () => {
               </div>
 
               {/* Spotlight Content Card */}
-              <div className="flex flex-col md:flex-row items-center gap-8 p-6 md:p-8 bg-[#f5f8f6] dark:bg-[#102210] rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col md:flex-row items-center gap-8 p-6 md:p-8 bg-[#c2ebc2] dark:bg-[#102210] rounded-xl border border-slate-200 dark:border-slate-800">
                 
                 {/* Left: Profile Info */}
                 <div className="flex flex-col items-center text-center gap-4 flex-1">
@@ -163,5 +163,6 @@ const UniConnectWelcome = () => {
 };
 
 export default UniConnectWelcome;
+
 
 

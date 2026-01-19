@@ -144,7 +144,7 @@ const StudentReferral = () => {
                   <div className="p-4 rounded-xl shadow-sm bg-white dark:bg-[#102210]/50 border border-slate-200 dark:border-slate-800">
                     <div className="flex flex-col gap-3">
                       <p className="text-lg font-bold text-slate-900 dark:text-slate-50">Your Unique Referral Link</p>
-                      <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-lg bg-[#f5f8f6] dark:bg-[#102210] border border-slate-200 dark:border-slate-700">
+                      <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-lg bg-[#c2ebc2] dark:bg-[#102210] border border-slate-200 dark:border-slate-700">
                         <p className="w-full text-slate-600 dark:text-slate-400 text-sm truncate font-mono select-all">
                           {referralLink}
                         </p>
@@ -230,5 +230,6 @@ const StepItem = ({ icon, title, desc }) => (
 );
 
 export default StudentReferral;
+
 
 
