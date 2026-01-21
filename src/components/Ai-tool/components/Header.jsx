@@ -1,9 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileText, Cpu } from 'lucide-react';
 
 const Header = ({ activeView, onViewChange }) => {
+  const [hideHeader, setHideHeader] = useState(false);
+
+  useEffect(() => {
+    const checkDropdown = () => {
+      // Check if profile dropdown is visible by looking for the profile menu div
+      const profileMenu = document.querySelector('[class*="bg-gradient-to-b from-white"]');
+      setHideHeader(!!profileMenu);
+    };
+
+    // Check initially and on any DOM changes
+    const observer = new MutationObserver(checkDropdown);
+    observer.observe(document.body, { subtree: true, childList: true });
+    
+    // Also check on click anywhere
+    document.addEventListener('click', checkDropdown);
+    
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('click', checkDropdown);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 transition-colors -z-[-1]">
+    <header className={`sticky top-0 z-20 w-full bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 transition-all ${hideHeader ? 'pointer-events-none opacity-20' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-center gap-4">
         <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex space-x-1 border border-gray-200 dark:border-gray-700">
           <button 

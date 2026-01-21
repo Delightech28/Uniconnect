@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AppHeader from '../AppHeader';
 import Header from './components/Header';
 import FileUpload from './components/FileUpload';
 import ResultDisplay from './components/ResultDisplay';
 import Footer from '../Footer';
 import { generateContentStream } from './services/geminiService';
+import { ResultMode } from './types';
 import { useTheme } from '../../hooks/useTheme';
-import { initDarkMode, toggleDarkModeLocal, syncDarkMode } from '../../utils/darkModeUtils';
 import { HelpCircle, Brain, Layers, AlertCircle, BookOpen, FileText, Zap, ScanLine, Loader2, Cpu } from 'lucide-react';
-import './aitool.css';
-
-const ResultMode = {
-  SOLVE: 'SOLVE',
-  REVIEW: 'REVIEW',
-  SUMMARY: 'SUMMARY',
-};
+import './styles.css';
 
 const App = () => {
   const { darkMode: globalDarkMode } = useTheme();
@@ -47,31 +41,25 @@ const App = () => {
     result: null
   });
 
+  const abortControllerRef = useRef(null);
+
   // Initialize local dark mode
   useEffect(() => {
-    initDarkMode(setDarkMode);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) setDarkMode(JSON.parse(savedTheme));
   }, []);
 
   // Sync with global dark mode changes
   useEffect(() => {
     setDarkMode(globalDarkMode);
-    syncDarkMode(globalDarkMode);
   }, [globalDarkMode]);
 
   const handleDarkModeToggle = () => {
-    toggleDarkModeLocal(darkMode, setDarkMode);
+    const newTheme = !darkMode;
+    setDarkMode(newTheme);
+    localStorage.setItem('theme', JSON.stringify(newTheme));
+    document.documentElement.classList.toggle('dark', newTheme);
   };
-
-  // Initialize local dark mode
-  useEffect(() => {
-    initDarkMode(setDarkMode);
-  }, []);
-
-  // Sync with global dark mode changes
-  useEffect(() => {
-    setDarkMode(globalDarkMode);
-    syncDarkMode(globalDarkMode);
-  }, [globalDarkMode]);
 
   useEffect(() => {
     let interval;
@@ -84,17 +72,30 @@ const App = () => {
     return () => clearInterval(interval);
   }, [processingState.isLoading, progress]);
 
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
+    if (processingState.isLoading && !processingState.result) {
+      resetApp();
+    } else {
+      setProcessingState(prev => ({ ...prev, isLoading: false, loadingMode: null }));
+    }
+  };
+
   const handleProcess = async (mode) => {
     if (mode === ResultMode.SUMMARY && summaryFiles.length === 0) {
-      setProcessingState(prev => ({ ...prev, error: "Upload a document to summarize." }));
+      setProcessingState(prev => ({ ...prev, error: "Please upload a document to summarize." }));
       return;
     }
     if (mode === ResultMode.SOLVE && (courseFiles.length === 0 || questionFiles.length === 0)) {
-      setProcessingState(prev => ({ ...prev, error: "Course material and past questions are required." }));
+      setProcessingState(prev => ({ ...prev, error: "Please upload both course material and past questions." }));
       return;
     }
     if (mode === ResultMode.REVIEW && courseFiles.length === 0) {
-      setProcessingState(prev => ({ ...prev, error: "Upload course material for FlashDoc." }));
+      setProcessingState(prev => ({ ...prev, error: "Please upload course material to create FlashDoc." }));
       return;
     }
 
@@ -103,17 +104,22 @@ const App = () => {
     setProgress(5);
     setStatusMsg('Preparing your analysis engine...');
 
+    // Initialize abort controller for this specific request
+    abortControllerRef.current = new AbortController();
+
     try {
       const filesA = mode === ResultMode.SUMMARY ? summaryFiles : courseFiles;
       const filesB = (mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW) ? [] : questionFiles;
 
-      const stream = generateContentStream(filesA, filesB, mode);
+      const stream = generateContentStream(filesA, filesB, mode, abortControllerRef.current.signal);
       
       let fullText = '';
       let hasStarted = false;
       let chunkCount = 0;
 
       for await (const chunk of stream) {
+        if (abortControllerRef.current?.signal.aborted) break;
+        
         fullText += chunk;
         chunkCount++;
 
@@ -136,17 +142,38 @@ const App = () => {
         }
       }
       setProgress(100);
-      setStatusMsg('Knowledge Synthesized Successfully!');
+      setStatusMsg('✨ Knowledge Synthesized Successfully!');
       setTimeout(() => setIsStreaming(false), 1000);
+
+      // Log request to Firebase for analytics
+      try {
+        const userId = auth.currentUser?.uid || 'anonymous';
+        const fileNames = mode === ResultMode.SUMMARY 
+          ? summaryFiles.map(f => f.name) 
+          : [...courseFiles.map(f => f.name), ...questionFiles.map(f => f.name)];
+        
+        await logUnidocRequest(db, {
+          userId,
+          mode,
+          fileNames,
+          resultLength: fullText.length,
+          timestamp: new Date().toISOString()
+        });
+      } catch (logErr) {
+        console.warn('Could not log request:', logErr);
+      }
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error('Error generating content:', err);
       setIsStreaming(false);
       setProcessingState({
         isLoading: false,
         loadingMode: null,
-        error: err.message || "An unexpected error occurred. Please check the API key in your .env file and try again.",
+        error: err.message || "An unexpected error occurred. Please verify your API key and try again.",
         result: null
       });
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -179,15 +206,15 @@ const App = () => {
         onViewChange={(view) => { setActiveView(view); resetApp(); }} 
       />
 
-      <main className="max-w-6xl mx-auto px-4 mt-2 md:mt-8">
+      <main className="max-w-6xl mx-auto px-4 mt-4 md:mt-10">
         
         {!processingState.result && !processingState.isLoading && (
-          <div className="text-center mb-3 md:mb-10 animate-fade-in">
-            <h1 className="text-xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 md:mb-3">
-              {activeView === 'summary' ? 'Deep AI Summarizer' : 'UniSpace AI Engine'}
+          <div className="text-center mb-4 md:mb-10 animate-fade-in">
+            <h1 className="text-xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-2 md:mb-4">
+              {activeView === 'summary' ? '🎓 AI Document Summarizer' : '⚙️ UniSpace AI Engine'}
             </h1>
-            <p className="max-w-2xl mx-auto text-[10px] md:text-lg text-gray-500 dark:text-gray-400 leading-tight">
-              Professional precision with key info **bolded** for total mastery.
+            <p className="max-w-2xl mx-auto text-xs md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+              Professional-grade analysis with **bolded** key terms and ==highlighted== critical information for maximum learning efficiency.
             </p>
           </div>
         )}
@@ -203,30 +230,36 @@ const App = () => {
                 <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="4" strokeDasharray="301.59" strokeDashoffset={301.59 * (1 - progress / 100)} className="text-primary transition-all duration-500" />
               </svg>
             </div>
-            <h3 className="text-sm md:text-xl font-bold mb-1 text-gray-900 dark:text-white text-center px-4">{statusMsg}</h3>
-            <div className="w-40 md:w-72 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mt-2">
+            <h3 className="text-base md:text-xl font-bold mb-2 text-gray-900 dark:text-white text-center px-4">{statusMsg}</h3>
+            <div className="w-48 md:w-72 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mt-2">
                <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }}></div>
             </div>
-            <span className="mt-1 text-primary text-[10px] md:text-sm font-bold">{progress}% Complete</span>
+            <span className="mt-2 text-primary text-xs md:text-sm font-bold">{progress}% Complete</span>
+            <button
+              onClick={handleCancel}
+              className="mt-6 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm font-semibold rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         )}
 
         {processingState.error && (
-          <div className="mb-3 mx-auto max-w-3xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-2 flex items-start animate-fade-in">
-            <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 mr-2" />
-            <p className="text-red-800 dark:text-red-400 text-[10px] md:text-sm">{processingState.error}</p>
+          <div className="mb-4 mx-auto max-w-3xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start animate-fade-in">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+            <p className="text-red-800 dark:text-red-400 text-xs md:text-sm">{processingState.error}</p>
           </div>
         )}
 
         {processingState.result ? (
           <>
             {isStreaming && (
-              <div className="mb-2 bg-white dark:bg-gray-800 rounded-lg p-2 border border-primary/20 flex items-center justify-between shadow-sm">
+              <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg p-3 border border-primary/20 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <Loader2 className="w-3 h-3 text-primary animate-spin flex-shrink-0" />
-                  <span className="text-[9px] md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{statusMsg}</span>
+                  <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
+                  <span className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{statusMsg}</span>
                 </div>
-                <div className="text-[9px] font-bold text-primary flex-shrink-0 ml-2">{progress}%</div>
+                <div className="text-xs font-bold text-primary flex-shrink-0 ml-2">{progress}%</div>
               </div>
             )}
             <ResultDisplay 
@@ -237,7 +270,7 @@ const App = () => {
             />
           </>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
             {activeView === 'summary' ? (
               <div className="lg:col-span-3">
                 <FileUpload
@@ -251,9 +284,9 @@ const App = () => {
                 <button
                   onClick={() => handleProcess(ResultMode.SUMMARY)}
                   disabled={summaryFiles.length === 0}
-                  className="w-full mt-4 py-3 px-6 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg"
+                  className="w-full mt-6 py-4 px-6 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg text-sm md:text-base"
                 >
-                  Generate Deep Summary
+                  🚀 Generate Deep Summary
                 </button>
               </div>
             ) : (
@@ -285,16 +318,16 @@ const App = () => {
                 <button
                   onClick={() => handleProcess(ResultMode.SOLVE)}
                   disabled={courseFiles.length === 0 || questionFiles.length === 0}
-                  className="lg:col-span-3 py-3 px-6 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg"
+                  className="lg:col-span-3 py-4 px-6 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg text-sm md:text-base"
                 >
-                  Solve Questions
+                  🔍 Solve Questions
                 </button>
                 <button
                   onClick={() => handleProcess(ResultMode.REVIEW)}
                   disabled={courseFiles.length === 0}
-                  className="lg:col-span-3 py-3 px-6 bg-primary/50 hover:bg-primary/60 text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg"
+                  className="lg:col-span-3 py-4 px-6 bg-primary/50 hover:bg-primary/60 text-white font-bold rounded-lg disabled:opacity-50 transition-all shadow-lg text-sm md:text-base"
                 >
-                  Generate FlashDoc
+                  📋 Generate FlashDoc
                 </button>
               </>
             )}

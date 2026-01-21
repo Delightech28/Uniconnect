@@ -1,10 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-
-const ResultMode = {
-  SOLVE: 'SOLVE',
-  REVIEW: 'REVIEW',
-  SUMMARY: 'SUMMARY',
-};
+import { ResultMode } from "../types";
 
 const fileToPart = (file) => {
   return {
@@ -15,39 +10,41 @@ const fileToPart = (file) => {
   };
 };
 
-export async function* generateContentStream(filesA, filesB, mode) {
+export async function* generateContentStream(filesA, filesB, mode, signal) {
   
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please set the VITE_GEMINI_API_KEY environment variable in your .env file.");
+  if (!import.meta.env.VITE_UNIDOC_API_KEY && !import.meta.env.VITE_GEMINI_API_KEY) {
+    throw new Error("API Key not detected. Ensure 'VITE_UNIDOC_API_KEY' or 'VITE_GEMINI_API_KEY' is configured in your .env file.");
   }
 
+  const apiKey = import.meta.env.VITE_UNIDOC_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const model = 'gemini-2.0-flash-exp';
+  const model = 'gemini-pro';
 
   const partsA = filesA.map(fileToPart);
   const partsB = filesB.map(fileToPart);
 
-  let systemInstruction = "CRITICAL FORMATTING RULE: NEVER use hashtags (#). For headers, use hierarchical numbering (1.0, 1.1). Use double asterisks (e.g., **important text**) to BOLD key points, names, titles, years, specific events, and critical terms. Visual emphasis is mandatory for all key information.";
+  let systemInstruction = `CRITICAL FORMATTING RULES:
+1. NEVER use hashtags (#).
+2. Use hierarchical numbering for subheadings (1.0, 1.1, 2.0).
+3. Start major sections with 'TOPIC: [Name]'.
+4. BOLDing: Use double asterisks (**text**) for important terms, names, and dates.
+5. HIGHLIGHTING: Use double equals (==text==) for CRITICAL INFORMATION that requires immediate user attention.
+6. DETAIL LEVEL: Provide EXHAUSTIVE, high-density content. Avoid brevity. If summarizing, provide deep definitions, background context, and detailed examples for every point.`;
 
   if (mode === ResultMode.SOLVE) {
-    systemInstruction += ` You are an Intelligent Exam Solver. Solve questions based on the provided material with maximum detail and deep academic reasoning. BOLD all key terms, years, names, and specific answers.`;
+    systemInstruction += `\nROLE: Expert Academic Solver. Provide deep reasoning and step-by-step logic. HIGHLIGHT (==text==) the definitive final answer for every question.`;
   } else if (mode === ResultMode.REVIEW) {
-    systemInstruction += ` You are a FlashCard Doc Generator (FlashDoc). Your goal is to provide EXHAUSTIVE coverage of the source material. You MUST cover EVERY SINGLE topic, sub-topic, definition, and concept found in the document—no matter how small. Provide an extremely high volume of content consisting of many small, direct Questions and Answers. HOWEVER, keep each entry extremely CONCISE and STRAIGHT TO THE POINT. Focus: Rapid recall and memorization. BOLD every key term, name, date, and the direct answer part using **. If the document is long, produce a very long list of entries to ensure 100% material coverage. Do not skip details; turn every detail into a small flash-point.`;
+    systemInstruction += `\nROLE: Comprehensive Study Pack Creator. BOLD terms and HIGHLIGHT crucial formulas or key recall points.`;
   } else if (mode === ResultMode.SUMMARY) {
-    systemInstruction += ` You are an Expert Academic Simplifier. Breakdown every topic in extreme detail. For every topic, provide: 1. Deep Definition, 2. Contextual Explanation (be verbose), 3. Features, 4. Types, 5. Advantages/Disadvantages. BOLD key concepts, names, and events throughout.`;
+    systemInstruction += `\nROLE: High-Detail Academic Simplifier. Expand significantly on every concept found. Use HIGHLIGHTS for the most essential 'must-know' takeaways.`;
   }
 
   let contentsParts = [];
   if (mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW) {
-    const modePrompt = mode === ResultMode.SUMMARY 
-      ? "Provide an extremely long and detailed summary." 
-      : "Provide an EXHAUSTIVE FlashDoc: Generate hundreds of small, straight-to-the-point Q&A pairs if necessary to cover every single sentence and concept of the text. BOLD all key info. Maximize volume and coverage.";
     contentsParts = [
       { text: `--- SOURCE MATERIAL ---` },
       ...partsA,
-      { text: `Analyze this material and generate a ${mode} mode response. ${modePrompt} NO hashtags. Use ** for bolding.` }
+      { text: `Perform a deep ${mode} analysis with MAXIMUM detail. Ensure every key concept is explained thoroughly. Use ==highlights== for critical info.` }
     ];
   } else {
     contentsParts = [
@@ -55,7 +52,7 @@ export async function* generateContentStream(filesA, filesB, mode) {
       ...partsA,
       { text: "--- PAST QUESTIONS ---" },
       ...partsB,
-      { text: "Solve all questions in depth. BOLD key years, names, and concepts. NO hashtags." }
+      { text: "Solve with academic rigor. Ensure high-detail explanations. Use ==highlights== for final answers and **bold** for key names/dates." }
     ];
   }
 
@@ -67,9 +64,10 @@ export async function* generateContentStream(filesA, filesB, mode) {
         systemInstruction: systemInstruction,
         temperature: 0.1,
       }
-    });
+    }, { signal });
 
     for await (const chunk of responseStream) {
+      if (signal?.aborted) break;
       const text = chunk.text;
       if (text) yield text;
     }
@@ -78,3 +76,24 @@ export async function* generateContentStream(filesA, filesB, mode) {
     throw new Error(error.message || "Failed to generate content.");
   }
 }
+
+/**
+ * Log UniDoc request to Firebase for analytics
+ * @param {Object} db - Firestore database instance
+ * @param {Object} data - Request data to log
+ * @returns {Promise<string>} Document ID
+ */
+export const logUnidocRequest = async (db, data) => {
+  try {
+    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    const docRef = await addDoc(collection(db, 'unidoc_requests'), {
+      ...data,
+      createdAt: serverTimestamp(),
+      status: 'completed'
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Firebase logging error:', error);
+    // Non-fatal; just log to console
+  }
+};

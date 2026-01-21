@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -17,8 +17,24 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
   const [inactivityTimer, setInactivityTimer] = useState(null);
   const [scrollPosition, setScrollPosition] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
+  const profileMenuRef = useRef(null);
 
   const INACTIVITY_TIMEOUT = 3000; // 3 seconds of inactivity before hiding
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    if (isProfileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isProfileOpen]);
 
   // Track scroll position
   useEffect(() => {
@@ -142,28 +158,28 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
           </NavLink>
           <nav className="hidden lg:flex items-center gap-6">
-            <button onClick={() => handleProtectedNavigation("/dashboard")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Dashboard
-            </button>
-            <button onClick={() => handleProtectedNavigation("/unimarket")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </NavLink>
+            <NavLink to="/unimarket" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Marketplace
-            </button>
-            <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </NavLink>
+            <NavLink to="/uni-doc" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               UniDoc
             </NavLink>
-            <NavLink to="/study-hub" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            <NavLink to="/study-hub" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               StudyHub
             </NavLink>
-            <button onClick={() => handleProtectedNavigation("/campusfeed")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            <NavLink to="/campusfeed" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               CampusFeed
-            </button>
-            <button onClick={() => handleProtectedNavigation("/uni-wallet")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </NavLink>
+            <NavLink to="/uni-wallet" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Wallet
-            </button>
-            <button onClick={() => handleProtectedNavigation("/student-referral")} className={`text-sm font-medium cursor-pointer ${!currentUser ? 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </NavLink>
+            <NavLink to="/student-referral" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Referral
-            </button>
-            <NavLink to="/pricing" className={({isActive}) => `text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
+            </NavLink>
+            <NavLink to="/pricing" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>
               Pricing
             </NavLink>
           </nav>
@@ -201,12 +217,12 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   <Mail size={20} />
                 </button>
               )}
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800">
                   <div className="bg-center bg-no-repeat w-8 h-8 rounded-full bg-cover" style={{backgroundImage: `url("${userAvatar}")`}}></div>
                 </button>
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-xl py-2 z-10 border border-gray-200 dark:border-gray-700">
+                  <div className="absolute right-0 mt-2 w-56 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl shadow-xl py-2 z-50 border border-gray-200 dark:border-gray-700">
                     <button onClick={() => navigate('/profile')} className="block w-full text-left px-5 py-3 text-sm text-secondary dark:text-white dark:hover:text-green-400 hover:bg-blue-50 dark:hover:bg-slate-700/50 flex items-center gap-3 transition-colors rounded-lg mx-2 mb-1">
                       <User className="text-blue-600 dark:text-blue-300" size={16} /> Profile
                     </button>

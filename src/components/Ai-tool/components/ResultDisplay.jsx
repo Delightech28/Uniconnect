@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, ArrowLeft, CheckCircle2, User } from 'lucide-react';
 import { jsPDF } from "jspdf";
-
-const ResultMode = {
-  SOLVE: 'SOLVE',
-  REVIEW: 'REVIEW',
-  SUMMARY: 'SUMMARY',
-};
+import { ResultMode } from '../types';
 
 const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
   const [showNotification, setShowNotification] = useState(false);
@@ -21,12 +16,38 @@ const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
   }, [isStreaming]);
 
   const formatTextForUI = (text) => {
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="text-primary font-bold">{part.slice(2, -2)}</strong>;
-      }
-      return part.replace(/#/g, ''); 
+    const lines = text.split('\n');
+    return lines.map((line, lineIdx) => {
+      const highlightParts = line.split(/(==.*?==)/g);
+      
+      return (
+        <div key={lineIdx}>
+          {highlightParts.map((hPart, hIdx) => {
+            if (hPart.startsWith('==') && hPart.endsWith('==')) {
+              const highlightContent = hPart.slice(2, -2);
+              const boldParts = highlightContent.split(/(\*\*.*?\*\*)/g);
+              return (
+                <span key={hIdx} className="bg-yellow-200/70 dark:bg-yellow-900/40 px-1 rounded text-yellow-900 dark:text-yellow-200 font-semibold">
+                  {boldParts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return <strong key={i}>{part.slice(2, -2)}</strong>;
+                    }
+                    return part;
+                  })}
+                </span>
+              );
+            }
+
+            const boldParts = hPart.split(/(\*\*.*?\*\*)/g);
+            return boldParts.map((part, i) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={`${hIdx}-${i}`} className="text-primary font-bold">{part.slice(2, -2)}</strong>;
+              }
+              return <span key={`${hIdx}-${i}`}>{part.replace(/#/g, '')}</span>;
+            });
+          })}
+        </div>
+      );
     });
   };
 
@@ -115,50 +136,73 @@ const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
         return;
       }
 
-      const segments = paragraph.split(/(\*\*.*?\*\*)/g);
+      const highlightSegments = paragraph.split(/(==.*?==)/g);
       let currentX = margin;
 
-      segments.forEach(segment => {
-        if (!segment) return;
-        
-        let isBold = false;
-        let content = segment;
-        
-        if (segment.startsWith('**') && segment.endsWith('**')) {
-          isBold = true;
-          content = segment.slice(2, -2);
+      highlightSegments.forEach(hSegment => {
+        if (!hSegment) return;
+
+        let isHighlight = false;
+        let content = hSegment;
+        let highlightColor = null;
+
+        if (hSegment.startsWith('==') && hSegment.endsWith('==')) {
+          isHighlight = true;
+          content = hSegment.slice(2, -2);
+          highlightColor = [255, 255, 100]; // Yellow highlight
         }
 
-        if (isBold) setBold(); else setNormal();
+        const boldSegments = content.split(/(\*\*.*?\*\*)/g);
 
-        const words = content.split(/(\s+)/);
-        
-        words.forEach(word => {
-          if (!word) return;
-          const wordWidth = doc.getTextWidth(word);
-          
-          if (currentX + wordWidth > pageWidth - margin) {
-            if (currentX > margin) {
-              cursorY += lineHeight;
-              currentX = margin;
-            }
+        boldSegments.forEach(segment => {
+          if (!segment) return;
 
-            if (cursorY > pageHeight - footerMargin) { 
-              doc.addPage();
-              cursorY = margin + 10;
-              currentX = margin;
-              if (isBold) setBold(); else setNormal();
-            }
+          let isBold = false;
+          let text = segment;
+
+          if (segment.startsWith('**') && segment.endsWith('**')) {
+            isBold = true;
+            text = segment.slice(2, -2);
           }
-          
-          doc.text(word, currentX, cursorY);
-          currentX += wordWidth;
+
+          if (isBold) setBold(); else setNormal();
+
+          const words = text.split(/(\s+)/);
+
+          words.forEach(word => {
+            if (!word) return;
+
+            if (isHighlight) {
+              doc.setFillColor(...highlightColor);
+              doc.rect(currentX - 0.5, cursorY - 5.5, doc.getTextWidth(word) + 1, 6.5, 'F');
+              doc.setTextColor(100, 100, 0);
+            }
+
+            const wordWidth = doc.getTextWidth(word);
+
+            if (currentX + wordWidth > pageWidth - margin) {
+              if (currentX > margin) {
+                cursorY += lineHeight;
+                currentX = margin;
+              }
+
+              if (cursorY > pageHeight - footerMargin) {
+                doc.addPage();
+                cursorY = margin + 10;
+                currentX = margin;
+              }
+            }
+
+            doc.text(word, currentX, cursorY);
+            currentX += wordWidth;
+
+            if (isHighlight) setNormal();
+          });
         });
       });
-      
+
       cursorY += lineHeight;
-      currentX = margin;
-      
+
       if (cursorY > pageHeight - footerMargin) {
         doc.addPage();
         cursorY = margin + 10;

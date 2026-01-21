@@ -11,7 +11,9 @@ const initialProfileData = {
 displayName: '',
 bio: '',
 avatarUrl: 'https://via.placeholder.com/96',
-interests: [], 
+interests: [],
+linkedinUrl: '',
+githubUrl: '',
 }; 
 const allInterests = [ 
  
@@ -78,7 +80,9 @@ function EditProfilePage() {
             displayName: data.displayName || '',
             bio: data.bio || '',
             interests: data.interests || [],
-            avatarUrl: data.avatarUrl || 'https://via.placeholder.com/96'
+            avatarUrl: data.avatarUrl || 'https://via.placeholder.com/96',
+            linkedinUrl: data.linkedinUrl || '',
+            githubUrl: data.githubUrl || ''
           }));
         }
       } catch (err) {
@@ -153,6 +157,8 @@ function EditProfilePage() {
         displayName: profileData.displayName,
         bio: profileData.bio,
         interests: profileData.interests,
+        linkedinUrl: profileData.linkedinUrl,
+        githubUrl: profileData.githubUrl,
         updatedAt: serverTimestamp()
       };
 
@@ -318,9 +324,37 @@ shadow-sm sm:text-sm"
                 ></textarea> 
                 <p className="mt-2 text-xs text-slate-500 
 dark:text-slate-400">Write a short introduction about yourself.</p> 
-              </div> 
- 
+              </div>
 
+              {/* LinkedIn URL */}
+              <div>
+                <label htmlFor="linkedin-url" className="block text-sm font-medium text-slate-700 dark:text-slate-300">LinkedIn Profile</label>
+                <input
+                  type="url"
+                  name="linkedinUrl"
+                  id="linkedin-url"
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  value={profileData.linkedinUrl}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white focus:border-primary focus:ring-primary shadow-sm sm:text-sm"
+                />
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Optional: Add your LinkedIn profile URL</p>
+              </div>
+
+              {/* GitHub URL */}
+              <div>
+                <label htmlFor="github-url" className="block text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Profile</label>
+                <input
+                  type="url"
+                  name="githubUrl"
+                  id="github-url"
+                  placeholder="https://github.com/yourprofile"
+                  value={profileData.githubUrl}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white focus:border-primary focus:ring-primary shadow-sm sm:text-sm"
+                />
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Optional: Add your GitHub profile URL</p>
+              </div>
  
               {/* Interests */} 
               <div> 
