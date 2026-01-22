@@ -18,25 +18,36 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
 
   const apiKey = import.meta.env.VITE_UNIDOC_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const model = 'gemini-pro';
+  const model = mode === ResultMode.SOLVE ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
 
   const partsA = filesA.map(fileToPart);
   const partsB = filesB.map(fileToPart);
 
-  let systemInstruction = `CRITICAL FORMATTING RULES:
-1. NEVER use hashtags (#).
-2. Use hierarchical numbering for subheadings (1.0, 1.1, 2.0).
-3. Start major sections with 'TOPIC: [Name]'.
-4. BOLDing: Use double asterisks (**text**) for important terms, names, and dates.
-5. HIGHLIGHTING: Use double equals (==text==) for CRITICAL INFORMATION that requires immediate user attention.
-6. DETAIL LEVEL: Provide EXHAUSTIVE, high-density content. Avoid brevity. If summarizing, provide deep definitions, background context, and detailed examples for every point.`;
+  let systemInstruction = `CRITICAL ACADEMIC INSTRUCTIONS:
+1. FULL DOCUMENT ANALYSIS: Comprehensively analyze all text, explanations, diagrams, drawings, formulas, equations, and calculations.
+2. VISUAL DATA INTERPRETATION (DEEP ANALYSIS): If the document contains visuals (diagrams, charts, graphs, or drawings):
+   - Infer and explain exactly what they represent in clear, technical language.
+   - Provide a step-by-step explanation of how to interpret the visual data.
+   - For mathematical or scientific charts, explain axes, units, symbols, and trends shown.
+3. CALCULATIONS & FORMULAS: If calculations or formulas are present, explain:
+   - What the calculation is intended to solve.
+   - How it works (provide a step-by-step verbal walkthrough of the logic).
+   - The physical or mathematical meaning of the final result.
+4. BOLD FORMATTING RULES (STRICT ADHERENCE):
+   - Bold all **Topic Headings** and **Section Titles**.
+   - Bold **Key Terms**, **Important Phrases**, and **Critical Insights**.
+   - DEFINITION FORMAT: Bold the term BEFORE a colon (:) or semicolon (;). DO NOT bold the explanation that follows.
+     Example: "**Newton's First Law**: An object at rest stays at rest..."
+5. CLARITY & EMPHASIS: Use bold only for clarity. Highlight assumptions and conclusions. NO italics or decorative styling.
+6. STRUCTURE: Use hierarchical numbering (1.0, 1.1). Write in full, flowing academic paragraphs. Complete sentences line-by-line. Let text wrap naturally unless starting a new sub-topic.
+7. NO ASTERISKS: Do not use asterisks (*) for lists. Use numbers (1., 2.). Only use double asterisks (**) for the required bolding.`;
 
   if (mode === ResultMode.SOLVE) {
-    systemInstruction += `\nROLE: Expert Academic Solver. Provide deep reasoning and step-by-step logic. HIGHLIGHT (==text==) the definitive final answer for every question.`;
+    systemInstruction += `\nROLE: Senior Academic Engine. Solve problems with full transparency. Bold the specific subject before the colon.`;
   } else if (mode === ResultMode.REVIEW) {
-    systemInstruction += `\nROLE: Comprehensive Study Pack Creator. BOLD terms and HIGHLIGHT crucial formulas or key recall points.`;
+    systemInstruction += `\nROLE: Expert Study Pack Creator. Provide exhaustive deconstruction of concepts. Bold core terms before colons.`;
   } else if (mode === ResultMode.SUMMARY) {
-    systemInstruction += `\nROLE: High-Detail Academic Simplifier. Expand significantly on every concept found. Use HIGHLIGHTS for the most essential 'must-know' takeaways.`;
+    systemInstruction += `\nROLE: Master Academic Summarizer. Do not oversimplify. Provide detailed step-by-step interpretations of all visuals and math. Bold terms strictly before colons.`;
   }
 
   let contentsParts = [];
@@ -44,7 +55,7 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
     contentsParts = [
       { text: `--- SOURCE MATERIAL ---` },
       ...partsA,
-      { text: `Perform a deep ${mode} analysis with MAXIMUM detail. Ensure every key concept is explained thoroughly. Use ==highlights== for critical info.` }
+      { text: `Synthesize an EXHAUSTIVE ACADEMIC SUMMARY. If there are any diagrams, charts, or visual data, provide a step-by-step explanation of how to interpret them. Explain all formulas step-by-step in words. Bold terms strictly before colons. No italics.` }
     ];
   } else {
     contentsParts = [
@@ -52,14 +63,14 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
       ...partsA,
       { text: "--- PAST QUESTIONS ---" },
       ...partsB,
-      { text: "Solve with academic rigor. Ensure high-detail explanations. Use ==highlights== for final answers and **bold** for key names/dates." }
+      { text: "Solve with maximum academic rigor. Provide a full verbal interpretation of all visual or mathematical data in the questions. Bold concepts before colons." }
     ];
   }
 
   try {
     const responseStream = await ai.models.generateContentStream({
       model: model,
-      contents: [{ role: 'user', parts: contentsParts }],
+      contents: { parts: contentsParts },
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.1,
