@@ -6,11 +6,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import useVerified from '../hooks/useVerified';
 import toast from 'react-hot-toast';
 import { Bell, Mail, User, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { subscribeToUnreadCount } from '../services/notificationService';
+import { getDefaultAvatar } from '../services/avatarService';
 
 const AppHeader = ({ darkMode, toggleDarkMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [userAvatar, setUserAvatar] = useState('/default_avatar.png');
+  const [userAvatar, setUserAvatar] = useState(getDefaultAvatar('male'));
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -103,38 +105,39 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
     };
   }, [inactivityTimer, scrollPosition]);
 
-  // Fetch current user's avatar from Firestore
+  // Fetch current user's avatar from Firestore and subscribe to unread notifications
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().avatarUrl) {
-            setUserAvatar(userDoc.data().avatarUrl);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.avatarUrl) {
+              setUserAvatar(userData.avatarUrl);
+            } else {
+              setUserAvatar(getDefaultAvatar(userData.gender || 'male'));
+            }
           }
         } catch (err) {
           if (err && err.code === 'permission-denied') {
             console.warn('Permission denied when fetching user avatar; using placeholder');
-            setUserAvatar('/default_avatar.png');
+            setUserAvatar(getDefaultAvatar('male'));
           } else {
             console.error('Error fetching user avatar:', err);
           }
         }
+
+        // Subscribe to unread notification count
+        const unsubNotifications = subscribeToUnreadCount(user.uid, (count) => {
+          setUnreadCount(count);
+        });
+
+        return () => unsubNotifications();
       }
     });
     return () => unsubscribe();
-  }, []);
-
-  // Watch for unread count changes from InboxPage
-  useEffect(() => {
-    const checkUnreadCount = () => {
-      const count = window.inboxUnreadCount || 0;
-      setUnreadCount(count);
-    };
-    
-    const interval = setInterval(checkUnreadCount, 500);
-    return () => clearInterval(interval);
   }, []);
 
   // hide/disable some features for unverified/failed users

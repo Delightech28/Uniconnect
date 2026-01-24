@@ -1,82 +1,143 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import useVerified from '../hooks/useVerified';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
+import GenderBadge from './GenderBadge';
+import { getDefaultAvatar } from '../services/avatarService';
+import { notifyNewMessage } from '../services/notificationService';
 
-const MY_AVATAR_URL = null; // will load from auth user profile
+const MY_AVATAR_URL = null;
 
-// --- Helper Components ---
-const ConversationItem = ({ convo, isActive, onSelect }) => (
+// --- Conversation Item Component ---
+const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
     <div
         onClick={onSelect}
-        className={`flex cursor-pointer items-center gap-4 px-4 py-3 min-h-[72px] justify-between ${isActive ? 'bg-primary/20 border-l-4 border-primary' : 'hover:bg-background-light dark:hover:bg-background-dark'}`}
+        className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-all duration-200 relative group ${
+            isActive 
+                ? 'bg-primary/15 border-l-4 border-primary' 
+                : 'hover:bg-background-light dark:hover:bg-background-dark/50'
+        }`}
     >
         <div className="flex items-center gap-3 w-full min-w-0">
-            <div style={{ backgroundImage: `url(${convo.avatarUrl})` }} className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 shrink-0" />
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-                <div className="flex justify-between items-center">
-                    <p className={`text-base truncate ${isActive || convo.unreadCount > 0 ? 'font-bold' : 'font-medium'}`}>{convo.name}</p>
-                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0">{convo.timestamp}</p>
-                </div>
-                <div className="flex justify-between items-start gap-2">
-                    <p className={`text-sm truncate ${isActive ? 'text-text-primary-light dark:text-text-primary-dark' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>{convo.lastMessage}</p>
-                    {convo.unreadCount > 0 && (
-                        <div className="shrink-0 flex size-5 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">{convo.unreadCount}</div>
-                    )}
-                </div>
+            {/* Avatar */}
+            <div className="relative shrink-0">
+                <div 
+                    onClick={(e) => { e.stopPropagation(); onAvatarClick?.(); }} 
+                    style={{ backgroundImage: `url(${convo.avatarUrl})` }} 
+                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-11 shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all"
+                />
+                {convo.isOnline && <div className="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-background-dark" />}
             </div>
+            
+            {/* Content */}
+            <div className="flex flex-col justify-center min-w-0 flex-1">
+                <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <p className={`text-sm truncate ${isActive || convo.unreadCount > 0 ? 'font-bold' : 'font-medium'}`}>
+                            {convo.name}
+                        </p>
+                        {convo.gender && <GenderBadge gender={convo.gender} size="xs" className="shrink-0" />}
+                    </div>
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0 whitespace-nowrap">
+                        {convo.timestamp}
+                    </p>
+                </div>
+                <p className={`text-xs truncate ${isActive ? 'text-text-primary-light dark:text-text-primary-dark font-medium' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>
+                    {convo.lastMessage}
+                </p>
+            </div>
+            
+            {/* Unread Badge */}
+            {convo.unreadCount > 0 && (
+                <div className="shrink-0 flex size-5 items-center justify-center rounded-full bg-accent text-white text-xs font-bold animate-pulse">
+                    {convo.unreadCount > 9 ? '9+' : convo.unreadCount}
+                </div>
+            )}
         </div>
     </div>
-); 
- 
-const MessageBubble = ({ message, senderAvatar, isMe }) => {
+);
+
+// --- Message Bubble Component ---
+const MessageBubble = ({ message, senderAvatar, isMe, onAvatarClick, senderName }) => {
     return (
-        <div className={`flex items-end gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-            <div style={{ backgroundImage: `url(${isMe ? (message.myAvatar || MY_AVATAR_URL) : senderAvatar})` }} className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0" />
-            <div className="max-w-xs space-y-1 md:max-w-md">
-                <div className={`p-3 rounded-xl ${isMe ? 'rounded-br-none bg-primary text-white' : 'rounded-bl-none bg-panel-light dark:bg-panel-dark'}`}>
+        <div className={`flex items-end gap-2 group ${isMe ? 'flex-row-reverse' : ''}`}>
+            <div 
+                onClick={(e) => { e.stopPropagation(); onAvatarClick?.(); }} 
+                style={{ backgroundImage: `url(${isMe ? MY_AVATAR_URL : senderAvatar})` }} 
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+            />
+            <div className={`max-w-xs md:max-w-md ${isMe ? 'flex flex-col items-end' : ''}`}>
+                {!isMe && senderName && (
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1 ml-2 font-medium">
+                        {senderName}
+                    </p>
+                )}
+                <div className={`p-3 rounded-2xl break-words ${
+                    isMe 
+                        ? 'rounded-br-none bg-primary text-white' 
+                        : 'rounded-bl-none bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark'
+                }`}>
                     {message.text && <p className="text-sm">{message.text}</p>}
                     {message.fileUrl && (
                         <div className="mt-2">
                             {message.fileType?.startsWith('image/') ? (
                                 <img src={message.fileUrl} alt="attachment" className="max-w-xs rounded-lg max-h-64" />
                             ) : (
-                                <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline hover:opacity-75">
+                                <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm underline hover:opacity-75">
                                     <span className="material-symbols-outlined text-base">download</span>
-                                    <span className="text-sm">{message.fileName || 'File'}</span>
+                                    {message.fileName || 'File'}
                                 </a>
                             )}
                         </div>
                     )}
                 </div>
-                <p className={`text-xs text-text-secondary-light dark:text-text-secondary-dark ${isMe ? 'text-right' : ''}`}>{message.createdAt && new Date(message.createdAt.toDate()).toLocaleString()}</p>
+                <p className={`text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1 ${isMe ? 'mr-2' : 'ml-2'}`}>
+                    {message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </p>
             </div>
         </div>
     );
 }; 
  
-// --- Main Page Component --- 
+// --- Main Page Component ---
 function InboxPage() {
+    const navigate = useNavigate();
+    const { darkMode, toggleTheme } = useTheme();
     const [user, setUser] = useState(null);
+    const [userAvatar, setUserAvatar] = useState(null);
     const [conversations, setConversations] = useState([]);
     const [activeConvoId, setActiveConvoId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('all'); // 'all', 'unread', 'archived'
     const [isChatVisible, setIsChatVisible] = useState(false);
+    const [showConvoInfo, setShowConvoInfo] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [typingUsers, setTypingUsers] = useState({});
     const messagesRef = useRef(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
-        const unsubAuth = onAuthStateChanged(auth, (u) => {
+        const unsubAuth = onAuthStateChanged(auth, async (u) => {
             setUser(u);
+            if (u) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', u.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        setUserAvatar(userData.avatarUrl || getDefaultAvatar(userData.gender || 'male'));
+                    }
+                } catch (err) {
+                    console.error('Error fetching user avatar:', err);
+                }
+            }
         });
         return () => unsubAuth();
     }, []);
@@ -102,14 +163,16 @@ function InboxPage() {
         if (!user) return;
         const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid), orderBy('lastTimestamp', 'desc'));
         const unsub = onSnapshot(q, (snap) => {
-            const promises = snap.docs.map(async (d) => {
+                const promises = snap.docs.map(async (d) => {
                 const data = d.data();
                 let name = data.name || 'Unknown';
-                let avatarUrl = data.avatarUrl || '/default_avatar.png';
+                let avatarUrl = data.avatarUrl || null;
+                let gender = data.gender || null;
+                let otherParticipantId = null;
 
                 // If name is still "Unknown", try to fetch from the other participant's user doc
                 if (name === 'Unknown' && data.participants && user.uid) {
-                    const otherParticipantId = data.participants.find((p) => p !== user.uid);
+                    otherParticipantId = data.participants.find((p) => p !== user.uid);
                     if (otherParticipantId) {
                         try {
                             const userDoc = await getDoc(doc(db, 'users', otherParticipantId));
@@ -121,6 +184,7 @@ function InboxPage() {
                                 if (userData.avatarUrl) {
                                     avatarUrl = userData.avatarUrl;
                                 }
+                                gender = userData.gender || null;
                                 console.log('Fetched missing seller info for conversation:', name); // Debug
                             }
                         } catch (err) {
@@ -129,11 +193,18 @@ function InboxPage() {
                     }
                 }
 
+                // Use gender-based default if no avatar URL
+                if (!avatarUrl) {
+                    avatarUrl = getDefaultAvatar(gender || 'male');
+                }
+
                 return {
                     id: d.id,
                     ...data,
                     name,
                     avatarUrl,
+                    gender,
+                    otherParticipantId,
                     timestamp: data.lastTimestamp ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
                     unreadCount: data.unreadCount || 0,
                 };
@@ -176,9 +247,15 @@ function InboxPage() {
 
     const filteredConversations = useMemo(() => conversations.filter(c => {
         const q = searchTerm.trim().toLowerCase();
-        if (!q) return true;
-        return (c.title || c.name || '').toLowerCase().includes(q) || (c.lastMessage || '').toLowerCase().includes(q);
-    }), [conversations, searchTerm]);
+        const matchesSearch = !q || (c.title || c.name || '').toLowerCase().includes(q) || (c.lastMessage || '').toLowerCase().includes(q);
+        
+        if (filterType === 'unread') {
+            return matchesSearch && c.unreadCount > 0;
+        } else if (filterType === 'archived') {
+            return matchesSearch && c.isArchived;
+        }
+        return matchesSearch;
+    }), [conversations, searchTerm, filterType]);
 
     const handleSelectConvo = (id) => {
         setActiveConvoId(id);
@@ -222,18 +299,33 @@ function InboxPage() {
 
                             await addDoc(collection(db, `conversations/${activeConvoId}/messages`), msg);
                             
-                            // Update conversation metadata
-                            try {
-                                const convoDoc = await getDoc(doc(db, 'conversations', activeConvoId));
-                                if (convoDoc.exists()) {
-                                    await updateDoc(doc(db, 'conversations', activeConvoId), {
-                                        lastMessage: newMessage.trim() || '📎 File sent',
-                                        lastTimestamp: serverTimestamp(),
-                                        lastSenderId: user.uid,
-                                    });
+                            // Get other participant to send notification
+                            const convoDoc = await getDoc(doc(db, 'conversations', activeConvoId));
+                            if (convoDoc.exists()) {
+                                const participants = convoDoc.data().participants || [];
+                                const recipientId = participants.find(p => p !== user.uid);
+                                
+                                // Update conversation metadata
+                                await updateDoc(doc(db, 'conversations', activeConvoId), {
+                                    lastMessage: newMessage.trim() || '📎 File sent',
+                                    lastTimestamp: serverTimestamp(),
+                                    lastSenderId: user.uid,
+                                });
+
+                                // Send notification to other participant
+                                if (recipientId) {
+                                    try {
+                                        await notifyNewMessage(recipientId, {
+                                            conversationId: activeConvoId,
+                                            senderId: user.uid,
+                                            senderName: user.displayName || user.email.split('@')[0] || 'User',
+                                            senderAvatar: null,
+                                            messagePreview: newMessage.trim().substring(0, 50) || '📎 File sent',
+                                        });
+                                    } catch (notifErr) {
+                                        console.warn('Failed to send notification:', notifErr);
+                                    }
                                 }
-                            } catch (metaErr) {
-                                console.warn('Failed to update conversation metadata:', metaErr);
                             }
 
                             // Clear inputs
@@ -303,194 +395,263 @@ function InboxPage() {
     }, [totalUnreadCount]);
 
     return (
-        <div className="flex h-screen w-full flex-col bg-background-light 
-        dark:bg-background-dark text-text-primary-light 
-        dark:text-text-primary-dark font-display"> 
-            <main className="flex flex-1 overflow-hidden"> 
-                {/* Conversation List (Sidebar) */} 
- 
- 
-                <aside className={`w-full flex-col border-r border-solid 
-border-border-light dark:border-border-dark bg-panel-light 
-dark:bg-panel-dark md:w-2/5 lg:w-1/3 xl:w-1/4 ${isChatVisible ? 'hidden' 
-: 'flex'} md:flex`}> 
-                    <div className="flex items-center justify-between p-4 
-border-b border-solid border-border-light dark:border-border-dark"> 
-                        <h1 className="text-xl font-bold">Inbox</h1> 
-                        <button className="flex h-10 w-10 items-center 
-justify-center rounded-lg hover:bg-primary/10"> 
-                            <span className="material-symbols-outlined text-2xl 
-text-text-secondary-light 
-dark:text-text-secondary-dark">edit_square</span> 
-                        </button> 
-                    </div> 
-                    <div className="p-4"> 
-                        <div className="relative"> 
-                            <span className="material-symbols-outlined text-xl 
-absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary-light 
-dark:text-text-secondary-dark">search</span> 
-                            <input  
-                                className="form-input w-full rounded-lg 
-border-none bg-background-light dark:bg-background-dark text-sm 
-focus:outline-0 focus:ring-2 focus:ring-primary h-11 pl-12 
-placeholder:text-text-secondary-light 
-dark:placeholder:text-text-secondary-dark"  
-                                placeholder="Search by name or keyword"  
-                                value={searchTerm} 
-                                onChange={(e) => setSearchTerm(e.target.value)} 
-                            /> 
-                        </div> 
-                    </div> 
-                    <div className="flex-1 overflow-y-auto"> 
-                        {filteredConversations.map(convo => ( 
-                            <ConversationItem  
-                                key={convo.id}  
-                                convo={convo} 
-                                isActive={convo.id === activeConvoId} 
- 
+        <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-display">
+            {/* Header */}
+            <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+            
+            {/* Main Content */}
+            <main className="flex flex-1 overflow-hidden">
+                {/* Sidebar - Conversation List */}
+                <aside className={`w-full md:w-96 flex-col border-r border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark transition-all duration-300 ${
+                    isChatVisible ? 'hidden md:flex' : 'flex'
+                }`}>
+                    {/* Header */}
+                    <div className="p-4 border-b border-border-light dark:border-border-dark">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-2xl font-bold">Messages</h2>
+                            {/* <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
+                                <span className="material-symbols-outlined text-xl">compose</span>
+                            </button> */}
+                        </div>
 
-                                onSelect={() => handleSelectConvo(convo.id)} 
-                            /> 
-                        ))} 
-                    </div> 
-                </aside> 
- 
-                {/* Chat Window */} 
-                <section className={`w-full flex-col bg-background-light 
-dark:bg-background-dark ${isChatVisible ? 'flex' : 'hidden'} md:flex`}> 
-                    {activeConversation ? ( 
-                        <div className="flex h-full flex-col"> 
-                            {/* Chat Header */} 
-                            <div className="flex items-center gap-4 border-b 
-border-solid border-border-light dark:border-border-dark bg-panel-light 
-dark:bg-panel-dark p-4 shrink-0"> 
-                                {/* Back button for mobile */} 
-                                <button onClick={() => setIsChatVisible(false)} 
-className="md:hidden flex h-10 w-10 items-center justify-center 
-rounded-full hover:bg-primary/10 text-text-secondary-light 
-dark:text-text-secondary-dark"> 
-                                    <span className="material-symbols-outlined 
-text-2xl">arrow_back</span> 
-                                </button> 
-                                <div className="relative"> 
-                                    <div style={{ backgroundImage: 
-`url(${activeConversation.avatarUrl})` }} className="bg-center 
-bg-no-repeat aspect-square bg-cover rounded-full size-12" /> 
-                                    {activeConversation.isOnline && <div 
-className="absolute bottom-0 right-0 size-3 rounded-full bg-primary 
-border-2 border-panel-light dark:border-panel-dark" />} 
-                                </div> 
-                                <div className="flex-1"> 
-                                    <h3 className="text-lg 
-font-bold">{activeConversation.name}</h3> 
-                                    {activeConversation.isOnline && <p 
-className="text-sm text-primary">Online</p>} 
-                                </div> 
- 
+                        {/* Search */}
+                        <div className="relative mb-3 rounded-full border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark transition-all duration-300 focus-within:border-green-500 focus-within:border-2 focus-within:shadow-lg focus-within:shadow-green-500/20">
+                            <span className="material-symbols-outlined text-base absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark transition-colors duration-300 pointer-events-none">search</span>
+                            <input
+                                className="w-full rounded-full bg-transparent border-none px-10 py-2 text-sm focus:ring-0 focus:outline-0 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
+                                placeholder="Search conversations"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
 
-                                <button className="flex h-10 w-10 items-center 
-justify-center rounded-full hover:bg-primary/10 text-text-secondary-light 
-dark:text-text-secondary-dark"><span 
-className="material-symbols-outlined 
-text-2xl">more_vert</span></button> 
-                            </div> 
-                            {/* Context Item Bar */} 
-                            {activeConversation.contextItem && ( 
-                                <div className="flex items-center gap-4 border-b 
-border-solid border-border-light dark:border-border-dark bg-panel-light 
-dark:bg-panel-dark p-3"> 
-                                    <div className="h-12 w-12 bg-cover bg-center 
-rounded-lg" style={{ backgroundImage: 
-`url('${activeConversation.contextItem.imageUrl}')`}}></div> 
-                                    <div className="flex-1"> 
-                                        <p className="text-sm 
-font-bold">{activeConversation.contextItem.name}</p> 
-                                        <a className="text-sm text-primary 
-hover:underline" href={activeConversation.contextItem.link}>View 
-item</a> 
-                                    </div> 
-                                    <button className="flex h-8 w-8 items-center 
-justify-center rounded-full hover:bg-primary/10 text-text-secondary-light 
-dark:text-text-secondary-dark"><span 
-className="material-symbols-outlined text-xl">close</span></button> 
-                                </div> 
-                            )} 
-                            {/* Messages */} 
-                            <div className="flex-1 space-y-6 overflow-y-auto 
-p-6"> 
-                                    {messages.map(msg => (
-                                        <MessageBubble key={msg.id} message={msg} senderAvatar={activeConversation ? activeConversation.avatarUrl : null} isMe={user && msg.senderId === user.uid} />
-                                    ))}
-                            </div> 
-                            {/* Message Input */} 
- 
- 
-                            <div className="border-t border-solid 
-border-border-light dark:border-border-dark bg-panel-light 
-dark:bg-panel-dark p-4 shrink-0">
+                        {/* Filter Tabs */}
+                        <div className="flex gap-2">
+                            {['all', 'unread'].map(filter => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setFilterType(filter)}
+                                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                                        filterType === filter
+                                            ? 'bg-primary text-white'
+                                            : 'bg-background-light dark:bg-background-dark text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10'
+                                    }`}
+                                >
+                                    {filter === 'all' ? 'All' : 'Unread'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Conversations List */}
+                    <div className="flex-1 overflow-y-auto">
+                        {filteredConversations.length > 0 ? (
+                            filteredConversations.map(convo => (
+                                <ConversationItem
+                                    key={convo.id}
+                                    convo={convo}
+                                    isActive={convo.id === activeConvoId}
+                                    onSelect={() => handleSelectConvo(convo.id)}
+                                    onAvatarClick={() => convo.otherParticipantId && navigate(`/profile/${convo.otherParticipantId}`)}
+                                />
+                            ))
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                                <p className="text-sm">No conversations yet</p>
+                            </div>
+                        )}
+                    </div>
+                </aside>
+
+                {/* Main Chat Area */}
+                <section className={`flex-1 flex flex-col bg-background-light dark:bg-background-dark transition-all duration-300 ${
+                    isChatVisible ? 'flex' : 'hidden md:flex'
+                }`}>
+                    {activeConversation ? (
+                        <>
+                            {/* Chat Header */}
+                            <div className="flex items-center justify-between gap-4 border-b border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 shrink-0">
+                                <div className="flex items-center gap-3 flex-1">
+                                    {/* Back Button (Mobile) */}
+                                    <button
+                                        onClick={() => setIsChatVisible(false)}
+                                        className="md:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined">arrow_back</span>
+                                    </button>
+
+                                    {/* User Avatar & Info */}
+                                    <div className="relative">
+                                        <div
+                                            style={{ backgroundImage: `url(${activeConversation.avatarUrl})` }}
+                                            className="bg-center bg-cover rounded-full size-12"
+                                        />
+                                        {activeConversation.isOnline && (
+                                            <div className="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-panel-dark" />
+                                        )}
+                                    </div>
+
+                                    {/* Name & Status */}
+                                    <div>
+                                        <h3 className="font-bold text-base">{activeConversation.name}</h3>
+                                        <p className={`text-xs ${
+                                            activeConversation.isOnline
+                                                ? 'text-green-500 font-medium'
+                                                : 'text-text-secondary-light dark:text-text-secondary-dark'
+                                        }`}>
+                                            {activeConversation.isOnline ? 'Active now' : 'Offline'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-2">
+                                    <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark">
+                                        <span className="material-symbols-outlined">call</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowConvoInfo(!showConvoInfo)}
+                                        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark"
+                                    >
+                                        <span className="material-symbols-outlined">info</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Messages Area */}
+                            <div
+                                ref={messagesRef}
+                                className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"
+                            >
+                                {messages.length === 0 ? (
+                                    <div className="flex h-full items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                                        <div className="text-center">
+                                            <span className="material-symbols-outlined text-5xl opacity-20 block mb-2">mail</span>
+                                            <p className="text-sm">No messages yet. Start the conversation!</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    messages.map(msg => (
+                                        <MessageBubble
+                                            key={msg.id}
+                                            message={msg}
+                                            senderAvatar={activeConversation?.avatarUrl}
+                                            isMe={user && msg.senderId === user.uid}
+                                            onAvatarClick={() => navigate(`/profile/${msg.senderId}`)}
+                                        />
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Message Input Area */}
+                            <div className="border-t border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 shrink-0 space-y-3">
                                 {selectedFile && (
-                                    <div className="flex items-center gap-2 mb-2 p-2 bg-background-light dark:bg-background-dark rounded-lg">
+                                    <div className="flex items-center gap-2 p-2 bg-background-light dark:bg-background-dark rounded-lg">
                                         <span className="material-symbols-outlined text-sm">attachment</span>
-                                        <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
-                                        <button 
+                                        <span className="text-sm flex-1 truncate font-medium">{selectedFile.name}</span>
+                                        <button
                                             onClick={() => setSelectedFile(null)}
-                                            className="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500"
+                                            className="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
                                         >
                                             <span className="material-symbols-outlined text-sm">close</span>
                                         </button>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-2"> 
-                                    <input 
+
+                                <div className="flex items-center gap-2">
+                                    <input
                                         ref={fileInputRef}
                                         type="file"
                                         className="hidden"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                     />
-                                    <button 
+
+                                    <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex h-10 w-10 items-center 
-justify-center rounded-full hover:bg-primary/10 text-text-secondary-light 
-dark:text-text-secondary-dark shrink-0 disabled:opacity-50"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark disabled:opacity-50"
                                         disabled={isUploading}
                                     >
-                                        <span className="material-symbols-outlined 
-text-2xl">add_circle</span>
-                                    </button> 
-                                    <input 
-                                        className="flex-1 rounded-full 
-bg-background-light dark:bg-background-dark px-4 py-2 text-sm 
-border-none focus:ring-2 focus:ring-primary disabled:opacity-50" 
-                                        placeholder="Type a message..." 
+                                        <span className="material-symbols-outlined">attach_file</span>
+                                    </button>
+
+                                    <input
+                                        className="flex-1 rounded-full bg-background-light dark:bg-background-dark border-none px-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-0 disabled:opacity-50 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
+                                        placeholder="Type a message..."
                                         type="text"
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && !isUploading && handleSendMessage()}
                                         disabled={isUploading}
-                                    /> 
-                                    <button 
+                                    />
+
+                                    <button
                                         onClick={handleSendMessage}
                                         disabled={isUploading || (!newMessage.trim() && !selectedFile)}
-                                        className="flex h-10 w-10 items-center 
-justify-center rounded-full bg-primary text-white shrink-0 
-hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
                                     >
-                                        <span className="material-symbols-outlined 
-text-2xl">{isUploading ? 'hourglass_empty' : 'send'}</span>
-                                    </button> 
-                                </div> 
-                            </div> 
-                        </div> 
-                    ) : ( 
-                        <div className="flex h-full items-center justify-center 
-text-text-secondary-light dark:text-text-secondary-dark"> 
-                            <p>Select a conversation to start chatting.</p> 
-                        </div> 
-                    )} 
-                </section> 
-            </main> 
-        <Footer darkMode={darkMode} />
-        </div> 
+                                        <span className="material-symbols-outlined">{isUploading ? 'schedule' : 'send'}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <div className="text-center">
+                                <span className="material-symbols-outlined text-6xl opacity-20 block mb-4">mail</span>
+                                <h3 className="text-xl font-bold mb-2">Select a conversation</h3>
+                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">
+                                    Choose a conversation from the list to start messaging
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {/* Conversation Info Panel (Right Sidebar) */}
+                {showConvoInfo && activeConversation && (
+                    <div className="w-72 border-l border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 overflow-y-auto hidden md:block">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold">Details</h3>
+                            <button
+                                onClick={() => setShowConvoInfo(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary/10 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                        </div>
+
+                        {/* User Card */}
+                        <div className="text-center mb-6 pb-6 border-b border-border-light dark:border-border-dark">
+                            <div
+                                style={{ backgroundImage: `url(${activeConversation.avatarUrl})` }}
+                                className="bg-center bg-cover rounded-full size-20 mx-auto mb-3"
+                            />
+                            <h4 className="font-bold text-base">{activeConversation.name}</h4>
+                            {activeConversation.gender && <GenderBadge gender={activeConversation.gender} />}
+                            <p className={`text-xs mt-2 ${activeConversation.isOnline ? 'text-green-500' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>
+                                {activeConversation.isOnline ? 'Online' : 'Offline'}
+                            </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="space-y-2">
+                            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark">
+                                <span className="material-symbols-outlined">person</span>
+                                <span className="text-sm font-medium">View Profile</span>
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark">
+                                <span className="material-symbols-outlined">notifications</span>
+                                <span className="text-sm font-medium">Mute</span>
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-red-500">
+                                <span className="material-symbols-outlined">block</span>
+                                <span className="text-sm font-medium">Block</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
     ); 
 } 
  

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
 import Footer from './Footer';
+import { notifyItemListed } from '../services/notificationService';
 // --- Data for UI elements ---
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
@@ -386,7 +387,15 @@ const handleSubmit = async (e) => {
 			createdAt: serverTimestamp(),
 		};
 
-		await addDoc(collection(db, 'listings'), listing);
+		const listingDocRef = await addDoc(collection(db, 'listings'), listing);
+
+		// Create notification for seller
+		await notifyItemListed(user.uid, {
+			id: listingDocRef.id,
+			name: formData.productName,
+			price: Number(formData.price) || formData.price,
+			category: formData.category,
+		});
 
 		toast.dismiss('posting');
 		toast.success('Listing posted successfully!');

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
 import Footer from './Footer';
+import { notifyPostCreated } from '../services/notificationService';
  
 // --- Helper Components --- 
  
@@ -308,7 +309,7 @@ function CreatePostPage() {
             let author = {
                 id: null,
                 name: 'Anonymous',
-                avatarUrl: '/default_avatar.png'
+                avatarUrl: getDefaultAvatar('male')
             };
             if (user) {
                 author.id = user.uid;
@@ -318,13 +319,14 @@ function CreatePostPage() {
                     if (uDoc.exists()) {
                         const d = uDoc.data();
                         author.name = d.displayName || d.fullName || user.email?.split('@')[0] || 'User';
-                        author.avatarUrl = d.avatarUrl || '/default_avatar.png';
+                        author.avatarUrl = d.avatarUrl || getDefaultAvatar(d.gender || 'male');
                     } else {
                         author.name = user.email?.split('@')[0] || 'User';
                     }
                 } catch (err) {
                     console.warn('Could not fetch user profile for post author', err);
                     author.name = user.email?.split('@')[0] || 'User';
+                    author.avatarUrl = getDefaultAvatar('male');
                 }
             }
 
@@ -340,7 +342,20 @@ function CreatePostPage() {
                 createdAt: serverTimestamp(),
             };
 
-            await addDoc(collection(db, 'posts'), postDoc);
+            const postRef = await addDoc(collection(db, 'posts'), postDoc);
+            
+            // Send notification to user about their post being created
+            if (author.id) {
+              try {
+                await notifyPostCreated(author.id, {
+                  id: postRef.id,
+                  title: post.title,
+                });
+              } catch (notifErr) {
+                console.warn('Failed to send post notification:', notifErr);
+              }
+            }
+
             toast.success('Post published');
             setPost({ title: '', content: '', tags: [] });
             navigate('/campusfeed');

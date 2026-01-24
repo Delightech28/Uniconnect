@@ -6,7 +6,8 @@
  import AppHeader from './AppHeader';
  import { useNavigate } from 'react-router-dom';
  import Footer from './Footer';
- 
+import { getPrivacySettings, updatePrivacySettings } from '../services/profileService';
+import toast from 'react-hot-toast'; 
 // --- Static Data (No Backend) --- 
 const initialSettings = { 
   email: 'adekunle.a@university.edu.ng', 
@@ -79,7 +80,10 @@ mb-6">{description}</p>
 // --- Main Page Component --- 
 function SettingsPage() { 
     const [settings, setSettings] = useState(initialSettings); 
-    const [activeTab, setActiveTab] = useState('account'); 
+    const [privacySettings, setPrivacySettings] = useState({});
+    const [activeTab, setActiveTab] = useState('account');
+    const [privacySaving, setPrivacySaving] = useState(false);
+    const [privacyLoading, setPrivacyLoading] = useState(false);
     const navigate = useNavigate(); 
  
     // Use global theme hook so the settings page stays in sync with the app
@@ -114,6 +118,17 @@ function SettingsPage() {
                         }
                     } else {
                         console.log('User document does not exist');
+                    }
+
+                    // Fetch privacy settings
+                    try {
+                        setPrivacyLoading(true);
+                        const privacySettings = await getPrivacySettings(user.uid);
+                        setPrivacySettings(privacySettings);
+                    } catch (err) {
+                        console.error('Error fetching privacy settings:', err);
+                    } finally {
+                        setPrivacyLoading(false);
                     }
                 } catch (error) {
                     console.error('Error fetching settings from Firestore:', error);
@@ -173,6 +188,30 @@ function SettingsPage() {
         } catch (error) {
             console.error('Error updating fontSize in Firestore:', error);
         }
+    };
+
+    // Privacy Settings Handlers
+    const handlePrivacySettingChange = (setting, value) => {
+        setPrivacySettings(prev => ({
+            ...prev,
+            [setting]: value
+        }));
+    };
+
+    const handlePrivacySettingsSave = async () => {
+        try {
+            setPrivacySaving(true);
+            const user = auth.currentUser;
+            if (!user) throw new Error('User not authenticated');
+            
+            await updatePrivacySettings(user.uid, privacySettings);
+            toast.success('Privacy settings saved successfully!');
+        } catch (error) {
+            console.error('Error saving privacy settings:', error);
+            toast.error('Failed to save privacy settings');
+        } finally {
+            setPrivacySaving(false);
+        }
     }; 
      
     // In a real app with routing, each of these would be a separate component.
@@ -211,6 +250,260 @@ function SettingsPage() {
                         </div>
                     </SettingsSection>
 
+                );
+            case 'privacy':
+                return (
+                    <SettingsSection title="Privacy & Safety" description="Control who can see your profile and interact with you.">
+                        {privacyLoading ? (
+                            <div className="text-center py-8 text-slate-500">Loading privacy settings...</div>
+                        ) : (
+                            <div className="space-y-8">
+                                {/* Profile Visibility */}
+                                <div>
+                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Profile Visibility</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-secondary dark:text-white mb-2">
+                                                Who can see your profile?
+                                            </label>
+                                            <select
+                                                value={privacySettings.profileVisibility || 'public'}
+                                                onChange={(e) => handlePrivacySettingChange('profileVisibility', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-secondary dark:text-white"
+                                            >
+                                                <option value="public">🌐 Public (Anyone can view)</option>
+                                                <option value="verified-only">✓ Verified Only (Only verified students)</option>
+                                                <option value="private">🔒 Private (Only followers)</option>
+                                            </select>
+                                        </div>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.searchable !== false}
+                                                onChange={(e) => handlePrivacySettingChange('searchable', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show in Search Results</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let others find you in search</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.includeInRecommendations !== false}
+                                                onChange={(e) => handlePrivacySettingChange('includeInRecommendations', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show in Recommendations</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Appear in recommended users</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canBeFollowed !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canBeFollowed', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Allow Others to Follow You</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let people add you to their followers</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Messaging & Communication */}
+                                <div>
+                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Messaging & Communication</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-secondary dark:text-white mb-2">
+                                                Who can message you?
+                                            </label>
+                                            <select
+                                                value={privacySettings.messageFilter || 'everyone'}
+                                                onChange={(e) => handlePrivacySettingChange('messageFilter', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-secondary dark:text-white"
+                                            >
+                                                <option value="everyone">Everyone</option>
+                                                <option value="followers-only">Followers Only</option>
+                                                <option value="verified-only">Verified Users Only</option>
+                                                <option value="none">Nobody (Disabled)</option>
+                                            </select>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                Control who can send you direct messages
+                                            </p>
+                                        </div>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.requireApprovalForMessages !== true}
+                                                onChange={(e) => handlePrivacySettingChange('requireApprovalForMessages', !e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Messages Go Directly to Inbox</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Uncheck to require approval before reading</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Interactions */}
+                                <div>
+                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Interactions</h3>
+                                    <div className="space-y-4">
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canBeLiked !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canBeLiked', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Allow Likes on Your Profile</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let others like your profile</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canBeTagged !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canBeTagged', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Allow Others to Tag You</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let users mention you in posts</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Content Visibility */}
+                                <div>
+                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">What Others Can See</h3>
+                                    <div className="space-y-4">
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canSeeUserStats !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canSeeUserStats', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show My Stats</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Display followers, sales, and activity</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canSeeUserPosts !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canSeeUserPosts', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show My Posts</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Allow viewing your campus feed posts</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canSeeUserItems !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canSeeUserItems', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show My Marketplace Items</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Display your listed items for sale</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canSeeFollowers !== false}
+                                                onChange={(e) => handlePrivacySettingChange('canSeeFollowers', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show My Followers List</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let others view who follows you</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.canSeeTransactionHistory !== true}
+                                                onChange={(e) => handlePrivacySettingChange('canSeeTransactionHistory', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Show My Transaction History</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Display your past sales and purchases</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Marketplace Requests */}
+                                <div>
+                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Marketplace Requests</h3>
+                                    <div className="space-y-4">
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.allowBuyerRequests !== false}
+                                                onChange={(e) => handlePrivacySettingChange('allowBuyerRequests', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Accept Buyer Requests</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let others send you buying offers</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={privacySettings.allowSellerRequests !== false}
+                                                onChange={(e) => handlePrivacySettingChange('allowSellerRequests', e.target.checked)}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-medium text-secondary dark:text-white">Accept Seller Requests</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Let buyers request items from you</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Save Button */}
+                                <div className="flex gap-3 pt-6">
+                                    <button
+                                        onClick={handlePrivacySettingsSave}
+                                        disabled={privacySaving}
+                                        className="px-6 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {privacySaving ? 'Saving...' : 'Save Privacy Settings'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </SettingsSection>
                 );
             case 'theme': 
                 return ( 

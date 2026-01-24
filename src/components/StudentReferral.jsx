@@ -16,6 +16,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getDoc, doc, collection, query, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { notifyReferralJoined, notifyReferralReward } from '../services/notificationService';
 
 const StudentReferral = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,6 +53,22 @@ const StudentReferral = () => {
                 // Sync the count back to the user's doc in Firestore
                 try {
                   await updateDoc(userDocRef, { referralsCount: count });
+                  
+                  // Send notification when new referral joins
+                  snap.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                      const refereeData = change.doc.data();
+                      try {
+                        notifyReferralJoined(user.uid, {
+                          id: change.doc.id,
+                          referreeName: refereeData.displayName || refereeData.email?.split('@')[0] || 'A new user',
+                          refereeId: change.doc.id,
+                        });
+                      } catch (notifErr) {
+                        console.warn('Failed to send referral notification:', notifErr);
+                      }
+                    }
+                  });
                 } catch (err) {
                   console.warn('Failed to update referralsCount in DB:', err);
                 }

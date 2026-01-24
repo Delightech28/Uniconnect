@@ -6,7 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
-import Footer from './Footer'; 
+import Footer from './Footer';
+import GenderBadge from './GenderBadge';
+import AvatarSelectionModal from './AvatarSelectionModal';
+import { getAvatarById } from '../services/avatarService'; 
 const initialProfileData = { 
 displayName: '',
 bio: '',
@@ -14,6 +17,7 @@ avatarUrl: 'https://via.placeholder.com/96',
 interests: [],
 linkedinUrl: '',
 githubUrl: '',
+ instagramUrl: '',
 }; 
 const allInterests = [ 
  
@@ -58,9 +62,12 @@ function EditProfilePage() {
   const [profileData, setProfileData] = useState(initialProfileData);
   const [tempAvatar, setTempAvatar] = useState(null);
   const [tempAvatarFile, setTempAvatarFile] = useState(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [userGender, setUserGender] = useState(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   // Fetch user data from Firestore on component mount
   useEffect(() => {
@@ -75,14 +82,18 @@ function EditProfilePage() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
+          setUserGender(data.gender || null);
+          const currentAvatar = data.avatarUrl || 'https://via.placeholder.com/96';
+          setCurrentAvatarUrl(currentAvatar);
           setProfileData(prev => ({
             ...prev,
             displayName: data.displayName || '',
             bio: data.bio || '',
             interests: data.interests || [],
-            avatarUrl: data.avatarUrl || 'https://via.placeholder.com/96',
+            avatarUrl: currentAvatar,
             linkedinUrl: data.linkedinUrl || '',
-            githubUrl: data.githubUrl || ''
+            githubUrl: data.githubUrl || '',
+            instagramUrl: data.instagramUrl || ''
           }));
         }
       } catch (err) {
@@ -137,6 +148,19 @@ function EditProfilePage() {
     setTempAvatar(null);
     setTempAvatarFile(null);
     setProfileData(prevData => ({ ...prevData, avatarUrl: '' })); 
+  };
+
+  const handleAvatarSelect = (avatarId) => {
+    if (!userGender) {
+      toast.error('Gender information not found');
+      return;
+    }
+    const avatarImage = getAvatarById(avatarId, userGender);
+    setTempAvatar(avatarImage);
+    setProfileData(prevData => ({ ...prevData, avatarUrl: avatarImage }));
+    setTempAvatarFile(null); // Clear file input when selecting predefined avatar
+    setShowAvatarModal(false);
+    toast.success('Avatar selected!');
   }; 
  
   const handleSubmit = async (e) => { 
@@ -159,15 +183,19 @@ function EditProfilePage() {
         interests: profileData.interests,
         linkedinUrl: profileData.linkedinUrl,
         githubUrl: profileData.githubUrl,
+        instagramUrl: profileData.instagramUrl,
         updatedAt: serverTimestamp()
       };
 
-      // If new avatar was selected, save base64 string directly to Firestore
+      // If new avatar was selected, save it
       if (tempAvatarFile) {
         toast.loading('Saving profile...', { id: 'avatar-save' });
         // tempAvatarFile is already a base64 string from FileReader
         dataToSave.avatarUrl = tempAvatarFile;
         toast.dismiss('avatar-save');
+      } else if (profileData.avatarUrl && profileData.avatarUrl !== currentAvatarUrl) {
+        // Avatar was changed via modal selection (compare with current avatar, not default)
+        dataToSave.avatarUrl = profileData.avatarUrl;
       }
 
       // Update user document in Firestore
@@ -272,6 +300,15 @@ rounded-lg bg-primary text-white hover:bg-primary/90">
 text-base">upload</span> 
                       <span>Upload New</span> 
                     </label> 
+                    <button 
+                      type="button" 
+                      onClick={() => setShowAvatarModal(true)}
+                      className="px-4 py-2 text-sm font-semibold rounded-lg bg-green-500 text-white hover:bg-green-600"
+                      disabled={!userGender}
+                    >
+                      <span className="material-symbols-outlined inline-block mr-1 text-base">palette</span>
+                      Use Avatar
+                    </button>
                     <input id="file-upload" name="file-upload" type="file" 
 className="sr-only" onChange={handleFileChange} 
 accept="image/*"/> 
@@ -355,6 +392,21 @@ dark:text-slate-400">Write a short introduction about yourself.</p>
                 />
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Optional: Add your GitHub profile URL</p>
               </div>
+
+              {/* Instagram URL */}
+              <div>
+                <label htmlFor="instagram-url" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Instagram Profile</label>
+                <input
+                  type="url"
+                  name="instagramUrl"
+                  id="instagram-url"
+                  placeholder="https://instagram.com/yourprofile"
+                  value={profileData.instagramUrl}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white focus:border-primary focus:ring-primary shadow-sm sm:text-sm"
+                />
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Optional: Add your Instagram profile URL</p>
+              </div>
  
               {/* Interests */} 
               <div> 
@@ -395,7 +447,13 @@ font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opac
  
  
         </div> 
-      </main> 
+      </main>
+      <AvatarSelectionModal
+        isOpen={showAvatarModal}
+        onClose={() => setShowAvatarModal(false)}
+        onSelectAvatar={handleAvatarSelect}
+        gender={userGender}
+      />
       <Footer darkMode={darkMode} />
     </div> 
   ); 

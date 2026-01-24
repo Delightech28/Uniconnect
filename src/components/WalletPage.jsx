@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
+import toast from 'react-hot-toast';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { notifyWalletTransaction, notifyPaymentReceived } from '../services/notificationService';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
 const USER_QR_CODE_URL = 
@@ -16,22 +20,54 @@ const SendMoneyForm = ({ onSend }) => {
   const [note, setNote] = useState(''); 
  
   const handleSubmit = (e) => { 
- 
- 
     e.preventDefault(); 
     if (!recipient || !amount || parseFloat(amount) <= 0) { 
-      alert("Please enter a valid recipient and amount."); 
+      toast.error("Please enter a valid recipient and amount.");
       return; 
-    } 
-    // In a real app, you'd show a confirmation modal here. 
-    // For this example, we call the onSend function passed from the 
-parent. 
-    onSend(parseFloat(amount)); 
- 
-    // Reset form 
-    setRecipient(''); 
-    setAmount(''); 
-    setNote(''); 
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("You must be logged in to send money");
+      return;
+    }
+
+    try {
+      const amountNum = parseFloat(amount);
+      toast.loading('Processing transaction...', { id: 'transfer' });
+
+      // Send notification to both users about the transaction
+      toast.promise(
+        Promise.all([
+          notifyWalletTransaction(user.uid, {
+            id: Date.now().toString(),
+            type: 'withdrawal',
+            amount: amountNum,
+            newBalance: 50000 - amountNum, // Mock balance
+          }),
+          notifyPaymentReceived(recipient, {
+            id: Date.now().toString(),
+            senderId: user.uid,
+            senderName: 'Someone',
+            amount: amountNum,
+            newBalance: 50000 + amountNum, // Mock balance
+          })
+        ]),
+        {
+          loading: 'Processing...',
+          success: 'Transfer successful! Notifications sent.',
+          error: 'Transfer failed',
+        }
+      );
+
+      // Reset form 
+      setRecipient(''); 
+      setAmount(''); 
+      setNote(''); 
+    } catch (err) {
+      console.error('Transfer error:', err);
+      toast.error('Transfer failed');
+    }
   }; 
  
   return ( 

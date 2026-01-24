@@ -342,6 +342,7 @@ registerAs: 'student',
 		institution: '', // selected institution
 documentType: 'University ID',
 file: null,
+gender: '', // NEW: gender field (male or female)
 });
 const [showPassword, setShowPassword] = useState(false);
 const [loading, setLoading] = useState(false);
@@ -400,6 +401,12 @@ const selectInstitution = (name) => {
 const handleNext = async (e) => {
 	e.preventDefault();
 	
+	// Validate gender field on step 1
+	if (step === 1 && !formData.gender) {
+		setError('Please select your gender');
+		return;
+	}
+	
 	// If we're on step 1 and registering as a student, go to step 2 for verification
 	if (step === 1 && formData.registerAs === 'student') {
 		setStep(2);
@@ -442,6 +449,7 @@ const handleNext = async (e) => {
 				bio: formData.bio || '',
 				interests: formData.interests || [],
 				registerAs: 'Guest',
+				gender: formData.gender, // NEW: store gender
 				institution: null, // Guests don't have institution
 				documentType: null,
 				documentFileName: null,
@@ -506,6 +514,7 @@ const handleSubmit = async (e) => {
 			bio: formData.bio || '',
 			interests: formData.interests || [],
 			registerAs: formData.registerAs,
+			gender: formData.gender, // NEW: store gender
 			institution: formData.institution || null,
 			documentType: formData.documentType || null,
 			documentFileName: formData.file ? formData.file.name : null,
@@ -693,6 +702,35 @@ value={formData.registerAs} onChange={handleInputChange}>
 <option value="student">Student</option>
 <option value="guest">Guest</option>
 </select>
+</div>
+<div>
+<label className="mb-2 block text-sm font-medium
+text-slate-700 dark:text-slate-300">Gender*</label>
+<div className="flex gap-4">
+<label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" style={{borderColor: formData.gender === 'male' ? '#07bc0c' : undefined, backgroundColor: formData.gender === 'male' ? 'rgba(7, 188, 12, 0.05)' : undefined}}>
+<input
+type="radio"
+name="gender"
+value="male"
+checked={formData.gender === 'male'}
+onChange={handleInputChange}
+className="w-4 h-4"
+/>
+<span className="font-medium text-slate-700 dark:text-slate-300">👨 Male</span>
+</label>
+<label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" style={{borderColor: formData.gender === 'female' ? '#07bc0c' : undefined, backgroundColor: formData.gender === 'female' ? 'rgba(7, 188, 12, 0.05)' : undefined}}>
+<input
+type="radio"
+name="gender"
+value="female"
+checked={formData.gender === 'female'}
+onChange={handleInputChange}
+className="w-4 h-4"
+/>
+<span className="font-medium text-slate-700 dark:text-slate-300">👩 Female</span>
+</label>
+</div>
+{!formData.gender && <p className="text-xs text-red-500 mt-1">Gender selection is required</p>}
 </div>
 {formData.registerAs === 'student' && (
 <div>

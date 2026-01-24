@@ -1,7 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Footer from './Footer';
 import { useTheme } from '../hooks/useTheme';
+import toast from 'react-hot-toast';
+import { notifyVerificationSubmitted } from '../services/notificationService';
 
 const progressSteps = ['Upload Document', 'Review Pending', 'Verification Complete'];
 
@@ -130,20 +135,71 @@ const FileUpload = ({ onFileSelect }) => {
 
 const StudentVerificationPage = () => {
   const navigate = useNavigate();
+  const { darkMode } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check auth state
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser(u);
+      } else {
+        navigate('/login');
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedFile) {
-      alert('Please select a document to submit.');
+      toast.error('Please select a document to submit.');
       return;
     }
-    console.log('Submitting file:', selectedFile.name);
-    navigate('/verification-pending');
+
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      toast.loading('Uploading verification document...', { id: 'verify' });
+
+      // Store verification submission in Firestore
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          verificationStatus: 'pending',
+          verificationSubmittedAt: serverTimestamp(),
+          verificationFileName: selectedFile.name,
+        },
+        { merge: true }
+      );
+
+      // Create notification
+      await notifyVerificationSubmitted(user.uid);
+
+      toast.dismiss('verify');
+      toast.success('Verification submitted! Check your notifications.');
+      setCurrentStep(2);
+      
+      // Redirect to pending page after 2 seconds
+      setTimeout(() => {
+        navigate('/verification-pending');
+      }, 2000);
+    } catch (err) {
+      console.error('Error submitting verification:', err);
+      toast.dismiss('verify');
+      toast.error('Failed to submit verification. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -208,10 +264,10 @@ const StudentVerificationPage = () => {
                   <>
                     <button
                       onClick={handleSubmit}
-                      disabled={!selectedFile}
+                      disabled={!selectedFile || isSubmitting}
                       className="flex w-full cursor-pointer items-center justify-center rounded-lg h-12 px-4 bg-clientPrimary text-white text-base font-medium hover:bg-opacity-90 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
-                      Submit Document
+                      {isSubmitting ? 'Submitting...' : 'Submit Document'}
                     </button>
                     <p className="text-center text-xs text-muted-foreground flex items-center justify-center">
                       <span className="material-symbols-outlined text-sm align-middle mr-1">lock</span>

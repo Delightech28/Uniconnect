@@ -8,6 +8,7 @@ import AppHeader from './AppHeader';
 import Footer from './Footer';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
+import { notifyItemSold } from '../services/notificationService';
 // --- Data Layer (No Backend) ---
 // In a real app, you would fetch this object from an API based on a product ID.
 const productData = { 
@@ -311,7 +312,7 @@ dark:text-slate-400">{seller.details}</p>
                   </div> 
  
                     <div className="mt-6 flex flex-col gap-4">
-                      <button onClick={() => {
+                      <button onClick={async () => {
                         if (!verifyingLoading && !verified) {
                           if (status === 'failed') {
                             toast.error('Your verification failed. You cannot buy items.');
@@ -322,8 +323,33 @@ dark:text-slate-400">{seller.details}</p>
                           }
                           return;
                         }
-                        // TODO: integrate real checkout flow
-                        toast.success('Proceeding to payment (mock)');
+                        
+                        // Handle purchase and send notifications
+                        const buyer = auth.currentUser;
+                        if (buyer && product.sellerId) {
+                          try {
+                            toast.loading('Processing purchase...', { id: 'purchase' });
+                            
+                            // Send notifications to both buyer and seller
+                            await notifyItemSold(
+                              product.sellerId,
+                              buyer.uid,
+                              {
+                                id: product.id,
+                                name: product.name,
+                              },
+                              product.price
+                            );
+                            
+                            toast.dismiss('purchase');
+                            toast.success('Purchase confirmed! Check your notifications.');
+                            navigate('/wallet');
+                          } catch (err) {
+                            console.error('Error processing purchase:', err);
+                            toast.dismiss('purchase');
+                            toast.error('Purchase failed. Please try again.');
+                          }
+                        }
                       }} className="flex w-full items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal transition-colors hover:bg-green-600">
                         <span className="material-symbols-outlined">account_balance_wallet</span>
                         <span>Buy Now</span>

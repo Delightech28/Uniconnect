@@ -7,6 +7,8 @@ import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Footer from './Footer';
+import { notifyPostLiked, notifyPostCommented } from '../services/notificationService';
+import { getDefaultAvatar } from '../services/avatarService';
 
 const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onShare }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
@@ -27,16 +29,17 @@ const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onS
   </div>
 );
 
-const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, onToggleLike, liked }) => (
+const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, onToggleLike, liked, onAvatarClick }) => (
   <div className="flex items-start gap-3">
     <img
       alt={`${name}'s profile picture`}
-      className={`${isAuthor ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover shrink-0`}
-      src={img}
+      onClick={onAvatarClick}
+      className={`${isAuthor ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover shrink-0 cursor-pointer`}
+      src={img && img.length > 0 ? img : getDefaultAvatar('male')}
     />
     <div className="flex-grow">
       <div className={`${isAuthor ? 'bg-slate-200 dark:bg-slate-700/50' : 'bg-background-light dark:bg-slate-800'} rounded-lg p-3`}>
-        <p className="font-semibold text-secondary dark:text-white text-sm">
+        <p className="font-semibold text-secondary dark:text-white text-sm cursor-pointer hover:underline" onClick={onAvatarClick}>
           {name} {isAuthor && <span className="ml-1 text-xs font-normal text-primary">(Author)</span>}
         </p>
         <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">{text}</p>
@@ -126,6 +129,27 @@ function PostItem({ post }) {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [authorAvatar, setAuthorAvatar] = useState(null);
+
+  // Fetch author avatar from user profile
+  useEffect(() => {
+    const fetchAuthorAvatar = async () => {
+      if (!post.authorId) return;
+      try {
+        const userDocRef = doc(db, 'users', post.authorId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const avatar = userData.avatarUrl || getDefaultAvatar(userData.gender || 'male');
+          setAuthorAvatar(avatar);
+        }
+      } catch (err) {
+        console.warn('Could not fetch author avatar:', err);
+        setAuthorAvatar(getDefaultAvatar('male'));
+      }
+    };
+    fetchAuthorAvatar();
+  }, [post.authorId]);
 
   useEffect(() => {
     const likesCol = collection(db, 'posts', post.id, 'likes');
@@ -207,6 +231,21 @@ function PostItem({ post }) {
           transaction.update(postDocRef, {
             likesCount: (postSnap.data()?.likesCount || 0) + 1
           });
+
+          // Send notification to post author (only on like, not unlike)
+          if (post.authorId && post.authorId !== user.uid) {
+            try {
+              await notifyPostLiked(post.authorId, {
+                postId: post.id,
+                postTitle: post.title,
+                likerId: user.uid,
+                likerName: user.displayName || user.email?.split('@')[0] || 'Someone',
+                likerAvatar: null,
+              });
+            } catch (notifErr) {
+              console.warn('Failed to send like notification:', notifErr);
+            }
+          }
         }
       });
     } catch (err) {
@@ -261,14 +300,44 @@ function PostItem({ post }) {
       const commentsCol = collection(db, 'posts', post.id, 'comments');
       const commentDocRef = doc(commentsCol);
       
+      // Fetch user's avatar and gender from Firestore
+      let commenterAvatar = '/default_avatar.png';
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          commenterAvatar = userData.avatarUrl || getDefaultAvatar(userData.gender || 'male');
+        }
+      } catch (err) {
+        console.warn('Could not fetch commenter avatar:', err);
+      }
+      
       await setDoc(commentDocRef, {
         text: newComment,
         authorId: user.uid,
         authorName: user.displayName || user.email,
-        authorAvatar: user.photoURL || '/default_avatar.png',
+        authorAvatar: commenterAvatar,
         createdAt: serverTimestamp(),
         likesCount: 0
       });
+      
+      // Send notification to post author (only if not author commenting on their own post)
+      if (post.authorId && post.authorId !== user.uid) {
+        try {
+          await notifyPostCommented(post.authorId, {
+            postId: post.id,
+            postTitle: post.title,
+            commentId: commentDocRef.id,
+            commenterId: user.uid,
+            commenterName: user.displayName || user.email?.split('@')[0] || 'Someone',
+            commenterAvatar: user.photoURL || null,
+            commentText: newComment,
+          });
+        } catch (notifErr) {
+          console.warn('Failed to send comment notification:', notifErr);
+        }
+      }
       
       setNewComment('');
     } catch (err) {
@@ -303,11 +372,20 @@ function PostItem({ post }) {
   return (
     <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
       <div className="flex items-start gap-4">
-        <img alt={`${post.authorName}'s profile`} className="w-12 h-12 rounded-full object-cover" src={post.authorAvatar || '/default_avatar.png'} />
+        <button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0">
+          <img 
+            alt={`${post.authorName}'s profile`} 
+            className="w-12 h-12 rounded-full object-cover cursor-pointer" 
+            src={authorAvatar || getDefaultAvatar('male')}
+            onError={(e) => {
+              e.target.src = getDefaultAvatar('male');
+            }}
+          />
+        </button>
         <div className="flex-grow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold text-secondary dark:text-white">{post.authorName || 'Anonymous'}</p>
+              <p className="font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
             </div>
             <button className="text-slate-500 dark:text-slate-400">
@@ -365,7 +443,7 @@ function PostItem({ post }) {
               {comments.map((comment) => (
                 <Comment
                   key={comment.id}
-                  img={comment.authorAvatar || '/default_avatar.png'}
+                  img={comment.authorAvatar}
                   name={comment.authorName || 'Anonymous'}
                   isAuthor={comment.authorId === post.authorId}
                   time={comment.createdAt?.toDate ? new Date(comment.createdAt.toDate()).toLocaleString() : ''}
@@ -375,6 +453,7 @@ function PostItem({ post }) {
                   postId={post.id}
                   onToggleLike={toggleCommentLike}
                   liked={commentLikes[`${comment.id}_liked`] || false}
+                  onAvatarClick={() => navigate(`/profile/${comment.authorId}`)}
                 />
               ))}
             </div>

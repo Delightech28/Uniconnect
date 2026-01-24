@@ -6,6 +6,8 @@ import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
+import GenderBadge from './GenderBadge';
+import { getDefaultAvatar } from '../services/avatarService';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
 { label: 'Dashboard', path: '/dashboard' },
@@ -122,6 +124,8 @@ const UniConnectDashboard = () => {
   const [userListings, setUserListings] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [campusFeedPosts, setCampusFeedPosts] = useState([]);
+  const [authorGenders, setAuthorGenders] = useState({});
+  const [authorAvatars, setAuthorAvatars] = useState({});
 
   // Simple markdown renderer for bold text
   const renderMarkdown = (text) => {
@@ -196,6 +200,39 @@ const UniConnectDashboard = () => {
       console.error('Error setting up campus feed subscription:', error);
     }
   }, []);
+
+  // Fetch author genders and avatars for displayed posts
+  useEffect(() => {
+    const fetchAuthorData = async () => {
+      const genders = {};
+      const avatars = {};
+      for (const post of campusFeedPosts) {
+        if (post.authorId && !authorGenders[post.authorId]) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', post.authorId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              genders[post.authorId] = userData.gender || 'unknown';
+              avatars[post.authorId] = userData.avatarUrl || getDefaultAvatar(userData.gender || 'male');
+            }
+          } catch (error) {
+            console.error(`Error fetching data for author ${post.authorId}:`, error);
+            avatars[post.authorId] = getDefaultAvatar('male');
+          }
+        }
+      }
+      if (Object.keys(genders).length > 0) {
+        setAuthorGenders(prev => ({ ...prev, ...genders }));
+      }
+      if (Object.keys(avatars).length > 0) {
+        setAuthorAvatars(prev => ({ ...prev, ...avatars }));
+      }
+    };
+    
+    if (campusFeedPosts.length > 0) {
+      fetchAuthorData();
+    }
+  }, [campusFeedPosts]);
 
   const handleLogout = async () => {
     try {
@@ -308,11 +345,18 @@ mb-4">CampusFeed</p>
 <div className="space-y-4">
 {campusFeedPosts.map((post) => (
 <div key={post.id} className="flex gap-4">
-<img className="size-10 rounded-full flex-shrink-0"
-alt={`${post.authorName} profile`} src={post.authorAvatar || '/default_avatar.png'} />
+<button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0 hover:opacity-80 transition-opacity">
+<img 
+  className="size-10 rounded-full flex-shrink-0 cursor-pointer mb-10"
+  alt={`${post.authorName} profile`} 
+  src={authorAvatars[post.authorId] || getDefaultAvatar('male')}
+  onError={(e) => {
+    e.target.src = getDefaultAvatar('male');
+  }}
+/>
+</button>
 <div className="flex-1">
-<p className="font-semibold text-secondary
-dark:text-white">{post.authorName || 'Anonymous'}</p>
+<p className="font-semibold text-secondary dark:text-white cursor-pointer hover:underline inline-block" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
 <p className="text-secondary dark:text-white
 mt-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
 <div className="flex items-center gap-4 text-slate-500

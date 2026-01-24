@@ -1,6 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
+import { useState, useEffect } from 'react';
+import { auth, db } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import UniConnectLandingPage from "./components/UniConnectLandingPage";
 import UniConnectRegistration from "./components/UniConnectRegistration";
 import StudentVerificationPage from "./components/StudentVerificationPage";
@@ -44,7 +48,37 @@ import CampusFeed from "./components/CampusFeed";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestUpgrade from "./components/GuestUpgrade";
 import PricingPage from "./components/PricingPage";
+import GenderSelectionModal from "./components/GenderSelectionModal";
 function App() {
+  const [showGenderModal, setShowGenderModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Check if user needs to set gender on app load
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser(user);
+            const userData = userDoc.data();
+            // Show modal if gender is not set
+            if (!userData.gender) {
+              setShowGenderModal(true);
+            }
+          }
+        } catch (err) {
+          console.error('Error checking gender requirement:', err);
+        }
+      } else {
+        setCurrentUser(null);
+        setShowGenderModal(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <>
       <Toaster position="top-right" />
@@ -97,6 +131,12 @@ function App() {
         <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       </Router>
+      <GenderSelectionModal
+        isOpen={showGenderModal}
+        userId={currentUser?.uid}
+        onClose={() => setShowGenderModal(false)}
+        onComplete={() => setShowGenderModal(false)}
+      />
     </>
   );
 }

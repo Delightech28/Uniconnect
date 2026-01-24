@@ -4,9 +4,19 @@ service cloud.firestore {
     // Allow users to write their own document in the users collection
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      // Allow reading user profile for messaging (to get name and avatar when creating conversations)
-      allow read: if request.auth != null;
+      allow read: if request.auth != null; // Allow reading any user profile
+      allow update: if request.auth != null && (
+        // Users can update their own full document
+        request.auth.uid == userId ||
+        // Any authenticated user can update pendingConnections or connections fields (allowing arrayUnion/arrayRemove ops)
+        request.resource.data.keys().hasAny(['pendingConnections', 'connections'])
+      );
+
+      // Notifications subcollection: each user can only access their own notifications
+      match /notifications/{notificationId} {
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Public listings collection: anyone can read listings
