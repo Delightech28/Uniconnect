@@ -8,8 +8,11 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         // Users can update their own full document
         request.auth.uid == userId ||
-        // Any authenticated user can update pendingConnections or connections fields (allowing arrayUnion/arrayRemove ops)
-        request.resource.data.keys().hasAny(['pendingConnections', 'connections'])
+        // Any authenticated user can update specific interaction arrays/fields only
+        // (connection requests, likes, followers/following updates performed via arrayUnion/arrayRemove)
+        request.resource.data.keys().hasAny([
+          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following'
+        ])
       );
 
       // Notifications subcollection: each user can only access their own notifications
@@ -17,11 +20,46 @@ service cloud.firestore {
         allow create: if request.auth != null && request.auth.uid == userId;
         allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Likes subcollection under users: one doc per user who liked this user's profile
+      match /likes/{likeId} {
+        // Anyone can read likes (used for counts)
+        allow read: if true;
+        // Only authenticated user may create/delete their own like doc
+        allow create, delete: if request.auth != null && request.auth.uid == likeId;
+        allow update: if false;
+      }
+
+      // Connection requests subcollection: pending requests to this user
+      match /connectionRequests/{requesterId} {
+        // Only the target user can read their pending requests
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // The requester may create their own request doc; the target or requester may delete it (accept/reject)
+        allow create: if request.auth != null && request.auth.uid == requesterId;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == requesterId);
+        allow update: if false;
+      }
+
+      // Connections subcollection: accepted connections stored as docs (id = otherUserId)
+      match /connections/{connectionId} {
+        // Owner may read their connections; also allow public read for basic listing
+        allow read: if request.auth != null && (request.auth.uid == userId || true);
+        // Allow creating/deleting a connection doc if the caller is either the owner or the connectionId user
+        allow create, delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == connectionId);
+        allow update: if false;
+      }
     }
     
     // Public listings collection: anyone can read listings
     // Authenticated users can create listings. Only the seller can update/delete their listing.
     match /listings/{listingId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Items collection (market items). Allow public reads; sellers control their items.
+    match /items/{itemId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;

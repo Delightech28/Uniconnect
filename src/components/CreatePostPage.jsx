@@ -5,8 +5,10 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebas
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
+import AppHeader from './AppHeader';
 import Footer from './Footer';
 import { notifyPostCreated } from '../services/notificationService';
+import { getDefaultAvatar } from '../services/avatarService';
  
 // --- Helper Components --- 
  
@@ -266,6 +268,7 @@ function CreatePostPage() {
         tags: [],
     }); 
     const navigate = useNavigate();
+    const { darkMode, toggleTheme } = useTheme();
     const [status, setStatus] = useState({ 
         message: 'Draft', 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: 
@@ -368,6 +371,7 @@ function CreatePostPage() {
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
 text-text-light dark:text-text-dark min-h-screen flex flex-col"> 
+            <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
             <div className="flex flex-1 justify-center py-5"> 
                 <div className="w-full max-w-[960px] flex-1"> 
                     <header className="flex items-center justify-between 

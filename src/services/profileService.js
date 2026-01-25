@@ -199,32 +199,37 @@ export const sendConnectionRequest = async (currentUserId, targetUserId) => {
     const currentUserRef = doc(db, 'users', currentUserId);
     const targetUserRef = doc(db, 'users', targetUserId);
 
-    // Get current user data
-    const currentUserSnap = await getDoc(currentUserRef);
-    const targetUserSnap = await getDoc(targetUserRef);
+    // Verify users exist
+    const [currentUserSnap, targetUserSnap] = await Promise.all([
+      getDoc(currentUserRef),
+      getDoc(targetUserRef),
+    ]);
 
     if (!currentUserSnap.exists() || !targetUserSnap.exists()) {
       throw new Error('User not found');
     }
 
     const currentUserData = currentUserSnap.data() || {};
-    const targetUserData = targetUserSnap.data() || {};
 
-    // Check if already connected
-    const connections = targetUserData.connections || [];
-    if (connections.includes(currentUserId)) {
-      return 'already_connected';
-    }
+    // Check existing connection via connections array or connections subcollection
+    const existingConnections = targetUserSnap.data().connections || [];
+    if (existingConnections.includes(currentUserId)) return 'already_connected';
 
-    // Check if already pending
-    const pendingRequests = targetUserData.pendingConnections || [];
-    if (pendingRequests.includes(currentUserId)) {
-      return 'already_pending';
-    }
+    // Also check connections subcollection
+    const connDoc = await getDoc(doc(db, 'users', targetUserId, 'connections', currentUserId));
+    if (connDoc.exists()) return 'already_connected';
 
-    // Send connection request
-    await updateDoc(targetUserRef, {
-      pendingConnections: arrayUnion(currentUserId),
+    // Check pending request existence via subcollection
+    const pendingDoc = await getDoc(doc(db, 'users', targetUserId, 'connectionRequests', currentUserId));
+    if (pendingDoc.exists()) return 'already_pending';
+
+    // Create pending request document under target's subcollection
+    await runTransaction(db, async (transaction) => {
+      const reqRef = doc(db, 'users', targetUserId, 'connectionRequests', currentUserId);
+      transaction.set(reqRef, {
+        requesterId: currentUserId,
+        createdAt: serverTimestamp(),
+      });
     });
 
     // Send notification to target user
@@ -258,16 +263,19 @@ export const acceptConnectionRequest = async (currentUserId, requesterId) => {
     const currentUserRef = doc(db, 'users', currentUserId);
     const requesterRef = doc(db, 'users', requesterId);
 
-    // Add both users to each other's connections
-    await Promise.all([
-      updateDoc(currentUserRef, {
-        connections: arrayUnion(requesterId),
-        pendingConnections: arrayRemove(requesterId),
-      }),
-      updateDoc(requesterRef, {
-        connections: arrayUnion(currentUserId),
-      }),
-    ]);
+    // Use transaction: create connection docs in both users' `connections` subcollections and remove pending request
+    await runTransaction(db, async (transaction) => {
+      const reqRef = doc(db, 'users', currentUserId, 'connectionRequests', requesterId);
+      const connARef = doc(db, 'users', currentUserId, 'connections', requesterId);
+      const connBRef = doc(db, 'users', requesterId, 'connections', currentUserId);
+
+      // remove pending request
+      transaction.delete(reqRef);
+
+      // create connections
+      transaction.set(connARef, { userId: requesterId, createdAt: serverTimestamp() });
+      transaction.set(connBRef, { userId: currentUserId, createdAt: serverTimestamp() });
+    });
 
     // Send notification to requester
     if (typeof notifyConnectionAccepted === 'function') {
@@ -297,9 +305,11 @@ export const acceptConnectionRequest = async (currentUserId, requesterId) => {
  */
 export const rejectConnectionRequest = async (currentUserId, requesterId) => {
   try {
-    const currentUserRef = doc(db, 'users', currentUserId);
-    await updateDoc(currentUserRef, {
-      pendingConnections: arrayRemove(requesterId),
+    // Delete the pending request document under user's `connectionRequests` subcollection
+    const reqRef = doc(db, 'users', currentUserId, 'connectionRequests', requesterId);
+    await runTransaction(db, async (transaction) => {
+      const reqSnap = await transaction.get(reqRef);
+      if (reqSnap.exists()) transaction.delete(reqRef);
     });
   } catch (err) {
     console.error('Error rejecting connection request:', err);
@@ -315,9 +325,13 @@ export const rejectConnectionRequest = async (currentUserId, requesterId) => {
  */
 export const checkPendingRequest = async (currentUserId, targetUserId) => {
   try {
+    // Check both legacy pendingConnections array and connectionRequests subcollection
     const userSnap = await getDoc(doc(db, 'users', targetUserId));
     const pendingRequests = userSnap.data()?.pendingConnections || [];
-    return pendingRequests.includes(currentUserId);
+    if (pendingRequests.includes(currentUserId)) return true;
+
+    const reqSnap = await getDoc(doc(db, 'users', targetUserId, 'connectionRequests', currentUserId));
+    return reqSnap.exists();
   } catch (err) {
     console.error('Error checking pending request:', err);
     return false;
@@ -332,9 +346,14 @@ export const checkPendingRequest = async (currentUserId, targetUserId) => {
  */
 export const checkIsConnected = async (userId1, userId2) => {
   try {
+    // Check legacy connections array
     const userSnap = await getDoc(doc(db, 'users', userId1));
     const connections = userSnap.data()?.connections || [];
-    return connections.includes(userId2);
+    if (connections.includes(userId2)) return true;
+
+    // Check connections subcollection
+    const connSnap = await getDoc(doc(db, 'users', userId1, 'connections', userId2));
+    return connSnap.exists();
   } catch (err) {
     console.error('Error checking connection status:', err);
     return false;
@@ -348,6 +367,20 @@ export const checkIsConnected = async (userId1, userId2) => {
  */
 export const getConnections = async (userId) => {
   try {
+    // First try connections subcollection
+    const qSnap = await getDocs(collection(db, 'users', userId, 'connections'));
+    if (qSnap.size > 0) {
+      const connections = await Promise.all(
+        qSnap.docs.map(async (d) => {
+          const id = d.id;
+          const snap = await getDoc(doc(db, 'users', id));
+          return snap.exists() ? { id, ...snap.data() } : null;
+        })
+      );
+      return connections.filter((c) => c !== null);
+    }
+
+    // Fallback to legacy connections array
     const userSnap = await getDoc(doc(db, 'users', userId));
     if (!userSnap.exists()) return [];
 
@@ -375,20 +408,30 @@ export const getConnections = async (userId) => {
  */
 export const getPendingRequests = async (userId) => {
   try {
+    // First check connectionRequests subcollection
+    const qSnap = await getDocs(collection(db, 'users', userId, 'connectionRequests'));
+    const pending = await Promise.all(
+      qSnap.docs.map(async (d) => {
+        const requesterId = d.id;
+        const snap = await getDoc(doc(db, 'users', requesterId));
+        return snap.exists() ? { id: requesterId, ...snap.data() } : null;
+      })
+    );
+
+    if (pending.length > 0) return pending.filter((p) => p !== null);
+
+    // Fallback to legacy array
     const userSnap = await getDoc(doc(db, 'users', userId));
     if (!userSnap.exists()) return [];
-
     const pendingIds = userSnap.data().pendingConnections || [];
     if (pendingIds.length === 0) return [];
-
-    const pending = await Promise.all(
+    const pendingLegacy = await Promise.all(
       pendingIds.map(async (id) => {
         const snap = await getDoc(doc(db, 'users', id));
         return snap.exists() ? { id, ...snap.data() } : null;
       })
     );
-
-    return pending.filter((p) => p !== null);
+    return pendingLegacy.filter((p) => p !== null);
   } catch (err) {
     console.error('Error fetching pending requests:', err);
     return [];
@@ -771,74 +814,16 @@ export const updateSellerRating = async (userId, rating) => {
 // ============ LIKES SYSTEM ============
 
 /**
- * Add like from user
- * @param {string} likerUserId - User doing the liking
- * @param {string} likedUserId - User being liked
- * @returns {Promise<void>}
- */
-export const addUserLike = async (likerUserId, likedUserId) => {
-  try {
-    if (likerUserId === likedUserId) {
-      throw new Error('Cannot like yourself');
-    }
-
-    const likedUserRef = doc(db, 'users', likedUserId);
-    const userSnap = await getDoc(likedUserRef);
-    const data = userSnap.data();
-
-    const likes = data?.likedBy || [];
-
-    if (!likes.includes(likerUserId)) {
-      await updateDoc(likedUserRef, {
-        likedBy: arrayUnion(likerUserId),
-        likeCount: (data?.likeCount || 0) + 1,
-        updatedAt: serverTimestamp(),
-      });
-    }
-  } catch (err) {
-    console.error('Error adding like:', err);
-    throw err;
-  }
-};
-
-/**
- * Remove like from user
- * @param {string} likerUserId - User removing the like
- * @param {string} likedUserId - User being unliked
- * @returns {Promise<void>}
- */
-export const removeUserLike = async (likerUserId, likedUserId) => {
-  try {
-    const likedUserRef = doc(db, 'users', likedUserId);
-    const userSnap = await getDoc(likedUserRef);
-    const data = userSnap.data();
-
-    const likes = data?.likedBy || [];
-
-    if (likes.includes(likerUserId)) {
-      await updateDoc(likedUserRef, {
-        likedBy: arrayRemove(likerUserId),
-        likeCount: Math.max((data?.likeCount || 1) - 1, 0),
-        updatedAt: serverTimestamp(),
-      });
-    }
-  } catch (err) {
-    console.error('Error removing like:', err);
-    throw err;
-  }
-};
-
-/**
- * Check if user likes another user
+ * Check if user likes another user (using subcollection)
  * @param {string} likerUserId - User doing the liking
  * @param {string} likedUserId - User being liked
  * @returns {Promise<boolean>} True if likes
  */
 export const checkUserLike = async (likerUserId, likedUserId) => {
   try {
-    const userSnap = await getDoc(doc(db, 'users', likedUserId));
-    const likes = userSnap.data()?.likedBy || [];
-    return likes.includes(likerUserId);
+    const likeDocRef = doc(db, 'users', likedUserId, 'likes', likerUserId);
+    const likeSnap = await getDoc(likeDocRef);
+    return likeSnap.exists();
   } catch (err) {
     console.error('Error checking like status:', err);
     return false;
@@ -846,24 +831,63 @@ export const checkUserLike = async (likerUserId, likedUserId) => {
 };
 
 /**
- * Toggle user like
+ * Toggle user like using transactions (like posts do)
  * @param {string} likerUserId - User doing the liking
  * @param {string} likedUserId - User to like/unlike
  * @returns {Promise<boolean>} True if now liked, false if unliked
  */
 export const toggleUserLike = async (likerUserId, likedUserId) => {
-  try {
-    const isLiked = await checkUserLike(likerUserId, likedUserId);
+  if (likerUserId === likedUserId) {
+    throw new Error('Cannot like yourself');
+  }
 
-    if (isLiked) {
-      await removeUserLike(likerUserId, likedUserId);
-      return false;
-    } else {
-      await addUserLike(likerUserId, likedUserId);
-      return true;
-    }
+  try {
+    const likeDocRef = doc(db, 'users', likedUserId, 'likes', likerUserId);
+    const likedUserRef = doc(db, 'users', likedUserId);
+
+    let isNowLiked = false;
+
+    await runTransaction(db, async (transaction) => {
+      const likeSnap = await transaction.get(likeDocRef);
+      const userSnap = await transaction.get(likedUserRef);
+
+      if (likeSnap.exists()) {
+        // Unlike
+        transaction.delete(likeDocRef);
+        transaction.update(likedUserRef, {
+          likeCount: Math.max((userSnap.data()?.likeCount || 0) - 1, 0),
+        });
+        isNowLiked = false;
+      } else {
+        // Like
+        transaction.set(likeDocRef, { userId: likerUserId, createdAt: serverTimestamp() });
+        transaction.update(likedUserRef, {
+          likeCount: (userSnap.data()?.likeCount || 0) + 1,
+        });
+        isNowLiked = true;
+      }
+    });
+
+    return isNowLiked;
   } catch (err) {
     console.error('Error toggling like:', err);
     throw err;
+  }
+};
+
+// Legacy functions (kept for compatibility, but use new methods above)
+export const addUserLike = async (likerUserId, likedUserId) => {
+  const isNowLiked = await toggleUserLike(likerUserId, likedUserId);
+  if (!isNowLiked) {
+    // Was unliked, so try again to like
+    return toggleUserLike(likerUserId, likedUserId);
+  }
+};
+
+export const removeUserLike = async (likerUserId, likedUserId) => {
+  const isNowLiked = await toggleUserLike(likerUserId, likedUserId);
+  if (isNowLiked) {
+    // Was liked, so try again to unlike
+    return toggleUserLike(likerUserId, likedUserId);
   }
 };

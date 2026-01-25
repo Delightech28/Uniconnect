@@ -26,10 +26,11 @@
 }
 
 .studyhub-container.dark {
-  /* Gradient background for the entire page */
-  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%, #1a2412 50%, #0a2e0a 75%, #1e4004 100%);
+  /* Use the same dark gradient as main app for consistency */
+  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%,#1a2412 50%,#0a2e0a 75%,#1e4004 100%);
   background-attachment: fixed;
-  color: #e8edf0;
+  color: #061b08;
+  min-height: 100vh;
 }
 
 /* ===== ENSURE GRADIENT VISIBILITY ===== */
@@ -38,6 +39,16 @@
 }
 
 .studyhub-container.dark main {
+  background-color: transparent !important;
+}
+
+/* ===== OVERRIDE ALL LIGHT BACKGROUNDS IN DARK MODE ===== */
+.studyhub-container.dark [class*="bg-white"],
+.studyhub-container.dark [class*="bg-slate-50"],
+.studyhub-container.dark [class*="bg-slate-100"],
+.studyhub-container.dark [class*="bg-slate-200"],
+.studyhub-container.dark [class*="bg-gray-50"],
+.studyhub-container.dark [class*="bg-gray-100"] {
   background-color: transparent !important;
 }
 
