@@ -35,7 +35,7 @@ const BalanceCard = () => (
     <div className="bg-primary rounded-xl shadow-lg p-6 text-white 
 text-center"> 
         <p className="text-sm opacity-80">Available Balance</p> 
-        <p className="text-4xl font-bold mt-2 mb-1">₦15,000.00</p> 
+        <p className="text-4xl font-bold mt-2 mb-1">₦0.00</p> 
  
  
         <div className="flex items-center justify-center gap-2 opacity-90 

@@ -277,7 +277,7 @@ font-bold">UniWallet</p>
 <p className="text-slate-500 dark:text-slate-400
 text-sm">Available Balance</p>
 <p className="text-primary text-4xl
-font-bold">₦15,000.00</p>
+font-bold">₦0.00</p>
 </div>
 <div className="flex justify-center gap-3 mt-2">
 <button className="flex-1 rounded-lg h-10 px-4 bg-primary
