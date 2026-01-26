@@ -710,6 +710,7 @@ text-slate-700 dark:text-slate-300">Gender*</label>
 <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" style={{borderColor: formData.gender === 'male' ? '#07bc0c' : undefined, backgroundColor: formData.gender === 'male' ? 'rgba(7, 188, 12, 0.05)' : undefined}}>
 <input
 type="radio"
+id="gender"
 name="gender"
 value="male"
 checked={formData.gender === 'male'}
@@ -721,6 +722,7 @@ className="w-4 h-4"
 <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" style={{borderColor: formData.gender === 'female' ? '#07bc0c' : undefined, backgroundColor: formData.gender === 'female' ? 'rgba(7, 188, 12, 0.05)' : undefined}}>
 <input
 type="radio"
+id="gender"
 name="gender"
 value="female"
 checked={formData.gender === 'female'}
