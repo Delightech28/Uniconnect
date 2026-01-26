@@ -196,6 +196,7 @@ export const sendConnectionRequest = async (currentUserId, targetUserId) => {
   }
 
   try {
+    console.log('Sending connection request from', currentUserId, 'to', targetUserId);
     const currentUserRef = doc(db, 'users', currentUserId);
     const targetUserRef = doc(db, 'users', targetUserId);
 
@@ -231,6 +232,8 @@ export const sendConnectionRequest = async (currentUserId, targetUserId) => {
         createdAt: serverTimestamp(),
       });
     });
+
+    console.log('Connection request sent successfully');
 
     // Send notification to target user
     if (typeof notifyConnectionRequest === 'function') {
@@ -842,6 +845,7 @@ export const toggleUserLike = async (likerUserId, likedUserId) => {
   }
 
   try {
+    console.log('Toggling like from', likerUserId, 'to', likedUserId);
     const likeDocRef = doc(db, 'users', likedUserId, 'likes', likerUserId);
     const likedUserRef = doc(db, 'users', likedUserId);
 
@@ -853,6 +857,7 @@ export const toggleUserLike = async (likerUserId, likedUserId) => {
 
       if (likeSnap.exists()) {
         // Unlike
+        console.log('Unliking...');
         transaction.delete(likeDocRef);
         transaction.update(likedUserRef, {
           likeCount: Math.max((userSnap.data()?.likeCount || 0) - 1, 0),
@@ -860,6 +865,7 @@ export const toggleUserLike = async (likerUserId, likedUserId) => {
         isNowLiked = false;
       } else {
         // Like
+        console.log('Liking...');
         transaction.set(likeDocRef, { userId: likerUserId, createdAt: serverTimestamp() });
         transaction.update(likedUserRef, {
           likeCount: (userSnap.data()?.likeCount || 0) + 1,
@@ -868,6 +874,7 @@ export const toggleUserLike = async (likerUserId, likedUserId) => {
       }
     });
 
+    console.log('Like toggle completed, isNowLiked:', isNowLiked);
     return isNowLiked;
   } catch (err) {
     console.error('Error toggling like:', err);

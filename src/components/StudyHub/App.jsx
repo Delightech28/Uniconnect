@@ -1,377 +1,258 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, Home } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
-import { initDarkMode, toggleDarkModeLocal, syncDarkMode } from '../../utils/darkModeUtils';
+import React, { useState, useRef, useEffect } from 'react';
+import { MoreVertical } from 'lucide-react';
 import AppHeader from '../AppHeader';
-import FileUpload from './components/FileUpload';
-import PDFModal from './components/PDFModal';
-import Dashboard from './components/Dashboard';
-import FileQuickView from './components/FileQuickView';
-import ChatInterface from './components/Chat/ChatInterface';
-import QuizConfig from './components/Quiz/QuizConfig';
-import QuizGame from './components/Quiz/QuizGame';
-import QuizReview from './components/Quiz/QuizReview';
-import PodcastConfig from "./components/Podcast/PodcastConfig";
-import PodcastPlayer from "./components/Podcast/PodcastPlayer";
-import { analyzeTopics, generateQuiz, generatePodcastContent } from "./services/geminiService";
 import Footer from '../Footer';
-import './studyhub.css';
+import Sidebar from './components/Sidebar';
+import LoadingOverlay from './components/LoadingOverlay';
+import FileUpload from './components/FileUpload';
+import Dashboard from './components/Dashboard';
+import PodcastSection from './components/PodcastSection';
+import QuizSection from './components/QuizSection';
+import TutorSection from './components/TutorSection';
+import DocumentSummary from './components/Summary/DocumentSummary';
+import { analyzeDocument, generateTopics } from './services/geminiService';
+import ComingSoonOverlay from '../ComingSoonOverlay';
 
-/**
- * App Mode Constants
- */
-const APP_MODES = {
-  UPLOAD: 'UPLOAD',
-  DASHBOARD: 'DASHBOARD',
-  CHAT: 'CHAT',
-  QUIZ_PLAY: 'QUIZ_PLAY',
-  QUIZ_REVIEW: 'QUIZ_REVIEW',
-  PODCAST_CONFIG: 'PODCAST_CONFIG',
-  PODCAST_PLAY: 'PODCAST_PLAY',
-  QUIZ_CONFIG: 'QUIZ_CONFIG',
-};
+const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
+  // Coming soon overlay logic - initialize deadline and check immediately
+  const [showOverlay, setShowOverlay] = useState(true);
 
-/**
- * Loading quotes for motivation
- */
-const LOADING_QUOTES = [
-  "Every expert was once a beginner.",
-  "The beautiful thing about learning is that no one can take it away from you.",
-  "Education is the most powerful weapon which you can use to change the world.",
-  "Success is the sum of small efforts repeated day in and day out.",
-  "Your limitation—it's only your imagination.",
-  "Great things never come from comfort zones.",
-  "Dream it. Wish it. Do it.",
-];
-
-/**
- * StudyHub Main App Component
- */
-const StudyHubApp = () => {
-  const { darkMode: globalDarkMode } = useTheme();
-  const [darkMode, setDarkMode] = useState(globalDarkMode);
-  const [mode, setMode] = useState(APP_MODES.UPLOAD);
-  const [file, setFile] = useState(null);
-  const [topics, setTopics] = useState([]);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [quizData, setQuizData] = useState(null);
-  const [quizResults, setQuizResults] = useState(null);
-  const [podcastData, setPodcastData] = useState(null);
-  const [podcastSettings, setPodcastSettings] = useState(null);
-  const [chatSettings, setChatSettings] = useState(null);
-  const [unlockedTopics, setUnlockedTopics] = useState(new Set());
-  const [currentLoadingQuote, setCurrentLoadingQuote] = useState('');
-
-  // Initialize local dark mode
   useEffect(() => {
-    initDarkMode(setDarkMode);
+    // Initialize/check deadline in localStorage
+    const storageKey = 'comingSoonDeadline';
+    let deadline = localStorage.getItem(storageKey);
+
+    if (!deadline) {
+      // First time - set deadline to 5 days from now
+      deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).getTime();
+      localStorage.setItem(storageKey, deadline);
+    }
+
+    const now = Date.now();
+    const deadlineTime = parseInt(deadline, 10);
+
+    if (now >= deadlineTime) {
+      // Countdown expired - remove overlay
+      setShowOverlay(false);
+      localStorage.removeItem(storageKey);
+    } else {
+      // Still within countdown period - show overlay
+      setShowOverlay(true);
+    }
   }, []);
 
-  // Sync with global dark mode changes
-  useEffect(() => {
-    setDarkMode(globalDarkMode);
-    syncDarkMode(globalDarkMode);
-  }, [globalDarkMode]);
+  // If feature is still in coming soon period, show overlay
+  if (showOverlay) {
+    return <ComingSoonOverlay featureName="StudyHub" onClose={() => setShowOverlay(false)} />;
+  }
 
-  const handleDarkModeToggle = () => {
-    toggleDarkModeLocal(darkMode, setDarkMode);
-  };
+  const [currentView, setCurrentView] = useState('upload');
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Processing...');
+  const [studyDoc, setStudyDoc] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [cooldown, setCooldown] = useState(0);
+  const [topics, setTopics] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
+  const abortRef = useRef(null);
 
   useEffect(() => {
-    if (isLoading) {
-      setCurrentLoadingQuote(LOADING_QUOTES[Math.floor(Math.random() * LOADING_QUOTES.length)]);
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + Math.random() * 30;
-        });
-      }, 800);
-      return () => clearInterval(interval);
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [cooldown]);
 
-  const handleFileUpload = async (uploadedFile) => {
-    setFile(uploadedFile);
-    setIsLoading(true);
-    setLoadingProgress(0);
+  const handleFileUpload = async (file) => {
+    if (cooldown > 0) {
+      alert(`Please wait ${cooldown} seconds before uploading another document.`);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit');
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMessage('Analyzing document...');
+    abortRef.current = new AbortController();
 
     try {
-      const analyzedTopics = await analyzeTopics(uploadedFile);
-      setTopics(analyzedTopics);
-      setLoadingProgress(100);
+      const text = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsText(file);
+      });
+
+      setLoadingMessage('Extracting topics...');
+      const extractedTopics = await generateTopics(text, abortRef.current.signal);
       
-      setTimeout(() => {
-        setIsLoading(false);
-        setMode(APP_MODES.DASHBOARD);
-      }, 500);
+      const docData = {
+        name: file.name,
+        text: text,
+        uploadedAt: new Date().toISOString(),
+        id: Date.now().toString()
+      };
+
+      setStudyDoc(docData);
+      setTopics(extractedTopics);
+      setHistory([...history, docData]);
+      setCurrentView('analysis');
+
+      setCooldown(30);
     } catch (error) {
-      console.error('Failed to analyze topics:', error);
-      setIsLoading(false);
-      alert('Failed to analyze document. Please try again.');
-    }
-  };
-
-  const handleStartQuizGen = async (selectedTopics) => {
-    setMode(APP_MODES.QUIZ_CONFIG);
-  };
-
-  const handleStartQuizGenerate = async (selectedTopics) => {
-    setIsLoading(true);
-    setLoadingProgress(0);
-
-    try {
-      const quiz = await generateQuiz(file, selectedTopics);
-      setQuizData(quiz);
-      setLoadingProgress(100);
-      
-      setTimeout(() => {
-        setIsLoading(false);
-        setMode(APP_MODES.QUIZ_PLAY);
-      }, 500);
-    } catch (error) {
-      console.error('Failed to generate quiz:', error);
-      setIsLoading(false);
-      alert('Failed to generate quiz. Please try again.');
-    }
-  };
-
-  const handleQuizComplete = (results) => {
-    setQuizResults(results);
-    setMode(APP_MODES.QUIZ_REVIEW);
-  };
-
-  const handleUnlockNextTopic = (score) => {
-    if (score >= 70) {
-      const nextTopicIdx = topics.findIndex(t => !unlockedTopics.has(t));
-      if (nextTopicIdx !== -1 && nextTopicIdx + 1 < topics.length) {
-        setUnlockedTopics(prev => new Set([...prev, topics[nextTopicIdx + 1]]));
+      if (error.name !== 'AbortError') {
+        alert('Error processing document: ' + error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleStartPodcastGen = async (settings) => {
-    setPodcastSettings(settings);
-    setIsLoading(true);
-    setLoadingProgress(0);
+  const handleCancel = () => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      setLoading(false);
+    }
+  };
 
-    try {
-      const podcast = await generatePodcastContent(
-        file,
-        settings.topics,
-        settings.tone,
-        settings.speakers,
-        settings.duration,
-        settings.hostName
-      );
-      setPodcastData(podcast);
-      setLoadingProgress(100);
+  const handleUploadClick = () => {
+    setCurrentView('upload');
+  };
+
+  const handleQuizComplete = (topicId, score) => {
+    const updatedTopics = topics.map(t => 
+      t.id === topicId ? { ...t, score, passed: score >= 70 } : t
+    );
+    setTopics(updatedTopics);
+  };
+
+  const renderView = () => {
+    if (!studyDoc && currentView !== 'upload' && currentView !== 'history') {
+      return <FileUpload onFileUpload={handleFileUpload} isDarkMode={darkMode} />;
+    }
+
+    switch (currentView) {
+      case 'upload':
+        return <FileUpload onFileUpload={handleFileUpload} isDarkMode={darkMode} progress={0} />;
       
-      setTimeout(() => {
-        setIsLoading(false);
-        setMode(APP_MODES.PODCAST_PLAY);
-      }, 500);
-    } catch (error) {
-      console.error('Failed to generate podcast:', error);
-      setIsLoading(false);
-      alert('Failed to generate podcast. Please try again.');
+      case 'analysis':
+        return studyDoc && summaryData ? (
+          <DocumentSummary data={summaryData} onBack={() => setCurrentView('upload')} isDarkMode={darkMode} />
+        ) : (
+          <Dashboard 
+            topics={topics}
+            onStartQuiz={() => setCurrentView('quiz')}
+            onStartChat={() => setCurrentView('tutor')}
+            onStartPodcast={() => setCurrentView('podcast')}
+            isDarkMode={darkMode}
+          />
+        );
+      
+      case 'quiz':
+        return studyDoc ? (
+          <QuizSection 
+            docText={studyDoc.text}
+            topics={topics}
+            onQuizComplete={handleQuizComplete}
+            setLoading={setLoading}
+            setLoadingMessage={setLoadingMessage}
+            isDarkMode={darkMode}
+          />
+        ) : null;
+      
+      case 'tutor':
+        return studyDoc ? (
+          <TutorSection 
+            docText={studyDoc.text}
+            topics={topics}
+            setLoading={setLoading}
+            setLoadingMessage={setLoadingMessage}
+            isPaused={cooldown > 0}
+            isDarkMode={darkMode}
+          />
+        ) : null;
+      
+      case 'podcast':
+        return studyDoc ? (
+          <PodcastSection 
+            docText={studyDoc.text}
+            topics={topics}
+            setLoading={setLoading}
+            setLoadingMessage={setLoadingMessage}
+            isPaused={cooldown > 0}
+            isDarkMode={darkMode}
+          />
+        ) : null;
+      
+      case 'history':
+        return (
+          <div className={`max-w-4xl mx-auto p-8 ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+            <h2 className="text-3xl font-black mb-8">Document History</h2>
+            {history.length === 0 ? (
+              <p className="text-center text-gray-500">No documents uploaded yet</p>
+            ) : (
+              <div className="space-y-4">
+                {history.map(doc => (
+                  <div
+                    key={doc.id}
+                    onClick={() => {
+                      setStudyDoc(doc);
+                      setCurrentView('analysis');
+                    }}
+                    className={`p-6 rounded-2xl cursor-pointer transition-all ${
+                      darkMode 
+                        ? 'bg-slate-900 hover:bg-slate-800 border border-slate-800' 
+                        : 'bg-white hover:bg-slate-50 border border-slate-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg">{doc.name}</h3>
+                        <p className="text-sm text-gray-500">{new Date(doc.uploadedAt).toLocaleString()}</p>
+                      </div>
+                      <MoreVertical className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      
+      default:
+        return <FileUpload onFileUpload={handleFileUpload} isDarkMode={darkMode} />;
     }
-  };
-
-  const handleChatStart = (settings) => {
-    setChatSettings(settings);
-    setMode(APP_MODES.CHAT);
-  };
-
-  const handleChatExit = () => {
-    setChatSettings(null);
-    setMode(APP_MODES.DASHBOARD);
-  };
-
-  const handlePodcastConfigBack = () => {
-    setMode(APP_MODES.DASHBOARD);
-  };
-
-  const handlePodcastPlayerExit = () => {
-    setPodcastData(null);
-    setPodcastSettings(null);
-    setMode(APP_MODES.DASHBOARD);
-  };
-
-  const handleQuizGameExit = () => {
-    setMode(APP_MODES.DASHBOARD);
-    setQuizData(null);
-    setQuizResults(null);
-  };
-
-  const handleReset = () => {
-    setFile(null);
-    setTopics([]);
-    setMode(APP_MODES.UPLOAD);
-    setQuizData(null);
-    setQuizResults(null);
-    setPodcastData(null);
-    setChatSettings(null);
-    setPodcastSettings(null);
-    setUnlockedTopics(new Set());
   };
 
   return (
-    <div className={`studyhub-container ${darkMode ? 'dark' : ''}`}>
-    <style>{`
-      .studyhub-container header {
-        background-color: #c2ebc2 !important;
-      }
-      .studyhub-container.dark header {
-        background-color: rgba(15, 23, 42, 0.9) !important;
-      }
-    `}</style>
-    <div className="w-full h-screen flex flex-col">
+    <div className={`flex flex-col min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-white'}`}>
+      <AppHeader darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       
-      {/* Header - Using Main App Header */}
-      <AppHeader darkMode={darkMode} toggleDarkMode={handleDarkModeToggle} />
+      <div className="flex-1 flex">
+        <Sidebar 
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          hasDocument={!!studyDoc}
+          disabled={cooldown > 0}
+          onUploadClick={handleUploadClick}
+          isDarkMode={darkMode}
+        />
+        
+        <main className="flex-1 md:ml-20 mb-20 md:mb-0">
+          {loading && (
+            <LoadingOverlay 
+              progress={50}
+              stage={loadingMessage}
+              onCancel={handleCancel}
+              isDarkMode={darkMode}
+            />
+          )}
+          {renderView()}
+        </main>
+      </div>
       
-      {/* Home/Reset Button */}
-      {mode !== APP_MODES.UPLOAD && (
-        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-end bg-white">
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all text-sm text-secondary dark:text-white hover:bg-background-light dark:hover:bg-slate-800"
-          >
-            <Home className="w-4 h-4" /> Home
-          </button>
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center transition-colors z-50 bg-white/80 dark:bg-secondary/80">
-          <div className="text-center space-y-6">
-            <div className="relative w-32 h-32 mx-auto">
-              <svg className="w-full h-full transform -rotate-90 drop-shadow-lg">
-                <circle
-                  className="text-slate-200 dark:text-slate-800"
-                  strokeWidth="8"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="50"
-                  cx="50%"
-                  cy="50%"
-                />
-                <circle
-                  className="text-[#07bc0c] transition-all duration-500"
-                  strokeWidth="8"
-                  strokeDasharray={314}
-                  strokeDashoffset={314 * (1 - loadingProgress / 100)}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="50"
-                  cx="50%"
-                  cy="50%"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-black text-secondary dark:text-white">
-                  {Math.round(loadingProgress)}%
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Loader2 className="w-8 h-8 animate-spin text-[#07bc0c] mx-auto" />
-              <p className="text-xl font-black uppercase tracking-wider text-secondary dark:text-white">
-                Processing...
-              </p>
-              <p className="text-lg italic text-secondary dark:text-slate-400">
-                "{currentLoadingQuote}"
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {mode === APP_MODES.UPLOAD && (
-          <FileUpload onFileUpload={handleFileUpload} />
-        )}
-        
-        {mode === APP_MODES.DASHBOARD && file && (
-          <Dashboard
-            file={file}
-            topics={topics}
-            onStartQuiz={handleStartQuizGen}
-            onStartChat={handleChatStart}
-            onStartPodcast={() => setMode(APP_MODES.PODCAST_CONFIG)}
-            unlockedTopics={unlockedTopics}
-          />
-        )}
-        
-        {mode === APP_MODES.CHAT && file && chatSettings && (
-          <ChatInterface
-            file={file}
-            topics={chatSettings.topics || topics}
-            tone={chatSettings.tone}
-            accent={chatSettings.accent}
-            onExit={handleChatExit}
-          />
-        )}
-        
-        {mode === APP_MODES.QUIZ_CONFIG && file && (
-          <QuizConfig
-            topics={topics}
-            unlockedTopics={unlockedTopics}
-            onStart={handleStartQuizGenerate}
-            onBack={() => setMode(APP_MODES.DASHBOARD)}
-          />
-        )}
-        
-        {mode === APP_MODES.QUIZ_PLAY && quizData && (
-          <QuizGame
-            questions={quizData}
-            onComplete={handleQuizComplete}
-            onExit={handleQuizGameExit}
-          />
-        )}
-        
-        {mode === APP_MODES.QUIZ_REVIEW && quizData && quizResults && (
-          <QuizReview
-            questions={quizData}
-            results={quizResults}
-            topic={quizData[0]?.topic || 'Quiz'}
-            file={file}
-            onRetry={() => {
-              setMode(APP_MODES.QUIZ_CONFIG);
-              setQuizResults(null);
-            }}
-            onExit={() => {
-              setMode(APP_MODES.DASHBOARD);
-              setQuizData(null);
-              setQuizResults(null);
-            }}
-            onUnlockNext={handleUnlockNextTopic}
-          />
-        )}
-        
-        {mode === APP_MODES.PODCAST_CONFIG && file && (
-          <PodcastConfig
-            topics={topics}
-            onStart={handleStartPodcastGen}
-            onBack={handlePodcastConfigBack}
-          />
-        )}
-        
-        {mode === APP_MODES.PODCAST_PLAY && podcastData && (
-          <PodcastPlayer
-            audioData={podcastData.audioData}
-            transcript={podcastData.transcript}
-            onExit={handlePodcastPlayerExit}
-          />
-        )}
-      </div>
-      </div>
       <Footer darkMode={darkMode} />
     </div>
   );

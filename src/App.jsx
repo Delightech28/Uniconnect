@@ -21,7 +21,7 @@ import NotificationsPage from "./components/NotificationsPage";
 import UniMarketPage from "./components/UniMarketPage";
 import SellItemPage from "./components/SellItemPage";
 import MyListingsPage from "./components/MyListingPage";
-import StudyHubApp from "./components/StudyHub/App";
+import StudyHub from "./components/StudyHub";
 import AIToolApp from "./components/Ai-tool/App";
 import QuizPage from "./components/QuizPage";
 import DocumentInfo from "./components/DocumentInfo";
@@ -101,7 +101,7 @@ function App() {
         <Route path="/unimarket" element={<UniMarketPage />} />
         <Route path="/sell-item" element={<ProtectedRoute><SellItemPage /></ProtectedRoute>} />
         <Route path="/my-listings" element={<ProtectedRoute><MyListingsPage /></ProtectedRoute>} />
-        <Route path="/study-hub" element={<ProtectedRoute><StudyHubApp /></ProtectedRoute>} />
+        <Route path="/study-hub" element={<ProtectedRoute><StudyHub /></ProtectedRoute>} />
         <Route path="/uni-doc" element={<ProtectedRoute><AIToolApp /></ProtectedRoute>} />
         <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         <Route path="/document-info" element={<DocumentInfo />} />

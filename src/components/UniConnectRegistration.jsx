@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import uni3 from '../assets/uni3.jpg';
 import { useTheme } from '../hooks/useTheme';
+import toast from 'react-hot-toast';
 import { auth, db, storage } from '../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
@@ -480,6 +481,10 @@ const handleNext = async (e) => {
 	}
 };
 
+const handleGoogleSignUp = async () => {
+  toast('Coming soon — please use email to sign up', { icon: '⏳' });
+};
+
 const handleSubmit = async (e) => {
 	e.preventDefault();
 	setLoading(true);
@@ -779,6 +784,9 @@ items-center justify-center rounded-lg bg-primary px-5 py-4 text-base
 font-bold tracking-wide text-white hover:bg-primary/90">
 Next
 </button>
+
+{/* Google Sign-Up Button removed (placeholder in form above) */}
+
 <p className="text-text-primary dark:text-gray-300 text-sm
 text-center">
 I have an account{' '}

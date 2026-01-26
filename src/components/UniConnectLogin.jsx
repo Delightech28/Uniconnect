@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import uni4 from '../assets/uni4.jpg';
 import { useTheme } from '../hooks/useTheme';
+import toast from 'react-hot-toast';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { auth } from '../firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
 const UniConnectLogin = () => {
@@ -44,6 +45,11 @@ setFormData((prevData) => ({
 const togglePasswordVisibility = () => {
 setShowPassword(!showPassword);
 };
+
+const handleGoogleSignIn = async () => {
+  toast('Coming soon — please use email to sign in', { icon: '⏳' });
+};
+
 const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -78,7 +84,7 @@ const handleSubmit = async (e) => {
         // Avoid logging sensitive info; log minimal error for debugging
         console.error('Login error code:', error?.code || error?.message || error);
     }
-};
+}
 return (
     <div>
     <div className="w-full h-screen flex flex-col">
@@ -111,11 +117,14 @@ return (
                 </div>
                 {/* moved hero header into the image overlay; keep this area compact */}
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 px-4 py-3">
-    <button type="button" className="flex w-full cursor-pointer
-items-center justify-center gap-3 rounded-lg border border-slate-300
-bg-white px-5 py-3 text-base font-medium text-slate-700
-hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800
-dark:text-slate-300 dark:hover:bg-slate-700">
+    {/* Google Sign In Button */}
+<button
+type="button"
+onClick={handleGoogleSignIn}
+disabled={loading}
+className="flex w-full justify-center items-center border border-[#cfdbe7]
+dark:border-gray-600 bg-background-light dark:bg-slate-800 rounded-lg h-14
+gap-2 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
 <svg className="h-5 w-5" viewBox="0 0 24 24"
 xmlns="http://www.w3.org/2000/svg"><path d="M22.56
 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21
@@ -129,8 +138,9 @@ fill="#34A853"></path><path d="M5.84
 fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21
 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66
 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
-<span>Sign up with Google</span>
+<span className="text-text-primary dark:text-gray-300">Sign in with Google</span>
 </button>
+
 <div>
 <label htmlFor="email" className="text-text-primary
 dark:text-gray-300 text-base font-medium leading-normal pb-2 block">

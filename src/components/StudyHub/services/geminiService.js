@@ -1,37 +1,14 @@
-import { GoogleGenAI, Chat, Modality, Type } from "@google/genai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-/**
- * @typedef {Object} FeedbackResult
- * @property {string[]} strengths
- * @property {string[]} weaknesses
- * @property {string} focusArea
- * @property {string} summary
- */
-
-/**
- * Clean base64 string by removing data URI prefix
- * @param {string} data - Base64 string with or without prefix
- * @returns {string} Cleaned base64 string
- */
-const cleanBase64 = (data) => {
-  const parts = data.split(',');
-  return parts.length > 1 ? parts[1] : parts[0];
+// Initialize Gemini API
+const getAI = () => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+  return new GoogleGenerativeAI({ apiKey });
 };
 
-/**
- * Get MIME type for file
- * @param {Object} file - File object
- * @returns {string} MIME type
- */
-const getMimeType = (file) => {
-  return file.type === 'application/pdf' ? 'application/pdf' : 'text/plain';
-};
-
-/**
- * Parse JSON response from AI, handling common formatting issues
- * @param {string} text - Response text
- * @returns {Object|Array} Parsed JSON
- */
 const parseJsonResponse = (text) => {
   if (!text) throw new Error("Empty response from AI");
   
@@ -53,25 +30,6 @@ const parseJsonResponse = (text) => {
   }
 };
 
-/**
- * Get accent-specific instruction for TTS
- * @param {string} accent - Voice accent (US, UK, NG)
- * @returns {string} Accent instruction
- */
-const getAccentInstruction = (accent) => {
-  switch (accent) {
-    case 'NG': return "using a natural Nigerian English style, with clear Nigerian rhythm and local nuances.";
-    case 'UK': return "using a natural British English (UK) style with appropriate British vocabulary.";
-    case 'US': return "using a standard American English (US) style.";
-    default: return "using a standard American English (US) style.";
-  }
-};
-
-/**
- * Get tone-specific instruction for content generation
- * @param {string} tone - Content tone (FUNNY, PROFESSIONAL, TEACHER, FRIEND)
- * @returns {string} Tone instruction
- */
 const getToneInstruction = (tone) => {
   switch (tone) {
     case 'FUNNY': return "Be highly entertaining and witty. Use educational jokes and keep the energy high.";
@@ -83,242 +41,360 @@ const getToneInstruction = (tone) => {
 };
 
 /**
- * Create a new chat session with Google Gemini
- * @param {Object} file - Uploaded file object
- * @param {string} [accent='US'] - Voice accent
- * @param {string} [tone='TEACHER'] - Content tone
- * @returns {Promise<Chat>} Chat session
+ * Generate topics from document text
+ * @param {string} text - Document text
+ * @param {AbortSignal} signal - Abort signal for cancellation
+ * @returns {Promise<string[]>} Array of topics
  */
-export const createChatSession = async (file, accent = 'US', tone = 'TEACHER') => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  return ai.chats.create({
-    model: "gemini-3-flash-preview",
-    config: {
-      systemInstruction: `You are the Unispace Study Assistant. Support the user based ONLY on the provided document.
-        STRICT OUTPUT RULES:
-        1. NEVER use the # symbol for headers. Use uppercase text for emphasis.
-        2. NEVER use the * symbol (asterisks). Use dashes (-) for lists.
-        3. Cite page numbers as [p. X].
-        4. ACCENT: Speak ${getAccentInstruction(accent)}.
-        5. TONE: ${getToneInstruction(tone)}.
-        6. ALWAYS end every response with a follow-up question asking if they have any other tasks or need further explanation.`
+export const generateTopics = async (text, signal) => {
+  if (!text || text.trim().length === 0) {
+    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+  }
+  
+  try {
+    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
+    
+    const response = await model.generateContent({
+      contents: [{
+        parts: [{
+          text: `Extract 5-7 distinct, specific study topics from this document. Return ONLY a JSON array of strings with short topic names (2-4 words each).
+          
+          Text (first 2000 chars):
+          ${text.substring(0, 2000)}...
+          
+          Format: ["Topic 1", "Topic 2", "Topic 3", ...]`
+        }]
+      }]
+    });
+
+    const responseText = response.response.text();
+    const topics = parseJsonResponse(responseText);
+    
+    if (Array.isArray(topics)) {
+      return topics.slice(0, 7);
     }
-  });
+    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+  } catch (error) {
+    console.error('Error generating topics:', error);
+    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+  }
 };
 
 /**
  * Initialize chat session with document context
- * @param {Chat} chat - Chat session
- * @param {Object} file - File object
- * @returns {Promise<void>}
+ * @param {string} docText - Document text
+ * @param {string[]} topics - Document topics
+ * @param {string} tone - Chat tone
+ * @returns {Promise<Object>} Chat session object with sendMessage method
  */
-export const initializeChatWithContext = async (chat, file) => {
-  await chat.sendMessage({
-    message: [
-      { inlineData: { mimeType: getMimeType(file), data: cleanBase64(file.data) } },
-      { text: "System: Context loaded. Start by greeting the user warmly and ask how you can help with their document today." }
-    ]
-  });
-};
+export const initializeChatWithContext = async (docText, topics, tone = 'TEACHER') => {
+  try {
+    const model = getAI().getGenerativeModel({
+      model: 'gemini-pro',
+      systemInstruction: `You are the UniConnect AI Study Tutor. You help students learn from their documents.
+      
+DOCUMENT CONTEXT: The student has provided a study document about: ${Array.isArray(topics) ? topics.join(', ') : topics}
 
-/**
- * Generate speech from text using Google TTS
- * @param {string} text - Text to speak
- * @param {string} accent - Voice accent
- * @returns {Promise<string>} Base64 audio data
- */
-export const speakText = async (text, accent) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  const cleanText = text.replace(/[#*]/g, '').trim();
-  
-  // Default general voices
-  const voiceName = accent === 'NG' ? 'Kore' : (accent === 'UK' ? 'Puck' : 'Zephyr');
+BEHAVIOR RULES:
+1. ONLY answer questions based on the provided document content
+2. If something isn't in the document, say "I don't have information about that in your document"
+3. Be ${getToneInstruction(tone).toLowerCase()}
+4. Explain complex concepts with examples from the document
+5. Ask follow-up questions to deepen understanding
+6. End responses by asking if they need clarification
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Speak this ${getAccentInstruction(accent)}: ${cleanText}` }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
-    }
-  });
-  
-  const audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!audio) throw new Error("TTS failed");
-  return audio;
-};
+FORMATTING:
+- Use clear, readable text
+- Use bullet points (-) for lists
+- Use bold for emphasis
+- Keep responses concise but thorough`
+    });
 
-/**
- * Generate podcast content from file with multiple speakers
- * @param {Object} file - File object
- * @param {Object} settings - Podcast settings
- * @returns {Promise<{audio: string, segments: Array}>} Audio and segments
- */
-export const generatePodcastContent = async (file, settings) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  const { tone, accent, durationMinutes, speakerCount, selectedTopics, hostAName, hostBName } = settings;
-
-  const topicContext = selectedTopics.length > 0 
-    ? `FOCUS ONLY ON THESE TOPICS: ${selectedTopics.join(', ')}.` 
-    : "Summarize the entire document.";
-
-  const speakerInstruction = speakerCount === 'DOUBLE' 
-    ? `Write this as a conversation between two hosts. Host A is named ${hostAName}, Host B is named ${hostBName}. Use '${hostAName}:' and '${hostBName}:' prefixes.` 
-    : `Write this as a solo presentation by ${hostAName}. Use '${hostAName}:' prefix.`;
-
-  // Explicit instruction for gender detection and voice assignment
-  const scriptResponse = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: [
-      { inlineData: { mimeType: getMimeType(file), data: cleanBase64(file.data) } },
-      { text: `Create a podcast script based on the attached document. 
-               TONE: ${getToneInstruction(tone)}. 
-               ${speakerInstruction}
-               ${topicContext}
-               
-               IMPORTANT VOICE ASSIGNMENT:
-               1. Analyze host names: Host A (${hostAName}), Host B (${hostBName}).
-               2. Inferred gender:
-                  - If Female name: Must assign 'Zephyr' or 'Kore' or 'Puck'.
-                  - If Male name: Must assign 'Fenrir' or 'Charon'.
-               3. Pick best voice matching gender and accent ${accent}:
-                  - US: Female='Zephyr', Male='Fenrir'
-                  - UK: Female='Puck', Male='Charon'
-                  - NG: Female='Kore', Male='Fenrir'
-               
-               Return a JSON object with:
-               'voiceHostA': name of the assigned voice for ${hostAName},
-               'voiceHostB': name of the assigned voice for ${hostBName} (if double),
-               'segments': array of objects with {startTime, topic, speaker, text}.
-               Target duration: ${durationMinutes} minutes.` }
-    ],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          voiceHostA: { type: Type.STRING },
-          voiceHostB: { type: Type.STRING },
-          segments: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                startTime: { type: Type.NUMBER },
-                topic: { type: Type.STRING },
-                speaker: { type: Type.STRING },
-                text: { type: Type.STRING }
-              },
-              required: ["startTime", "topic", "speaker", "text"]
-            }
-          }
+    // Start chat with context
+    const chat = model.startChat({
+      history: [
+        {
+          role: 'user',
+          parts: [{ text: `Please help me study this document about: ${Array.isArray(topics) ? topics.join(', ') : topics}. Here's the content:\n\n${docText.substring(0, 3000)}...` }]
         },
-        required: ["segments", "voiceHostA"]
-      }
-    }
-  });
+        {
+          role: 'model',
+          parts: [{ text: `Hello! I've reviewed your study material on ${Array.isArray(topics) ? topics.join(', ') : topics}. I'm ready to help you learn! What would you like to explore first?` }]
+        }
+      ]
+    });
 
-  const parsed = parseJsonResponse(scriptResponse.text || "{}");
-  const segments = parsed.segments || [];
-  const voiceA = parsed.voiceHostA || (accent === 'UK' ? 'Puck' : 'Zephyr');
-  const voiceB = parsed.voiceHostB || (accent === 'UK' ? 'Charon' : 'Kore');
-  
-  const fullText = segments.map(s => `${s.speaker}: ${s.text}`).join('\n\n');
-
-  const ttsConfig = {
-    responseModalities: [Modality.AUDIO]
-  };
-
-  if (speakerCount === 'DOUBLE') {
-    ttsConfig.speechConfig = {
-      multiSpeakerVoiceConfig: {
-        speakerVoiceConfigs: [
-          { speaker: hostAName, voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceA } } },
-          { speaker: hostBName, voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceB } } }
-        ]
-      }
-    };
-  } else {
-    ttsConfig.speechConfig = {
-      voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceA } }
-    };
+    return chat;
+  } catch (error) {
+    console.error('Error initializing chat:', error);
+    throw error;
   }
-
-  const audioResponse = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: fullText }] }],
-    config: ttsConfig
-  });
-
-  const audio = audioResponse.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!audio) throw new Error("Podcast audio generation failed");
-
-  return { audio, segments };
 };
 
 /**
- * Analyze document topics using AI
- * @param {Object} file - File object
- * @returns {Promise<string[]>} Array of topics
+ * Speak text using text-to-speech
+ * @param {string} text - Text to speak
+ * @param {string} accent - Voice accent (en-US, en-GB, etc.)
+ * @returns {Promise<string>} Audio URL or base64
  */
-export const analyzeTopics = async (file) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: {
-      parts: [
-        { inlineData: { mimeType: getMimeType(file), data: cleanBase64(file.data) } },
-        { text: "Extract 5 distinct study topics from this PDF. Return ONLY a JSON array of strings." }
-      ]
-    }
-  });
-  return parseJsonResponse(response.text || "[]");
+export const speakText = async (text, accent = 'en-US') => {
+  try {
+    // Use browser's Web Speech API
+    return new Promise((resolve, reject) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Set voice based on accent
+      const voices = speechSynthesis.getVoices();
+      const voiceMap = {
+        'en-US': 'en-US',
+        'en-GB': 'en-GB',
+        'en-AU': 'en-AU'
+      };
+      
+      const lang = voiceMap[accent] || 'en-US';
+      const voice = voices.find(v => v.lang.includes(lang));
+      if (voice) utterance.voice = voice;
+      
+      utterance.onend = () => resolve('spoken');
+      utterance.onerror = (e) => reject(e);
+      
+      speechSynthesis.speak(utterance);
+    });
+  } catch (error) {
+    console.error('Error speaking text:', error);
+    throw error;
+  }
 };
 
 /**
  * Generate quiz questions for a topic
- * @param {Object} file - File object
+ * @param {string} docText - Document text
  * @param {string} topic - Topic to quiz on
  * @param {number} count - Number of questions
+ * @param {AbortSignal} signal - Abort signal
  * @returns {Promise<Array>} Array of quiz questions
  */
-export const generateQuiz = async (file, topic, count) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  const prompt = `Generate ${count} MCQs for "${topic}" based on this PDF.
-  JSON FORMAT: [{"id":"1","text":"Q","options":["A","B","C","D"],"correctAnswerIndex":0,"explanation":"Why","sourcePage":1}]`;
+export const generateQuiz = async (docText, topic, count = 5, signal) => {
+  if (!docText) return [];
+  
+  try {
+    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
+    
+    const response = await model.generateContent({
+      contents: [{
+        parts: [{
+          text: `Generate ${count} multiple choice quiz questions about "${topic}".
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: {
-      parts: [
-        { inlineData: { mimeType: getMimeType(file), data: cleanBase64(file.data) } },
-        { text: prompt }
-      ]
-    }
-  });
-  return parseJsonResponse(response.text || "[]");
+IMPORTANT - Return ONLY valid JSON array with this exact format:
+[
+  {
+    "id": "1",
+    "text": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswerIndex": 0,
+    "explanation": "Why option A is correct based on the document"
+  }
+]
+
+Document text to base questions on:
+${docText.substring(0, 3000)}...
+
+RULES:
+- Questions must be answerable from the document
+- Options should be plausible distractors
+- Include clear explanations
+- Return ONLY the JSON array, no other text`
+        }]
+      }]
+    });
+
+    const responseText = response.response.text();
+    const questions = parseJsonResponse(responseText);
+    
+    return Array.isArray(questions) ? questions : [];
+  } catch (error) {
+    console.error('Error generating quiz:', error);
+    return [];
+  }
 };
 
 /**
- * Get AI feedback on quiz results
- * @param {Object} file - File object
+ * Get AI feedback on quiz performance
+ * @param {string} docText - Document text
  * @param {Array} questions - Quiz questions
- * @param {Array} results - Quiz results
- * @returns {Promise<FeedbackResult>} Feedback analysis
+ * @param {Array} results - User's answers
+ * @param {AbortSignal} signal - Abort signal
+ * @returns {Promise<Object>} Feedback object
  */
-export const getQuizFeedback = async (file, questions, results) => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-  const resultData = results.map(r => ({ q: questions.find(q => q.id === r.questionId)?.text, ok: r.isCorrect }));
-  const prompt = `Analyze these quiz results: ${JSON.stringify(resultData)}. Return JSON with strengths[], weaknesses[], focusArea (string), summary (string).`;
+export const getQuizFeedback = async (docText, questions, results, signal) => {
+  if (!docText || !results) {
+    return {
+      strengths: [],
+      weaknesses: [],
+      focusArea: 'Keep practicing',
+      summary: 'Keep up the good work!'
+    };
+  }
+  
+  try {
+    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
+    
+    const resultsData = results.map((r, idx) => ({
+      question: questions[idx]?.text,
+      correct: r.isCorrect
+    }));
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: {
-      parts: [
-        { inlineData: { mimeType: getMimeType(file), data: cleanBase64(file.data) } },
-        { text: prompt }
-      ]
+    const response = await model.generateContent({
+      contents: [{
+        parts: [{
+          text: `Analyze these quiz results and provide constructive feedback.
+
+Quiz Results:
+${JSON.stringify(resultsData, null, 2)}
+
+Return ONLY valid JSON in this format:
+{
+  "strengths": ["strength1", "strength2"],
+  "weaknesses": ["weakness1", "weakness2"],
+  "focusArea": "Main area to improve",
+  "summary": "Overall feedback (2-3 sentences)"
+}
+
+Be encouraging and specific.`
+        }]
+      }]
+    });
+
+    const responseText = response.response.text();
+    const feedback = parseJsonResponse(responseText);
+    
+    return feedback || {
+      strengths: ['Engagement'],
+      weaknesses: ['Review basics'],
+      focusArea: 'Core concepts',
+      summary: 'Great effort! Review the fundamentals.'
+    };
+  } catch (error) {
+    console.error('Error getting feedback:', error);
+    return {
+      strengths: [],
+      weaknesses: [],
+      focusArea: 'Keep practicing',
+      summary: 'Keep up the good work!'
+    };
+  }
+};
+
+/**
+ * Generate podcast content from document
+ * @param {string} docText - Document text
+ * @param {Object} settings - Podcast settings
+ * @param {AbortSignal} signal - Abort signal
+ * @returns {Promise<Object>} Podcast data with segments
+ */
+export const generatePodcastContent = async (docText, settings = {}, signal) => {
+  if (!docText) return { audio: '', segments: [] };
+  
+  try {
+    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
+    const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [] } = settings;
+    
+    const topicContext = selectedTopics.length > 0 
+      ? `Focus on these topics: ${selectedTopics.join(', ')}.`
+      : 'Cover the main points from the document.';
+
+    const response = await model.generateContent({
+      contents: [{
+        parts: [{
+          text: `Create a podcast script from this document.
+
+${topicContext}
+Tone: ${getToneInstruction(tone)}
+Target duration: ${durationMinutes} minutes (${durationMinutes * 150} words approximately)
+
+Return ONLY valid JSON:
+{
+  "title": "Podcast Title",
+  "segments": [
+    {
+      "startTime": 0,
+      "duration": 30,
+      "topic": "Topic name",
+      "speaker": "Narrator",
+      "text": "Segment text..."
     }
-  });
-  return parseJsonResponse(response.text || "{}");
+  ]
+}
+
+Document:
+${docText.substring(0, 3000)}...`
+        }]
+      }]
+    });
+
+    const responseText = response.response.text();
+    const podcastData = parseJsonResponse(responseText);
+    
+    return {
+      audio: '',
+      segments: podcastData.segments || [],
+      title: podcastData.title || 'Study Podcast'
+    };
+  } catch (error) {
+    console.error('Error generating podcast:', error);
+    return { audio: '', segments: [], title: 'Study Podcast' };
+  }
+};
+
+/**
+ * Analyze document and extract summary
+ * @param {string} docText - Document text
+ * @param {AbortSignal} signal - Abort signal
+ * @returns {Promise<Object>} Analysis with summary and key points
+ */
+export const analyzeDocument = async (docText, signal) => {
+  if (!docText) {
+    return { summary: '', keyPoints: [], topics: [] };
+  }
+  
+  try {
+    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
+    
+    const response = await model.generateContent({
+      contents: [{
+        parts: [{
+          text: `Analyze this document and provide:
+1. A concise 2-3 sentence summary
+2. 5 key points
+3. 5-7 study topics
+
+Return ONLY valid JSON:
+{
+  "summary": "...",
+  "keyPoints": ["point1", "point2", ...],
+  "topics": ["topic1", "topic2", ...]
+}
+
+Document (first 3000 characters):
+${docText.substring(0, 3000)}...`
+        }]
+      }]
+    });
+
+    const responseText = response.response.text();
+    const analysis = parseJsonResponse(responseText);
+    
+    return analysis || {
+      summary: 'Document analysis in progress...',
+      keyPoints: [],
+      topics: []
+    };
+  } catch (error) {
+    console.error('Error analyzing document:', error);
+    return {
+      summary: 'Document loaded successfully. Ask questions to learn more.',
+      keyPoints: [],
+      topics: []
+    };
+  }
 };

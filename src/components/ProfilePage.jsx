@@ -175,7 +175,8 @@ const ProfilePage = () => {
         toast.info('Connection request already pending');
       }
     } catch (err) {
-      toast.error('Error sending connection request');
+      console.error('Connection request error:', err);
+      toast.error('Error sending connection request: ' + (err.message || err));
     } finally {
       setConnectLoading(false);
     }
@@ -247,7 +248,8 @@ const ProfilePage = () => {
         toast.success('Profile unliked');
       }
     } catch (err) {
-      toast.error('Error updating like status');
+      console.error('Like toggle error:', err);
+      toast.error('Error updating like status: ' + (err.message || err));
     } finally {
       setLikeLoading(false);
     }
