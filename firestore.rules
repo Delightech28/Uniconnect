@@ -32,8 +32,8 @@ service cloud.firestore {
 
       // Connection requests subcollection: pending requests to this user
       match /connectionRequests/{requesterId} {
-        // Only the target user can read their pending requests
-        allow read: if request.auth != null && request.auth.uid == userId;
+        // Both the target user and the requester can read the request
+        allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == requesterId);
         // The requester may create their own request doc; the target or requester may delete it (accept/reject)
         allow create: if request.auth != null && request.auth.uid == requesterId;
         allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == requesterId);

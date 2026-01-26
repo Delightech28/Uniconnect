@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
@@ -156,6 +156,33 @@ const ProfilePage = () => {
 
     return () => unsub();
   }, [userId, navigate]);
+
+  // Real-time listener for user stats to keep data updated
+  useEffect(() => {
+    if (!userId && !currentUser) return;
+
+    const targetUserId = userId || currentUser?.uid;
+    if (!targetUserId) return;
+
+    const userRef = doc(db, 'users', targetUserId);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setStats({
+          itemsSold: data.itemsSold || 0,
+          itemsListed: data.itemsListed || 0,
+          sellerRating: data.sellerRating || 0,
+          reviews: data.reviews || 0,
+          postsCreated: data.postsCreated || 0,
+          followerCount: data.followerCount || 0,
+          followingCount: data.followingCount || 0,
+          joinDate: data.createdAt || data.joinDate || null,
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userId, currentUser?.uid]);
 
   const handleSendConnectionRequest = async () => {
     if (!currentUser) {
