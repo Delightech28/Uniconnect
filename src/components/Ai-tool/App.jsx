@@ -42,7 +42,7 @@ const App = () => {
 
   // If feature is still in coming soon period, show overlay
   if (showOverlay) {
-    return <ComingSoonOverlay featureName="UniDic" onClose={() => setShowOverlay(false)} />;
+    return <ComingSoonOverlay featureName="UniDoc" onClose={() => setShowOverlay(false)} />;
   }
 
   const { darkMode: globalDarkMode } = useTheme();
