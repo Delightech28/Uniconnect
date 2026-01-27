@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
-import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, getDoc, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Footer from './Footer';
@@ -64,6 +65,7 @@ const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, on
 export default function CampusFeed() {
   const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +86,23 @@ export default function CampusFeed() {
       setLoading(false);
     }
   }, []);
+
+  // Scroll to a post when a hash is present (e.g. /campusfeed#post-abc)
+  useEffect(() => {
+    if (!location?.hash) return;
+    const id = location.hash.replace('#', '');
+    // Wait a short moment for posts to be rendered
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Optionally highlight briefly
+        el.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2'), 1500);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [location?.hash, posts]);
   return (
     <div>
     <div className="w-full h-screen flex flex-col">
@@ -130,6 +149,8 @@ function PostItem({ post }) {
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
   const [authorAvatar, setAuthorAvatar] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isAuthor, setIsAuthor] = useState(false);
 
   // Fetch author avatar from user profile
   useEffect(() => {
@@ -149,6 +170,10 @@ function PostItem({ post }) {
       }
     };
     fetchAuthorAvatar();
+    
+    // Check if current user is the post author
+    const currentUser = auth.currentUser;
+    setIsAuthor(currentUser && currentUser.uid === post.authorId);
   }, [post.authorId]);
 
   useEffect(() => {
@@ -369,8 +394,51 @@ function PostItem({ post }) {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!window.confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+    const toastId = toast.loading('Deleting post...');
+    try {
+      // Delete all comments and their likes first
+      const commentsCol = collection(db, 'posts', post.id, 'comments');
+      const commentsSnap = await getDocs(commentsCol);
+      
+      for (const commentDoc of commentsSnap.docs) {
+        // Delete likes for each comment
+        const commentLikesCol = collection(db, 'posts', post.id, 'comments', commentDoc.id, 'likes');
+        const likesSnap = await getDocs(commentLikesCol);
+        for (const likeDoc of likesSnap.docs) {
+          await deleteDoc(likeDoc.ref);
+        }
+        // Delete the comment itself
+        await deleteDoc(commentDoc.ref);
+      }
+      
+      // Delete all likes on the post
+      const likesCol = collection(db, 'posts', post.id, 'likes');
+      const likesSnap = await getDocs(likesCol);
+      for (const likeDoc of likesSnap.docs) {
+        await deleteDoc(likeDoc.ref);
+      }
+      
+      // Finally, delete the post
+      await deleteDoc(doc(db, 'posts', post.id));
+      setMenuOpen(false);
+      toast.success('Post deleted successfully', { id: toastId });
+    } catch (err) {
+      console.error('Failed to delete post', err);
+      toast.error('Failed to delete post', { id: toastId });
+    }
+  };
+
+  const handleEditPost = () => {
+    navigate(`/edit-post/${post.id}`);
+    setMenuOpen(false);
+  };
+
   return (
-    <article className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
+    <article id={`post-${post.id}`} className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
       <div className="flex items-start gap-4">
         <button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0">
           <img 
@@ -388,9 +456,36 @@ function PostItem({ post }) {
               <p className="font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
             </div>
-            <button className="text-slate-500 dark:text-slate-400">
-              <span className="material-symbols-outlined">more_horiz</span>
-            </button>
+            {isAuthor && (
+              <div className="relative">
+                <button 
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1"
+                >
+                  <span className="material-symbols-outlined">more_horiz</span>
+                </button>
+                
+                {/* Dropdown Menu */}
+                {menuOpen && (
+                  <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 shadow-lg rounded-lg z-50 min-w-[150px] border border-slate-200 dark:border-slate-700">
+                    <button
+                      onClick={handleEditPost}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700"
+                    >
+                      <span className="material-symbols-outlined text-base">edit</span>
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-base">delete</span>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="mt-4 text-slate-700 dark:text-slate-300 space-y-3">
             <h2 className="text-xl font-bold text-secondary dark:text-white">{post.title}</h2>

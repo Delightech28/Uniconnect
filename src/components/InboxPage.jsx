@@ -395,7 +395,7 @@ function InboxPage() {
     }, [totalUnreadCount]);
 
     return (
-        <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-display">
+        <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark text-white font-display">
             {/* Header */}
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
             
@@ -416,9 +416,9 @@ function InboxPage() {
 
                         {/* Search */}
                         <div className="relative mb-3 rounded-full border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark transition-all duration-300 focus-within:border-green-500 focus-within:border-2 focus-within:shadow-lg focus-within:shadow-green-500/20">
-                            <span className="material-symbols-outlined text-base absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark transition-colors duration-300 pointer-events-none">search</span>
+                            <span className="material-symbols-outlined text-base absolute left-3 top-1/2 -translate-y-1/2 text-white transition-colors duration-300 pointer-events-none">search</span>
                             <input
-                                className="w-full rounded-full bg-transparent border-none px-10 py-2 text-sm focus:ring-0 focus:outline-0 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
+                                className="w-full rounded-full bg-transparent border-none px-10 py-2 text-sm focus:ring-0 focus:outline-0 transition-all text-white placeholder:text-white/60"
                                 placeholder="Search conversations"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -445,22 +445,22 @@ function InboxPage() {
 
                     {/* Conversations List */}
                     <div className="flex-1 overflow-y-auto">
-                        {filteredConversations.length > 0 ? (
-                            filteredConversations.map(convo => (
-                                <ConversationItem
-                                    key={convo.id}
-                                    convo={convo}
-                                    isActive={convo.id === activeConvoId}
-                                    onSelect={() => handleSelectConvo(convo.id)}
-                                    onAvatarClick={() => convo.otherParticipantId && navigate(`/profile/${convo.otherParticipantId}`)}
-                                />
-                            ))
-                        ) : (
-                            <div className="flex h-full items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
-                                <p className="text-sm">No conversations yet</p>
-                            </div>
-                        )}
-                    </div>
+                                    {filteredConversations.length > 0 ? (
+                                        filteredConversations.map(convo => (
+                                            <ConversationItem
+                                                key={convo.id}
+                                                convo={convo}
+                                                isActive={convo.id === activeConvoId}
+                                                onSelect={() => handleSelectConvo(convo.id)}
+                                                onAvatarClick={() => convo.otherParticipantId && navigate(`/profile/${convo.otherParticipantId}`)}
+                                            />
+                                        ))
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-white">
+                                            <p className="text-sm">No conversations yet</p>
+                                        </div>
+                                    )}
+                                </div>
                 </aside>
 
                 {/* Main Chat Area */}
@@ -597,9 +597,9 @@ function InboxPage() {
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
                             <div className="text-center">
-                                <span className="material-symbols-outlined text-6xl opacity-20 block mb-4">mail</span>
-                                <h3 className="text-xl font-bold mb-2">Select a conversation</h3>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">
+                                <span className="material-symbols-outlined text-white text-6xl opacity-20 block mb-4">mail</span>
+                                <h3 className="text-xl text-white font-bold mb-2">Select a conversation</h3>
+                                <p className="text-white text-sm">
                                     Choose a conversation from the list to start messaging
                                 </p>
                             </div>

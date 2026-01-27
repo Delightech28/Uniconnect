@@ -355,10 +355,9 @@ mb-4">CampusFeed</p>
   }}
 />
 </button>
-<div className="flex-1">
-<p className="font-semibold text-secondary dark:text-white cursor-pointer hover:underline inline-block" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
-<p className="text-secondary dark:text-white
-mt-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
+            <div className="flex-1">
+            <p className="font-semibold text-secondary dark:text-white cursor-pointer hover:underline inline-block" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
+            <p onClick={() => navigate(`/campusfeed#post-${post.id}`)} className="text-secondary dark:text-white mt-1 cursor-pointer" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
 <div className="flex items-center gap-4 text-slate-500
 dark:text-slate-400 mt-2 text-sm">
 <span className="flex items-center gap-1"><span

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'; 
 import { auth, db, storage } from '../firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
@@ -262,18 +262,59 @@ placeholder:text-slate-400 dark:placeholder:text-slate-500"
  
 // --- Main Page Component --- 
 function CreatePostPage() { 
+    const { postId } = useParams();
+    const isEditMode = !!postId;
+    
     const [post, setPost] = useState({ 
         title: '', 
         content: '', 
         tags: [],
     }); 
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [isLoadingPost, setIsLoadingPost] = useState(isEditMode);
     const navigate = useNavigate();
     const { darkMode, toggleTheme } = useTheme();
     const [status, setStatus] = useState({ 
-        message: 'Draft', 
+        message: isEditMode ? 'Editing' : 'Draft', 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: 
 '2-digit' }) 
     }); 
+ 
+    // Load post data if in edit mode
+    useEffect(() => {
+        if (isEditMode) {
+            const loadPost = async () => {
+                try {
+                    const postDocRef = doc(db, 'posts', postId);
+                    const postDocSnap = await getDoc(postDocRef);
+                    if (postDocSnap.exists()) {
+                        const postData = postDocSnap.data();
+                        // Verify the current user is the author
+                        if (postData.authorId !== auth.currentUser?.uid) {
+                            toast.error('You can only edit your own posts');
+                            navigate('/campusfeed');
+                            return;
+                        }
+                        setPost({
+                            title: postData.title,
+                            content: postData.content,
+                            tags: postData.tags || []
+                        });
+                    } else {
+                        toast.error('Post not found');
+                        navigate('/campusfeed');
+                    }
+                } catch (err) {
+                    console.error('Failed to load post:', err);
+                    toast.error('Failed to load post');
+                    navigate('/campusfeed');
+                } finally {
+                    setIsLoadingPost(false);
+                }
+            };
+            loadPost();
+        }
+    }, [postId, isEditMode, navigate]);
  
     const handleInputChange = (e) => { 
         const { name, value } = e.target; 
@@ -292,7 +333,7 @@ function CreatePostPage() {
             // In a real app, this would be an API call to save the draft. 
             // For now, we just update the timestamp. 
             setStatus({ 
-                message: 'Draft', 
+                message: isEditMode ? 'Editing' : 'Draft', 
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: 
 '2-digit' }) 
             }); 
@@ -306,67 +347,102 @@ function CreatePostPage() {
         if (!post.title || !post.content) { 
             toast.error('Please add a title and content before publishing.'); 
             return; 
-        } 
+        }
+        setIsPublishing(true);
         try {
-            const user = auth.currentUser;
-            let author = {
-                id: null,
-                name: 'Anonymous',
-                avatarUrl: getDefaultAvatar('male')
-            };
-            if (user) {
-                author.id = user.uid;
-                // Attempt to read displayName/avatar from users collection
-                try {
-                    const uDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (uDoc.exists()) {
-                        const d = uDoc.data();
-                        author.name = d.displayName || d.fullName || user.email?.split('@')[0] || 'User';
-                        author.avatarUrl = d.avatarUrl || getDefaultAvatar(d.gender || 'male');
-                    } else {
-                        author.name = user.email?.split('@')[0] || 'User';
-                    }
-                } catch (err) {
-                    console.warn('Could not fetch user profile for post author', err);
-                    author.name = user.email?.split('@')[0] || 'User';
-                    author.avatarUrl = getDefaultAvatar('male');
-                }
-            }
-
-            const postDoc = {
-                title: post.title,
-                content: post.content,
-                tags: post.tags || [],
-                authorId: author.id,
-                authorName: author.name,
-                authorAvatar: author.avatarUrl,
-                likesCount: 0,
-                commentsCount: 0,
-                createdAt: serverTimestamp(),
-            };
-
-            const postRef = await addDoc(collection(db, 'posts'), postDoc);
-            
-            // Send notification to user about their post being created
-            if (author.id) {
-              try {
-                await notifyPostCreated(author.id, {
-                  id: postRef.id,
-                  title: post.title,
+            if (isEditMode) {
+                // Update existing post
+                const postDocRef = doc(db, 'posts', postId);
+                await updateDoc(postDocRef, {
+                    title: post.title,
+                    content: post.content,
+                    tags: post.tags || [],
+                    updatedAt: serverTimestamp(),
                 });
-              } catch (notifErr) {
-                console.warn('Failed to send post notification:', notifErr);
-              }
-            }
+                toast.success('Post updated');
+            } else {
+                // Create new post
+                const user = auth.currentUser;
+                let author = {
+                    id: null,
+                    name: 'Anonymous',
+                    avatarUrl: getDefaultAvatar('male')
+                };
+                if (user) {
+                    author.id = user.uid;
+                    // Attempt to read displayName/avatar from users collection
+                    try {
+                        const uDoc = await getDoc(doc(db, 'users', user.uid));
+                        if (uDoc.exists()) {
+                            const d = uDoc.data();
+                            author.name = d.displayName || d.fullName || user.email?.split('@')[0] || 'User';
+                            author.avatarUrl = d.avatarUrl || getDefaultAvatar(d.gender || 'male');
+                        } else {
+                            author.name = user.email?.split('@')[0] || 'User';
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch user profile for post author', err);
+                        author.name = user.email?.split('@')[0] || 'User';
+                        author.avatarUrl = getDefaultAvatar('male');
+                    }
+                }
 
-            toast.success('Post published');
+                const postDoc = {
+                    title: post.title,
+                    content: post.content,
+                    tags: post.tags || [],
+                    authorId: author.id,
+                    authorName: author.name,
+                    authorAvatar: author.avatarUrl,
+                    likesCount: 0,
+                    commentsCount: 0,
+                    createdAt: serverTimestamp(),
+                };
+
+                const postRef = await addDoc(collection(db, 'posts'), postDoc);
+                
+                                // Send notification to the author and optionally broadcast to all users
+                                if (author.id) {
+                                    try {
+                                        await notifyPostCreated(author.id, {
+                                            id: postRef.id,
+                                            title: post.title,
+                                        });
+                                    } catch (notifErr) {
+                                        console.warn('Failed to send post notification to author:', notifErr);
+                                    }
+                                }
+                                // Fan-out to all users (exclude author)
+                                try {
+                                    await notifyAllUsersPostCreated({ id: postRef.id, title: post.title }, author.id);
+                                } catch (broadcastErr) {
+                                    console.warn('Failed to broadcast post notification:', broadcastErr);
+                                }
+
+                toast.success('Post published');
+            }
+            
             setPost({ title: '', content: '', tags: [] });
+            setIsPublishing(false);
             navigate('/campusfeed');
         } catch (err) {
             console.error('Failed to publish post', err);
             toast.error('Failed to publish post');
+            setIsPublishing(false);
         }
     }; 
+ 
+    if (isLoadingPost) {
+        return (
+            <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark min-h-screen flex flex-col">
+                <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+                <div className="flex-1 flex items-center justify-center">
+                    <p>Loading post...</p>
+                </div>
+                <Footer darkMode={darkMode} />
+            </div>
+        );
+    }
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
@@ -383,7 +459,7 @@ dark:border-border-dark px-4 sm:px-10 py-3">
  
 
                         <h1 className="text-3xl sm:text-4xl font-black 
-tracking-[-0.033em]">Create a New Post</h1> 
+tracking-[-0.033em]">{isEditMode ? 'Edit Post' : 'Create a New Post'}</h1> 
  
                         <div className="space-y-6"> 
                             <div> 
@@ -436,15 +512,24 @@ text-base"
                                 text-sm">Status: <span 
                             className="font-medium">{status.message}</span>. Last saved at {" "}{status.time}</p> 
                             <div className="flex items-center gap-3"> 
-                                <button className="min-w-[84px] rounded-lg h-10 
+                                <button 
+                                    onClick={() => navigate('/campusfeed')}
+                                    className="min-w-[84px] rounded-lg h-10 
 px-4 bg-transparent border border-border-light dark:border-border-dark 
 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700"> 
-                                    <span>Save Draft</span> 
+                                    <span>Cancel</span> 
                                 </button> 
-                                <button onClick={handlePublish} 
-className="min-w-[84px] rounded-lg h-10 px-4 bg-primary text-white 
-text-sm font-medium hover:bg-primary-accent"> 
-                                    <span>Publish</span> 
+                                <button 
+                                    onClick={handlePublish}
+                                    disabled={isPublishing}
+                                    className={`min-w-[84px] rounded-lg h-10 px-4 text-white 
+text-sm font-medium transition-colors ${
+                                        isPublishing 
+                                            ? 'bg-primary/60 cursor-not-allowed' 
+                                            : 'bg-primary hover:bg-primary-accent'
+                                    }`}
+                                > 
+                                    <span>{isPublishing ? 'Saving...' : isEditMode ? 'Update' : 'Publish'}</span> 
                                 </button> 
                             </div> 
                         </div> 

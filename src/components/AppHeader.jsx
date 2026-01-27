@@ -187,14 +187,16 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             </NavLink>
           </nav>
         </div>
-        <div className="flex flex-1 justify-end items-center gap-3 sm:gap-6">
-          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-slate-700 dark:to-slate-800 text-yellow-600 dark:text-yellow-400 hover:shadow-lg dark:hover:shadow-yellow-400/20 transition-all duration-300 border border-yellow-300 dark:border-slate-600" aria-label="Toggle dark mode">
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+        <div className="flex flex-1 justify-end items-center gap-2 sm:gap-4">
+          {/* Dark Mode Toggle - Always visible */}
+          <button onClick={toggleDarkMode} className="flex items-center justify-center rounded-2xl h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-slate-700 dark:to-slate-800 text-yellow-600 dark:text-yellow-400 hover:shadow-lg dark:hover:shadow-yellow-400/20 transition-all duration-300 border border-yellow-300 dark:border-slate-600" aria-label="Toggle dark mode">
+            {darkMode ? <Sun size={18} className="sm:w-5 sm:h-5" /> : <Moon size={18} className="sm:w-5 sm:h-5" />}
           </button>
 
           {currentUser ? (
             <>
-              <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-600 dark:text-blue-300 hover:shadow-lg dark:hover:shadow-blue-400/20 transition-all duration-300 border border-blue-300 dark:border-blue-700">
+              {/* Notifications - Hidden on mobile, visible on sm and up */}
+              <button onClick={() => navigate('/notifications')} className="hidden sm:flex relative items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-600 dark:text-blue-300 hover:shadow-lg dark:hover:shadow-blue-400/20 transition-all duration-300 border border-blue-300 dark:border-blue-700">
                 <Bell size={20} />
                 {unreadCount > 0 && (
                   <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -202,12 +204,15 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   </div>
                 )}
               </button>
+
+              {/* Messages - Hidden on mobile, visible on sm and up */}
+              {/* Messages - separate unread count taken from window.inboxUnreadCount (set by InboxPage) */}
               {verified ? (
-                <button onClick={() => navigate('/inbox')} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 text-purple-600 dark:text-purple-300 hover:shadow-lg dark:hover:shadow-purple-400/20 transition-all duration-300 border border-purple-300 dark:border-purple-700">
+                <button onClick={() => navigate('/inbox')} className="hidden sm:flex relative items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40 text-purple-600 dark:text-purple-300 hover:shadow-lg dark:hover:shadow-purple-400/20 transition-all duration-300 border border-purple-300 dark:border-purple-700">
                   <Mail size={20} />
-                  {unreadCount > 0 && (
+                  {window.inboxUnreadCount > 0 && (
                     <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
+                      {window.inboxUnreadCount > 9 ? '9+' : window.inboxUnreadCount}
                     </div>
                   )}
                 </button>
@@ -216,11 +221,13 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   if (verifyingLoading) return toast('Checking verification...');
                   if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
                   toast('Complete verification to access Inbox');
-                }} className="relative flex items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700/40 dark:to-gray-600/40 text-gray-500 dark:text-gray-400 opacity-60 transition-all duration-300 border border-gray-400 dark:border-gray-600" title="Locked until verified">
+                }} className="hidden sm:flex relative items-center justify-center rounded-2xl h-12 w-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700/40 dark:to-gray-600/40 text-gray-500 dark:text-gray-400 opacity-60 transition-all duration-300 border border-gray-400 dark:border-gray-600" title="Locked until verified">
                   <Mail size={20} />
                 </button>
               )}
-              <div className="relative" ref={profileMenuRef}>
+
+              {/* Profile - Hidden on mobile, visible on sm and up */}
+              <div className="relative hidden sm:block" ref={profileMenuRef}>
                 <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center justify-center rounded-lg h-10 w-10 bg-background-light dark:bg-slate-800">
                   <div className="bg-center bg-no-repeat w-8 h-8 rounded-full bg-cover" style={{backgroundImage: `url("${userAvatar}")`}}></div>
                 </button>
@@ -246,21 +253,22 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
               <NavLink to="/login" className="hidden sm:flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-transparent border border-secondary text-secondary text-sm font-bold tracking-wide hover:bg-secondary/10">
                 Login
               </NavLink>
-              <NavLink to="/signup" className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary/90">
+              <NavLink to="/signup" className="hidden sm:flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white text-sm font-bold tracking-wide hover:bg-primary/90">
                 Sign Up
               </NavLink>
             </>
           )}
 
-          <div className="lg:hidden">
+          {/* Mobile Menu Toggle */}
+          <div className="sm:hidden">
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary">
-              <span className="material-symbols-outlined text-3xl">{isMenuOpen ? 'close' : 'menu'}</span>
+              <span className="material-symbols-outlined text-2xl">{isMenuOpen ? 'close' : 'menu'}</span>
             </button>
           </div>
         </div>
       </header>
       {isMenuOpen && (
-        <nav className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 py-2 flex flex-col items-center gap-2">
+        <nav className="sm:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 py-2 flex flex-col items-center gap-2">
           <button onClick={() => { handleProtectedNavigation("/dashboard"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Dashboard
           </button>
@@ -285,12 +293,64 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
           <NavLink to="/pricing" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `w-full text-center px-4 py-3 text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800'}`}>
             Pricing
           </NavLink>
+          
+          {/* Mobile menu divider */}
+          <div className="border-t border-slate-200 dark:border-slate-700 w-full my-2"></div>
+
+          {/* Notifications and Messages in Mobile Menu */}
+          {currentUser && (
+            <>
+              <button onClick={() => { navigate('/notifications'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-blue-50 dark:hover:bg-slate-800 relative flex items-center justify-center gap-2">
+                <Bell size={18} className="text-blue-600 dark:text-blue-300" />
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {verified ? (
+                <button onClick={() => { navigate('/inbox'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-purple-50 dark:hover:bg-slate-800 relative flex items-center justify-center gap-2">
+                  <Mail size={18} className="text-purple-600 dark:text-purple-300" />
+                  <span>Messages</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button onClick={() => {
+                  if (verifyingLoading) return toast('Checking verification...');
+                  if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
+                  toast('Complete verification to access Inbox');
+                  setIsMenuOpen(false);
+                }} className="w-full text-center px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 opacity-60 flex items-center justify-center gap-2">
+                  <Mail size={18} className="text-gray-500 dark:text-gray-400" />
+                  <span>Messages (Locked)</span>
+                </button>
+              )}
+              <button onClick={() => { navigate('/profile'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
+                <User size={18} className="text-blue-600 dark:text-blue-300" />
+                <span>Profile</span>
+              </button>
+              <button onClick={() => { navigate('/settings'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-cyan-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
+                <Settings size={18} className="text-cyan-600 dark:text-cyan-300" />
+                <span>Settings</span>
+              </button>
+              <button onClick={async () => { await auth.signOut(); navigate('/'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </>
+          )}
+
           {!currentUser && (
-            <div className='flex items-center gap-4 px-4 py-3 mt-2'>
-              <NavLink to="/login" onClick={() => setIsMenuOpen(false)} className="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-transparent border border-secondary text-secondary font-bold">
+            <div className='flex items-center gap-4 px-4 py-3 mt-2 w-full'>
+              <NavLink to="/login" onClick={() => setIsMenuOpen(false)} className="flex-1 flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-transparent border border-secondary text-secondary font-bold">
                 Login
               </NavLink>
-              <NavLink to="/signup" onClick={() => setIsMenuOpen(false)} className="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white font-bold">
+              <NavLink to="/signup" onClick={() => setIsMenuOpen(false)} className="flex-1 flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-primary text-white font-bold">
                 Sign Up
               </NavLink>
             </div>

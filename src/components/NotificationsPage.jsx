@@ -16,11 +16,12 @@ import toast from 'react-hot-toast';
 
 // --- Sub-components for better organization ---
 
-const NotificationItem = ({ notification, onMarkRead, onDelete }) => {
+const NotificationItem = ({ notification, onMarkRead, onDelete, onOpen }) => {
   const handleClick = () => {
     if (notification.unread) {
       onMarkRead(notification.id);
     }
+    if (onOpen) onOpen(notification);
   };
 
   return (
@@ -210,6 +211,29 @@ const NotificationsPage = () => {
                     notification={notification}
                     onMarkRead={handleMarkAsRead}
                     onDelete={handleDeleteNotification}
+                    onOpen={(n) => {
+                      // Navigate based on metadata (post, conversation, product, etc.)
+                      const meta = n.metadata || {};
+                      if (meta.postId) {
+                        // go to campus feed and scroll to post
+                        navigate(`/campusfeed#post-${meta.postId}`);
+                        return;
+                      }
+                      if (meta.conversationId) {
+                        // open inbox with convo selected
+                        navigate(`/inbox?convo=${meta.conversationId}`);
+                        return;
+                      }
+                      if (meta.productId) {
+                        navigate(`/product-details/${meta.productId}`);
+                        return;
+                      }
+                      if (meta.userId) {
+                        navigate(`/profile/${meta.userId}`);
+                        return;
+                      }
+                      // fallback: stay on notifications page
+                    }}
                   />
                 ))}
               </ul>

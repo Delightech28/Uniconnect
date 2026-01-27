@@ -109,6 +109,8 @@ function App() {
         <Route path="/uni-wallet" element={<ProtectedRoute><UniWalletPage /></ProtectedRoute>} />
         <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
         <Route path="/create-post" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
+        <Route path="/edit-post/:postId" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
+        <Route path="/edit-post/:postId" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
         <Route path="/transaction-history" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
         <Route path="/product-details" element={<ProductDetailsPage />} />
         <Route path="/product-details/:productId" element={<ProductDetailsPage />} /> 

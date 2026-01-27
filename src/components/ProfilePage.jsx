@@ -654,6 +654,7 @@ const ProfilePage = () => {
                 {posts.map((post) => (
                   <div
                     key={post.id}
+                    onClick={() => navigate(`/campusfeed#post-${post.id}`)}
                     className="bg-white dark:bg-secondary rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                   >
                     <h3 className="font-bold text-secondary dark:text-white mb-2">

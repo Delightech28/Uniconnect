@@ -621,6 +621,35 @@ export const notifyPostCreated = async (userId, postData) => {
 };
 
 /**
+ * Notify all users (except optionally the author) that a new post was created.
+ * Use with caution for large userbases — this does a simple one-time fan-out.
+ * @param {Object} postData - { id, title }
+ * @param {string} [excludeUserId] - optional userId to exclude (e.g., author)
+ */
+export const notifyAllUsersPostCreated = async (postData, excludeUserId = null) => {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const promises = [];
+    usersSnap.forEach((u) => {
+      if (excludeUserId && u.id === excludeUserId) return; // skip author if requested
+      promises.push(
+        createNotification(
+          u.id,
+          'system_announcement',
+          `New Post: "${postData.title}"`,
+          `${postData.title} — A new post was published on CampusFeed.`,
+          { postId: postData.id, postTitle: postData.title }
+        )
+      );
+    });
+
+    await Promise.all(promises);
+  } catch (error) {
+    console.error('Error notifying all users about new post:', error);
+  }
+};
+
+/**
  * Notify when a post gets liked
  * @param {string} postAuthorId - Post author user ID
  * @param {Object} likeData - Like details
