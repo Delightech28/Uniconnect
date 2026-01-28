@@ -66,9 +66,9 @@ const formatTimestampToRelative = (timestamp) => {
  
 const SettingsSection = ({ title, description, children }) => ( 
     <section className="mb-8"> 
-        <h2 className="text-xl font-bold text-secondary dark:text-white 
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-secondary dark:text-white 
 mb-1">{title}</h2> 
-        <p className="text-slate-500 dark:text-slate-400 
+        <p className="text-xs sm:text-sm lg:text-base text-slate-500 dark:text-slate-400 
 mb-6">{description}</p> 
         <div className="space-y-4"> 
             {children} 
@@ -224,26 +224,26 @@ function SettingsPage() {
                     <SettingsSection title="Account Settings" description="Manage your account information and notification preferences.">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
                             <div>
-                                <h3 className="font-semibold text-secondary dark:text-white">Email Address</h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">{settings.email}</p>
+                                <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white">Email Address</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{settings.email}</p>
                             </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
                             <div>
-                                <h3 className="font-semibold text-secondary dark:text-white">Password</h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">Last changed {settings.passwordLastChanged}</p>
+                                <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white">Password</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Last changed {settings.passwordLastChanged}</p>
                             </div>
-                            <button onClick={() => navigate('/change-password')} className="mt-2 sm:mt-0 text-sm font-medium text-primary hover:underline self-start sm:self-center">Change</button>
+                            <button onClick={() => navigate('/change-password')} className="mt-2 sm:mt-0 text-xs sm:text-sm font-medium text-primary hover:underline self-start sm:self-center">Change</button>
                         </div>
 
                         <div className="py-4">
-                            <h3 className="text-lg font-semibold text-secondary dark:text-white mb-1">Notification Preferences</h3>
+                            <h3 className="text-base sm:text-lg font-semibold text-secondary dark:text-white mb-1">Notification Preferences</h3>
                             <div className="space-y-4 pt-4">
                                 <div className="flex items-start justify-between">
                                     <div className="max-w-md">
-                                        <h4 className="font-medium text-secondary dark:text-white">Email Notifications</h4>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Receive important updates, digests, and marketing communications via email.</p>
+                                        <h4 className="text-xs sm:text-sm font-medium text-secondary dark:text-white">Email Notifications</h4>
+                                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Receive important updates, digests, and marketing communications via email.</p>
                                     </div>
                                     <ToggleSwitch checked={settings.notifications.email} onChange={() => handleNotificationChange('email')} />
                                 </div>
@@ -262,10 +262,10 @@ function SettingsPage() {
                             <div className="space-y-8">
                                 {/* Profile Visibility */}
                                 <div>
-                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Profile Visibility</h3>
+                                    <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white mb-4">Profile Visibility</h3>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-secondary dark:text-white mb-2">
+                                            <label className="block text-xs sm:text-sm font-medium text-secondary dark:text-white mb-2">
                                                 Who can see your profile?
                                             </label>
                                             <select
@@ -322,10 +322,10 @@ function SettingsPage() {
 
                                 {/* Messaging & Communication */}
                                 <div>
-                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Messaging & Communication</h3>
+                                    <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white mb-4">Messaging & Communication</h3>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-secondary dark:text-white mb-2">
+                                            <label className="block text-xs sm:text-sm font-medium text-secondary dark:text-white mb-2">
                                                 Who can message you?
                                             </label>
                                             <select
@@ -463,7 +463,7 @@ function SettingsPage() {
 
                                 {/* Marketplace Requests */}
                                 <div>
-                                    <h3 className="font-semibold text-secondary dark:text-white mb-4">Marketplace Requests</h3>
+                                    <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white mb-4">Marketplace Requests</h3>
                                     <div className="space-y-4">
                                         <label className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer">
                                             <input
@@ -515,10 +515,9 @@ description="Customize the look and feel of the app.">
 sm:items-center justify-between py-4 border-b border-slate-200 
 dark:border-slate-700"> 
                             <div> 
-                                <h3 className="font-semibold text-secondary 
+                                <h3 className="text-sm sm:text-base font-semibold text-secondary 
 dark:text-white">Appearance</h3> 
-                                <p className="text-slate-500 dark:text-slate-400 
-text-sm">Choose light or dark theme.</p> 
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Choose light or dark theme.</p> 
                             </div> 
                             <div className="flex items-center gap-2 rounded-lg 
 bg-background-light dark:bg-slate-700 p-1 mt-2 sm:mt-0"> 

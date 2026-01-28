@@ -344,10 +344,13 @@ shadow-md p-6">
 mb-4">CampusFeed</p>
 <div className="space-y-4">
 {campusFeedPosts.map((post) => (
-<div key={post.id} className="flex gap-4">
+<div key={post.id} className="flex flex-col gap-2">
+{/* Profile and author info in top row */}
+<div className="flex items-start gap-3">
+{/* Profile pic */}
 <button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0 hover:opacity-80 transition-opacity">
 <img 
-  className="size-10 rounded-full flex-shrink-0 cursor-pointer mb-10"
+  className="size-10 rounded-full flex-shrink-0 cursor-pointer"
   alt={`${post.authorName} profile`} 
   src={authorAvatars[post.authorId] || getDefaultAvatar('male')}
   onError={(e) => {
@@ -355,18 +358,24 @@ mb-4">CampusFeed</p>
   }}
 />
 </button>
-            <div className="flex-1">
-            <p className="font-semibold text-secondary dark:text-white cursor-pointer hover:underline inline-block" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
-            <p onClick={() => navigate(`/campusfeed#post-${post.id}`)} className="text-secondary dark:text-white mt-1 cursor-pointer" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
+{/* Author info and menu */}
+<div className="flex-grow flex items-start justify-between">
+<div className="flex flex-col">
+<p className="text-sm sm:text-base font-semibold text-secondary dark:text-white cursor-pointer hover:underline" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
+<p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
+</div>
+</div>
+</div>
+{/* Content below - full width */}
+<p onClick={() => navigate(`/campusfeed#post-${post.id}`)} className="text-secondary dark:text-white cursor-pointer text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}></p>
 <div className="flex items-center gap-4 text-slate-500
-dark:text-slate-400 mt-2 text-sm">
+dark:text-slate-400 mt-1 text-xs sm:text-sm">
 <span className="flex items-center gap-1"><span
 className="material-symbols-outlined
 text-base">favorite_border</span> {post.likesCount || 0}</span>
 <span className="flex items-center gap-1"><span
 className="material-symbols-outlined
 text-base">chat_bubble_outline</span> {post.commentsCount || 0}</span>
-</div>
 </div>
 </div>
 ))}

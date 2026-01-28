@@ -25,7 +25,8 @@ const FileUpload = ({ onFileUpload, isDarkMode, progress = 0, stage }) => {
       return;
     }
 
-    setIsReading(true);
+
+      setIsReading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target?.result;

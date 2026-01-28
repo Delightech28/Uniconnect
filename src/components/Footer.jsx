@@ -85,38 +85,40 @@ const Footer = ({ darkMode }) => {
 
 	return (
 		<footer className={`${localDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} border-t ${localDarkMode ? 'border-gray-800' : 'border-gray-200'} mt-16 lg:mt-24`}>
-			{/* Newsletter Section */}
-			<div className={`${localDarkMode ? 'bg-gradient-to-r from-primary to-green-600' : 'bg-gradient-to-r from-primary via-green-500 to-green-600'} py-12 lg:py-16`}>
-				<div className="max-w-6xl mx-auto px-4 lg:px-10">
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-						<div>
-							<h3 className="text-2xl lg:text-3xl font-bold text-white mb-3">
-								Stay Updated with Campus Culture
-							</h3>
-							<p className="text-green-100 text-sm lg:text-base">
-								Get the latest updates on new features, campus stories, and exclusive offers delivered to your inbox.
-							</p>
+			{/* Newsletter Section - only show on landing page */}
+			{location.pathname === '/' && (
+				<div className={`${localDarkMode ? 'bg-gradient-to-r from-primary to-green-600' : 'bg-gradient-to-r from-primary via-green-500 to-green-600'} py-12 lg:py-16`}>
+					<div className="max-w-6xl mx-auto px-4 lg:px-10">
+						<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+							<div>
+								<h3 className="text-2xl lg:text-3xl font-bold text-white mb-3">
+									Stay Updated with Campus Culture
+								</h3>
+								<p className="text-green-100 text-sm lg:text-base">
+									Get the latest updates on new features, campus stories, and exclusive offers delivered to your inbox.
+								</p>
+							</div>
+							<form onSubmit={handleNewsletterSignup} className="flex flex-col sm:flex-row gap-3">
+								<input
+									type="email"
+									placeholder="Enter your email"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									className="flex-1 px-4 py-3 rounded-lg bg-white/90 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm lg:text-base"
+									disabled={loading}
+								/>
+								<button
+									type="submit"
+									disabled={loading}
+									className="px-6 py-3 bg-white text-primary font-bold rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap disabled:opacity-50"
+								>
+									{loading ? 'Subscribing...' : 'Subscribe'}
+								</button>
+							</form>
 						</div>
-						<form onSubmit={handleNewsletterSignup} className="flex flex-col sm:flex-row gap-3">
-							<input
-								type="email"
-								placeholder="Enter your email"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								className="flex-1 px-4 py-3 rounded-lg bg-white/90 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm lg:text-base"
-								disabled={loading}
-							/>
-							<button
-								type="submit"
-								disabled={loading}
-								className="px-6 py-3 bg-white text-primary font-bold rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap disabled:opacity-50"
-							>
-								{loading ? 'Subscribing...' : 'Subscribe'}
-							</button>
-						</form>
 					</div>
 				</div>
-			</div>
+			)}
 
 			{/* Main Footer Content */}
 			<div className={`max-w-6xl mx-auto px-4 lg:px-10 py-12 lg:py-16`}>

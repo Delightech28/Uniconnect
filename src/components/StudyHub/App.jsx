@@ -18,6 +18,12 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
+    // Skip coming-soon overlay entirely during local development so the
+    // StudyHub content can be worked on and viewed without interruption.
+    if (process.env.NODE_ENV === 'development') {
+      setShowOverlay(false);
+      return;
+    }
     // Initialize/check deadline in localStorage
     const storageKey = 'comingSoonDeadline';
     let deadline = localStorage.getItem(storageKey);

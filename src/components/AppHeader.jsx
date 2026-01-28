@@ -259,16 +259,16 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             </>
           )}
 
-          {/* Mobile Menu Toggle */}
-          <div className="sm:hidden">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary">
+          {/* Hamburger Menu Toggle - show on tablet and mobile */}
+          <div className="lg:hidden">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-secondary dark:text-white">
               <span className="material-symbols-outlined text-2xl">{isMenuOpen ? 'close' : 'menu'}</span>
             </button>
           </div>
         </div>
       </header>
       {isMenuOpen && (
-        <nav className="sm:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 py-2 flex flex-col items-center gap-2">
+        <nav className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 py-2 flex flex-col items-center gap-2">
           <button onClick={() => { handleProtectedNavigation("/dashboard"); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-background-light dark:hover:bg-slate-800">
             Dashboard
           </button>
@@ -294,27 +294,25 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             Pricing
           </NavLink>
           
-          {/* Mobile menu divider */}
+          {/* Separator */}
           <div className="border-t border-slate-200 dark:border-slate-700 w-full my-2"></div>
 
-          {/* Notifications and Messages in Mobile Menu */}
+          {/* Icon-only bottom nav for tablet/mobile */}
           {currentUser && (
-            <>
-              <button onClick={() => { navigate('/notifications'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-blue-50 dark:hover:bg-slate-800 relative flex items-center justify-center gap-2">
-                <Bell size={18} className="text-blue-600 dark:text-blue-300" />
-                <span>Notifications</span>
+            <div className="flex justify-around w-full px-4 py-2 gap-2">
+              <button onClick={() => { navigate('/notifications'); setIsMenuOpen(false); }} className="flex-1 flex flex-col items-center justify-center py-2 text-secondary dark:text-white hover:text-primary relative" title="Notifications">
+                <Bell size={20} className="text-blue-600 dark:text-blue-300" />
                 {unreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
               {verified ? (
-                <button onClick={() => { navigate('/inbox'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-purple-50 dark:hover:bg-slate-800 relative flex items-center justify-center gap-2">
-                  <Mail size={18} className="text-purple-600 dark:text-purple-300" />
-                  <span>Messages</span>
+                <button onClick={() => { navigate('/inbox'); setIsMenuOpen(false); }} className="flex-1 flex flex-col items-center justify-center py-2 text-secondary dark:text-white hover:text-primary relative" title="Messages">
+                  <Mail size={20} className="text-purple-600 dark:text-purple-300" />
                   {unreadCount > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -325,24 +323,20 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
                   if (status === 'failed') return toast.error('Your verification failed. Please reupload documents or contact support.');
                   toast('Complete verification to access Inbox');
                   setIsMenuOpen(false);
-                }} className="w-full text-center px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 opacity-60 flex items-center justify-center gap-2">
-                  <Mail size={18} className="text-gray-500 dark:text-gray-400" />
-                  <span>Messages (Locked)</span>
+                }} className="flex-1 flex flex-col items-center justify-center py-2 text-gray-500 dark:text-gray-400 opacity-60" title="Messages (Locked)">
+                  <Mail size={20} className="text-gray-500 dark:text-gray-400" />
                 </button>
               )}
-              <button onClick={() => { navigate('/profile'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
-                <User size={18} className="text-blue-600 dark:text-blue-300" />
-                <span>Profile</span>
+              <button onClick={() => { navigate('/profile'); setIsMenuOpen(false); }} className="flex-1 flex flex-col items-center justify-center py-2 text-secondary dark:text-white hover:text-primary" title="Profile">
+                <User size={20} className="text-blue-600 dark:text-blue-300" />
               </button>
-              <button onClick={() => { navigate('/settings'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-secondary dark:text-white dark:hover:text-green-400 hover:bg-cyan-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
-                <Settings size={18} className="text-cyan-600 dark:text-cyan-300" />
-                <span>Settings</span>
+              <button onClick={() => { navigate('/settings'); setIsMenuOpen(false); }} className="flex-1 flex flex-col items-center justify-center py-2 text-secondary dark:text-white hover:text-primary" title="Settings">
+                <Settings size={20} className="text-cyan-600 dark:text-cyan-300" />
               </button>
-              <button onClick={async () => { await auth.signOut(); navigate('/'); setIsMenuOpen(false); }} className="w-full text-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">
-                <LogOut size={18} />
-                <span>Logout</span>
+              <button onClick={async () => { await auth.signOut(); navigate('/'); setIsMenuOpen(false); }} className="flex-1 flex flex-col items-center justify-center py-2 text-red-600 dark:text-red-400 hover:text-red-700" title="Logout">
+                <LogOut size={20} />
               </button>
-            </>
+            </div>
           )}
 
           {!currentUser && (

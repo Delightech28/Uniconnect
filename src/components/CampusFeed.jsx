@@ -438,8 +438,10 @@ function PostItem({ post }) {
   };
 
   return (
-    <article id={`post-${post.id}`} className="bg-white dark:bg-secondary rounded-xl shadow-md p-6">
-      <div className="flex items-start gap-4">
+    <article id={`post-${post.id}`} className="bg-white dark:bg-secondary rounded-xl shadow-md p-4 sm:p-6">
+      {/* Profile and author info in top row */}
+      <div className="flex items-start gap-3 mb-4">
+        {/* Profile picture */}
         <button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0">
           <img 
             alt={`${post.authorName}'s profile`} 
@@ -450,49 +452,51 @@ function PostItem({ post }) {
             }}
           />
         </button>
-        <div className="flex-grow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
-            </div>
-            {isAuthor && (
-              <div className="relative">
-                <button 
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1"
-                >
-                  <span className="material-symbols-outlined">more_horiz</span>
-                </button>
-                
-                {/* Dropdown Menu */}
-                {menuOpen && (
-                  <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 shadow-lg rounded-lg z-50 min-w-[150px] border border-slate-200 dark:border-slate-700">
-                    <button
-                      onClick={handleEditPost}
-                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700"
-                    >
-                      <span className="material-symbols-outlined text-base">edit</span>
-                      Edit
-                    </button>
-                    <button
-                      onClick={handleDeletePost}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+        
+        {/* Author info and menu */}
+        <div className="flex-grow flex items-start justify-between">
+          <div className="flex flex-col">
+            <p className="text-sm sm:text-base font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
           </div>
-          <div className="mt-4 text-slate-700 dark:text-slate-300 space-y-3">
-            <h2 className="text-xl font-bold text-secondary dark:text-white">{post.title}</h2>
-            <div className="prose max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ''}</ReactMarkdown>
+          {isAuthor && (
+            <div className="relative">
+              <button 
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1"
+              >
+                <span className="material-symbols-outlined">more_horiz</span>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {menuOpen && (
+                <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 shadow-lg rounded-lg z-50 min-w-[150px] border border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={handleEditPost}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDeletePost}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Title and content below - full width */}
+      <div className="text-slate-700 dark:text-slate-300 space-y-2 sm:space-y-3">
+        <h2 className="text-lg sm:text-xl font-bold text-secondary dark:text-white">{post.title}</h2>
+        <div className="prose prose-sm sm:prose max-w-none dark:prose-invert text-sm sm:text-base">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ''}</ReactMarkdown>
         </div>
       </div>
       <PostStats likes={likesCount} comments={comments.length || 0} onToggleLike={toggleLike} liked={liked} onToggleComments={() => setShowComments(!showComments)} onShare={handleSharePost} />
