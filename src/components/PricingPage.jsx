@@ -134,8 +134,8 @@ const PricingPage = () => {
             </div>
 
             {/* Pricing Cards Carousel */}
-            <div className="relative flex items-center justify-center mt-8 lg:mt-12 h-96 sm:h-[450px] lg:h-[500px]">
-              {/* Left Arrow - visible on all screens */}
+            <div className="relative flex items-center justify-center mt-8 lg:mt-12">
+              {/* Left Arrow */}
               <button
                 onClick={handlePrevious}
                 className="absolute left-0 lg:left-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
@@ -144,12 +144,12 @@ const PricingPage = () => {
                 <ChevronLeft className="w-5 lg:w-6 h-5 lg:h-6 text-secondary dark:text-gray-400" />
               </button>
 
-              {/* Cards Container - Absolute positioning for layered effect */}
-              <div className="relative w-full h-full flex items-center justify-center px-2 sm:px-4 overflow-visible">
-                {/* Left Card - Behind, slightly visible */}
+              {/* Mobile/Tablet View - Layered Cards (hidden on lg) */}
+              <div className="lg:hidden relative w-full h-96 sm:h-[450px] flex items-center justify-center px-2 sm:px-4 overflow-visible">
+                {/* Left Card */}
                 <div 
                   onClick={handlePrevious} 
-                  className="absolute rounded-3xl p-3 sm:p-4 lg:p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                  className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
                   style={{
                     width: '140px',
                     height: '280px',
@@ -162,7 +162,7 @@ const PricingPage = () => {
                     {left.badge}
                   </div>
                   <div className="mb-3">
-                    <h3 className="text-sm lg:text-lg font-bold text-secondary dark:text-white mb-1">
+                    <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
                       {left.name}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
@@ -170,43 +170,43 @@ const PricingPage = () => {
                     </p>
                   </div>
                   <div className="mb-4">
-                    <div className="text-lg lg:text-2xl font-black text-secondary dark:text-white">
+                    <div className="text-lg font-black text-secondary dark:text-white">
                       {left.price}
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/signup')}
-                    className="w-full py-1.5 lg:py-2 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
+                    className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
                   >
                     Try Free
                   </button>
                 </div>
 
-                {/* Center Card (Premium) - On top, fully visible and largest */}
+                {/* Center Card */}
                 <div 
-                  className="absolute rounded-3xl p-4 sm:p-6 lg:p-8 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl cursor-pointer transition-all duration-500 ease-out"
+                  className="absolute rounded-3xl p-4 sm:p-6 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl cursor-pointer transition-all duration-500 ease-out"
                   style={{
                     width: '200px',
-                    height: '400px',
+                    height: '320px',
                     zIndex: 10
                   }}
                 >
-                  <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                  <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs font-semibold`}>
                     {center.badge}
                   </div>
-                  <div className="mb-5">
-                    <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-secondary dark:text-white mb-2">
                       {center.name}
                     </h3>
-                    <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       {center.description}
                     </p>
                   </div>
 
-                  <div className="mb-6">
-                    <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                  <div className="mb-5">
+                    <div className="text-2xl font-black text-secondary dark:text-white">
                       {center.price}
-                      <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
                         {center.period}
                       </span>
                     </div>
@@ -214,22 +214,22 @@ const PricingPage = () => {
 
                   <button
                     onClick={() => navigate('/signup')}
-                    className="w-full py-2 lg:py-3 rounded-full font-bold mb-4 lg:mb-5 transition-all text-sm bg-primary text-white hover:bg-primary/90"
+                    className="w-full py-2 rounded-full font-bold mb-3 transition-all text-sm bg-primary text-white hover:bg-primary/90"
                   >
                     {center.buttonText}
                   </button>
 
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-4 lg:mb-5">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-3">
                     No credit card required
                   </p>
 
-                  <div className="space-y-2 lg:space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4 lg:pt-5 max-h-32 lg:max-h-40 overflow-y-auto">
+                  <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3 max-h-24 overflow-y-auto">
                     {center.features.map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2">
-                        <div className="flex-shrink-0 mt-0.5 w-3 lg:w-4 h-3 lg:h-4 rounded-full bg-primary flex items-center justify-center">
+                        <div className="flex-shrink-0 mt-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
                           <Check className="w-2 h-2 text-white" strokeWidth={3} />
                         </div>
-                        <span className="text-xs lg:text-sm text-secondary dark:text-gray-300 line-clamp-2">
+                        <span className="text-xs text-secondary dark:text-gray-300 line-clamp-2">
                           {feature}
                         </span>
                       </div>
@@ -237,10 +237,10 @@ const PricingPage = () => {
                   </div>
                 </div>
 
-                {/* Right Card - Behind, slightly visible */}
+                {/* Right Card */}
                 <div 
                   onClick={handleNext} 
-                  className="absolute rounded-3xl p-3 sm:p-4 lg:p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                  className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
                   style={{
                     width: '140px',
                     height: '280px',
@@ -253,7 +253,7 @@ const PricingPage = () => {
                     {right.badge}
                   </div>
                   <div className="mb-3">
-                    <h3 className="text-sm lg:text-lg font-bold text-secondary dark:text-white mb-1">
+                    <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
                       {right.name}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
@@ -261,19 +261,170 @@ const PricingPage = () => {
                     </p>
                   </div>
                   <div className="mb-4">
-                    <div className="text-lg lg:text-2xl font-black text-secondary dark:text-white">
+                    <div className="text-lg font-black text-secondary dark:text-white">
                       {right.price}
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/signup')}
-                    className="w-full py-1.5 lg:py-2 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
+                    className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
                   >
                     Try Free
                   </button>
                 </div>
               </div>
-              {/* Right Arrow - visible on all screens */}
+
+              {/* Desktop View - Grid Layout (hidden on mobile/tablet) */}
+              <div className="hidden lg:flex justify-center w-full px-4 lg:px-16">
+                <div className="grid grid-cols-3 gap-6 lg:gap-8">
+                  {/* Left Card */}
+                  <div onClick={handlePrevious} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
+                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                      {left.badge}
+                    </div>
+                    <div className="mb-6">
+                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                        {left.name}
+                      </h3>
+                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {left.description}
+                      </p>
+                    </div>
+
+                    <div className="mb-8">
+                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                        {left.price}
+                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                          {left.period}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
+                    >
+                      {left.buttonText}
+                    </button>
+
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                      No credit card required
+                    </p>
+
+                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                      {left.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                          </div>
+                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Center Card */}
+                  <div className="rounded-3xl p-6 lg:p-8 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl lg:transform lg:scale-105 relative transition-all duration-500 ease-out">
+                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                      {center.badge}
+                    </div>
+
+                    <div className="mb-6">
+                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                        {center.name}
+                      </h3>
+                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {center.description}
+                      </p>
+                    </div>
+
+                    <div className="mb-8">
+                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                        {center.price}
+                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                          {center.period}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-primary text-white hover:bg-primary/90"
+                    >
+                      {center.buttonText}
+                    </button>
+
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                      No credit card required
+                    </p>
+
+                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                      {center.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                          </div>
+                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Card */}
+                  <div onClick={handleNext} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
+                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                      {right.badge}
+                    </div>
+                    <div className="mb-6">
+                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                        {right.name}
+                      </h3>
+                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {right.description}
+                      </p>
+                    </div>
+
+                    <div className="mb-8">
+                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                        {right.price}
+                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                          {right.period}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
+                    >
+                      {right.buttonText}
+                    </button>
+
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                      No credit card required
+                    </p>
+
+                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                      {right.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                          </div>
+                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Arrow */}
               <button
                 onClick={handleNext}
                 className="absolute right-0 lg:right-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
@@ -282,21 +433,21 @@ const PricingPage = () => {
                 <ChevronRight className="w-6 h-6 text-secondary dark:text-gray-400" />
               </button>
             </div>
-          </div>
-        </section>
 
-        {/* Policy Section */}
-        <section className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
-          <h3 className="text-xl font-bold text-secondary dark:text-white mb-4">Payment & Subscription Policy</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-gray-600 dark:text-gray-300">
-            <div>
-              <p className="font-bold text-secondary dark:text-white mb-2">How do deductions work?</p>
-              <p>All payments are deducted directly from your UniWallet balance. Ensure you have sufficient funds before selecting an option. If your balance is low, you will be prompted to top up via bank transfer or card.</p>
-            </div>
-            <div>
-              <p className="font-bold text-secondary dark:text-white mb-2">Can I cancel my subscription?</p>
-              <p>Yes, you can cancel monthly subscriptions at any time from your settings. Benefits will remain active until the end of the billing period. Pay-as-you-go purchases are non-refundable once used.</p>
-            </div>
+            {/* Policy Section */}
+            <section className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
+              <h3 className="text-xl font-bold text-secondary dark:text-white mb-4">Payment & Subscription Policy</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-gray-600 dark:text-gray-300">
+                <div>
+                  <p className="font-bold text-secondary dark:text-white mb-2">How do deductions work?</p>
+                  <p>All payments are deducted directly from your UniWallet balance. Ensure you have sufficient funds before selecting an option. If your balance is low, you will be prompted to top up via bank transfer or card.</p>
+                </div>
+                <div>
+                  <p className="font-bold text-secondary dark:text-white mb-2">Can I cancel my subscription?</p>
+                  <p>Yes, you can cancel monthly subscriptions at any time from your settings. Benefits will remain active until the end of the billing period. Pay-as-you-go purchases are non-refundable once used.</p>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </main>
