@@ -400,7 +400,7 @@ function InboxPage() {
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
             
             {/* Main Content */}
-            <main className="flex flex-1 overflow-hidden">
+            <main className="flex flex-1 overflow-auto">
                 {/* Sidebar - Conversation List */}
                 <aside className={`w-full md:w-96 flex-col border-r border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark transition-all duration-300 ${
                     isChatVisible ? 'hidden md:flex' : 'flex'

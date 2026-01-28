@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, query, where, getDocs, countDocuments } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 /**
@@ -28,19 +28,34 @@ export const getProfileStats = async (userId) => {
     // Count following
     stats.following = (userData.following || []).length;
 
-    // Count posts
-    const postsQuery = query(collection(db, 'posts'), where('userId', '==', userId));
+    // Count posts (use authorId field which is used across the app)
+    const postsQuery = query(collection(db, 'posts'), where('authorId', '==', userId));
     const postsSnapshot = await getDocs(postsQuery);
     stats.posts = postsSnapshot.size;
 
-    // Count items sold (marketplace items with status 'sold')
-    const itemsQuery = query(
-      collection(db, 'marketplace'),
-      where('sellerId', '==', userId),
-      where('status', '==', 'sold')
-    );
-    const itemsSnapshot = await getDocs(itemsQuery);
-    stats.itemsSold = itemsSnapshot.size;
+    // Count items sold across common collections (items, listings, marketplace)
+    const itemCollections = [
+      { name: 'items', soldField: { key: 'sold', value: true } },
+      { name: 'listings', soldField: { key: 'status', value: 'sold' } },
+      { name: 'marketplace', soldField: { key: 'status', value: 'sold' } },
+    ];
+    let soldCount = 0;
+    for (const col of itemCollections) {
+      try {
+        const colRef = collection(db, col.name);
+        const q = query(
+          colRef,
+          where('sellerId', '==', userId),
+          where(col.soldField.key, '==', col.soldField.value)
+        );
+        const snap = await getDocs(q);
+        soldCount += snap.size;
+      } catch (e) {
+        // collection might not exist in this project; ignore and continue
+        console.warn(`Could not query collection ${col.name}:`, e.message || e);
+      }
+    }
+    stats.itemsSold = soldCount;
 
     // Get seller rating and reviews
     const reviewsQuery = query(

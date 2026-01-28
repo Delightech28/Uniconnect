@@ -146,10 +146,12 @@ function SettingsPage() {
 
     // Apply the selected font size globally so the whole app respects this setting
     useEffect(() => {
-        const sizeMap = { 1: 14, 2: 16, 3: 18, 4: 20, 5: 22 };
-        const px = sizeMap[settings.fontSize] ?? 16;
+        // Conservative font-size mapping: clamp sizes to prevent overlapping/bizarre layouts
+        // 1=smaller, 2=default, 3=medium, 4=large, 5=largest (max 19px to maintain mobile UX)
+        const sizeMap = { 1: 14, 2: 16, 3: 17, 4: 18, 5: 19 };
+        const fontSize = Math.max(14, Math.min(19, sizeMap[settings.fontSize] ?? 16));
         // Set the root font-size (affects rem-based typography)
-        document.documentElement.style.fontSize = `${px}px`;
+        document.documentElement.style.fontSize = `${fontSize}px`;
     }, [settings.fontSize]);
  
  
@@ -525,30 +527,28 @@ bg-background-light dark:bg-slate-700 p-1 mt-2 sm:mt-0">
                             </div> 
                         </div> 
                         <div className="flex flex-col sm:flex-row 
-sm:items-center justify-between py-4"> 
-                            <div> 
+sm:items-center justify-between py-4 gap-4"> 
+                            <div className="flex-1"> 
                                 <h3 className="font-semibold text-secondary 
 dark:text-white">Font Size</h3> 
                                 <p className="text-slate-500 dark:text-slate-400 
-text-sm">Adjust the font size for better readability.</p> 
+text-sm">Adjust text size for better readability (locked to 14-19px for mobile safety).</p> 
                             </div> 
- 
 
-                            <div className="flex items-center gap-4 mt-2 
-sm:mt-0 w-full"> 
-                                <span className="text-xs text-secondary 
-dark:text-white">A</span> 
+                            <div className="flex items-center gap-3 w-full sm:w-auto"> 
+                                <span className="text-xs font-semibold text-secondary 
+dark:text-white whitespace-nowrap">Small</span> 
                                 <input
                                     type="range"
                                     min="1"
                                     max="5"
                                     value={settings.fontSize}
                                     onChange={handleFontSizeChange}
-                                    className="w-full sm:w-24 accent-primary"
+                                    className="w-full sm:w-32 accent-primary cursor-pointer"
                                     aria-label="Font size"
                                 />
-                                <span className="text-lg text-secondary 
-dark:text-white">A</span> 
+                                <span className="text-lg font-semibold text-secondary 
+dark:text-white whitespace-nowrap">Large</span> 
                             </div> 
                         </div> 
                     </SettingsSection> 
@@ -588,9 +588,9 @@ soon."></SettingsSection>
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
-font-display min-h-screen flex flex-col text-secondary dark:text-slate-200"> 
+font-display flex flex-col min-h-screen text-secondary dark:text-slate-200"> 
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-            <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8"> 
+            <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8 overflow-y-auto"> 
                 <div className="max-w-5xl mx-auto"> 
                     <h1 className="text-secondary dark:text-white 
 tracking-light text-3xl font-bold leading-tight pb-8">Settings</h1> 

@@ -446,10 +446,10 @@ function CreatePostPage() {
  
     return ( 
         <div className="bg-background-light dark:bg-background-dark 
-text-text-light dark:text-text-dark min-h-screen flex flex-col"> 
+text-text-light dark:text-text-dark flex flex-col min-h-screen"> 
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
-            <div className="flex flex-1 justify-center py-5"> 
-                <div className="w-full max-w-[960px] flex-1"> 
+            <div className="flex flex-1 justify-center py-5 overflow-y-auto"> 
+                <div className="w-full max-w-[960px]"> 
                     <header className="flex items-center justify-between 
 whitespace-nowrap border-b border-solid border-border-light 
 dark:border-border-dark px-4 sm:px-10 py-3"> 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
@@ -32,6 +32,7 @@ import {
   getPendingRequests,
   getConnections,
 } from '../services/profileService';
+import { getProfileStats } from '../services/profileStatsService';
 import { notifyUserLiked } from '../services/notificationService';
 
 const ProfilePage = () => {
@@ -89,6 +90,40 @@ const ProfilePage = () => {
 
             const userPosts = await getUserPosts(userId, 5);
             setPosts(userPosts);
+            // Also compute total posts count from Firestore each time the profile loads
+            try {
+              const postsQ = query(collection(db, 'posts'), where('authorId', '==', userId));
+              const postsSnap = await getDocs(postsQ);
+              const totalPosts = postsSnap.size;
+              setStats(prev => ({ ...(prev || {}), postsCreated: totalPosts }));
+            } catch (err) {
+              console.warn('Failed to count posts for profile:', err);
+            }
+
+            // Fetch computed stats (itemsSold, reviews, sellerRating, followers) from service
+            try {
+              const computed = await getProfileStats(userId);
+              setStats(prev => ({ ...(prev || {}), ...computed }));
+            } catch (err) {
+              console.warn('Failed to fetch computed profile stats:', err);
+            }
+
+            // Compute connections count from subcollection or legacy array
+            try {
+              const connSnap = await getDocs(collection(db, 'users', userId, 'connections'));
+              if (connSnap && connSnap.size >= 0) {
+                setStats(prev => ({ ...(prev || {}), connectionsCount: connSnap.size }));
+              }
+            } catch (err) {
+              // fallback to legacy array length if available
+              try {
+                const uDoc = await getDoc(doc(db, 'users', userId));
+                const legacy = uDoc.exists() ? (uDoc.data().connections || []) : [];
+                setStats(prev => ({ ...(prev || {}), connectionsCount: legacy.length }));
+              } catch (e) {
+                console.warn('Failed to compute connections count:', e);
+              }
+            }
 
             const userSoldItems = await getUserSoldItems(userId, 5);
             setSoldItems(userSoldItems);
@@ -135,6 +170,37 @@ const ProfilePage = () => {
 
           const userPosts = await getUserPosts(user.uid, 5);
           setPosts(userPosts);
+            // Also compute total posts count for the current user
+          try {
+            const postsQ = query(collection(db, 'posts'), where('authorId', '==', user.uid));
+            const postsSnap = await getDocs(postsQ);
+            const totalPosts = postsSnap.size;
+            setStats(prev => ({ ...(prev || {}), postsCreated: totalPosts }));
+          } catch (err) {
+            console.warn('Failed to count posts for current user:', err);
+          }
+
+          // Fetch computed stats and connections count for current user
+          try {
+            const computed = await getProfileStats(user.uid);
+            setStats(prev => ({ ...(prev || {}), ...computed }));
+          } catch (err) {
+            console.warn('Failed to fetch computed profile stats for current user:', err);
+          }
+          try {
+            const connSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            if (connSnap && connSnap.size >= 0) {
+              setStats(prev => ({ ...(prev || {}), connectionsCount: connSnap.size }));
+            }
+          } catch (err) {
+            try {
+              const uDoc = await getDoc(doc(db, 'users', user.uid));
+              const legacy = uDoc.exists() ? (uDoc.data().connections || []) : [];
+              setStats(prev => ({ ...(prev || {}), connectionsCount: legacy.length }));
+            } catch (e) {
+              console.warn('Failed to compute connections count for current user:', e);
+            }
+          }
 
           const userConnections = await getConnections(user.uid);
           setConnections(userConnections);
@@ -165,10 +231,10 @@ const ProfilePage = () => {
     if (!targetUserId) return;
 
     const userRef = doc(db, 'users', targetUserId);
-    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+    const unsubscribe = onSnapshot(userRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setStats({
+        const derived = {
           itemsSold: data.itemsSold || 0,
           itemsListed: data.itemsListed || 0,
           sellerRating: data.sellerRating || 0,
@@ -177,7 +243,21 @@ const ProfilePage = () => {
           followerCount: data.followerCount || 0,
           followingCount: data.followingCount || 0,
           joinDate: data.createdAt || data.joinDate || null,
-        });
+        };
+
+        setStats(derived);
+
+        // If the user doc doesn't have precomputed stats, compute from collections as a fallback
+        const needsFallback = (derived.postsCreated === 0 && derived.itemsSold === 0 && derived.reviews === 0);
+        if (needsFallback) {
+          try {
+            const computed = await getProfileStats(targetUserId);
+            // Merge computed stats (prefer computed non-zero values)
+            setStats(prev => ({ ...derived, ...Object.fromEntries(Object.entries(computed).map(([k,v]) => [k, v ?? prev[k]])) }));
+          } catch (err) {
+            console.warn('Fallback getProfileStats failed', err);
+          }
+        }
       }
     });
 
@@ -348,7 +428,7 @@ const ProfilePage = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        {connections.length}
+                        {stats?.connectionsCount ?? connections.length ?? 0}
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         Connections
@@ -372,7 +452,7 @@ const ProfilePage = () => {
                     </div>
                     <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
                       <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                        {stats.sellerRating.toFixed(1)}⭐
+                        {typeof stats.sellerRating === 'number' ? stats.sellerRating.toFixed(1) : Number(stats.sellerRating || 0).toFixed(1)}⭐
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         Seller Rating

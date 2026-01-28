@@ -16,7 +16,7 @@
   html.dark {
     /* Dark mode gradient: black-dominant with subtle green accent */
     background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%,#1a2412 50%,#0a2e0a 75%,#1e4004 100%);
-    background-attachment: fixed;
+    /* background-attachment: fixed; mobile browsers can disable scrolling when this is used — avoid to keep smooth scrolling on phones */
   }
   
   html.dark body,
@@ -39,8 +39,16 @@
 /* Prevent page panning/shake on touchpad / touch devices */
 html, body, #root {
   overflow-x: hidden;
-  overscroll-behavior-x: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-x: contain;
+  /* prevent scrolling past the top/bottom (disable overscroll bounce/chain) */
+  overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure the app root allows natural scrolling on small screens */
+@media (max-width: 640px) {
+  html, body, #root {
+    overscroll-behavior-y: contain;
+  }
 }

@@ -17,7 +17,7 @@ const TermsOfServicePage = () => {
   const { darkMode, toggleTheme } = useTheme();
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden font-display">
+    <div className="relative flex w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden font-display min-h-screen">
       {/* 
         Injecting custom styles for smooth scrolling and icon settings. 
         In a real app, 'html { scroll-behavior: smooth }' is usually in global.css 
@@ -33,12 +33,12 @@ const TermsOfServicePage = () => {
         `}
       </style>
 
-      <div className="layout-container flex h-full grow flex-col">
+      <div className="layout-container flex flex-col w-full">
         {/* Shared AppHeader */}
         <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
         {/* Main Content */}
-        <main className="px-4 sm:px-10 md:px-20 lg:px-40 flex flex-1 justify-center py-5">
+        <main className="px-4 sm:px-6 md:px-10 lg:px-20 flex flex-1 justify-center py-8 w-full overflow-y-auto">
           <div className="layout-content-container flex flex-col w-full gap-8">
             
             {/* Title Block */}
@@ -47,9 +47,9 @@ const TermsOfServicePage = () => {
               <p className="text-slate-600 dark:text-slate-400 max-w-xl">Last Updated: October 26, 2023</p>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-12">
-              {/* Sidebar Navigation */}
-              <aside className="lg:w-1/4 sticky top-5 h-fit">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+              {/* Sidebar Navigation - scrollable on mobile, sticky on desktop */}
+              <aside className="lg:w-1/4 lg:sticky lg:top-20 h-fit order-2 lg:order-1">
                 <nav className="flex flex-col gap-2">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-2">Table of Contents</h3>
                   {navLinks.map((link) => (
@@ -65,7 +65,7 @@ const TermsOfServicePage = () => {
               </aside>
 
               {/* Content Sections */}
-              <div className="lg:w-3/4 flex flex-col gap-10">
+              <div className="lg:w-3/4 flex flex-col gap-8 lg:gap-10 order-1 lg:order-2">
                 <section className="space-y-4" id="introduction">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50 border-b border-slate-200 dark:border-slate-700 pb-2">1. Introduction</h2>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">Welcome to UniSpace. These Terms of Service ("Terms") govern your use of the UniSpace platform, including our website, applications, and services. By accessing or using UniSpace, you agree to be bound by these Terms. Our platform provides a digital ecosystem for Nigerian university students, integrating commerce, collaborative learning, and community engagement. All users, including guests, have access to UniWallet, the marketplace, and Study Zone features. Verified students gain additional access to post on the CampusFeed.</p>
