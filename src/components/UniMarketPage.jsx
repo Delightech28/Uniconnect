@@ -92,9 +92,9 @@ const UniMarketPage = () => {
 		const storageKey = 'comingSoonDeadline';
 		let deadline = localStorage.getItem(storageKey);
 
-		if (!deadline) {
-			// First time - set deadline to 5 days from now
-			deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).getTime();
+		    if (!deadline) {
+			    // First time - set deadline to 6 days from now
+			    deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
 			localStorage.setItem(storageKey, deadline);
 		}
 
@@ -148,7 +148,7 @@ useEffect(() => {
 }, []);
 return (
 	<div>
-<div className="w-full h-screen flex flex-col">
+<div className="w-full h-screen flex flex-col" style={{ overscrollBehaviorY: 'contain' }}>
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-7xl mx-auto">

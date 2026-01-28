@@ -22,8 +22,8 @@ const App = () => {
     let deadline = localStorage.getItem(storageKey);
 
     if (!deadline) {
-      // First time - set deadline to 5 days from now
-      deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).getTime();
+      // First time - set deadline to 6 days from now
+      deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
       localStorage.setItem(storageKey, deadline);
     }
 
@@ -232,7 +232,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0b0f1a] text-gray-900 dark:text-gray-100 pb-4 md:pb-8 font-sans transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0b0f1a] text-gray-900 dark:text-gray-100 pb-4 md:pb-8 font-sans transition-colors" style={{ overscrollBehaviorY: 'contain' }}>
       <AppHeader darkMode={isDark} toggleDarkMode={() => setIsDark(!isDark)} />
       <Header 
         activeView={activeView} 

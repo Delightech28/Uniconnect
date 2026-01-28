@@ -243,7 +243,7 @@ const UniConnectDashboard = () => {
     }
   };
 return (
-<div className="w-full h-screen flex flex-col">
+<div className="w-full h-screen flex flex-col" style={{ overscrollBehaviorY: 'auto' }}>
 <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 {/* --- Mobile Menu --- */}
 {isMenuOpen && (

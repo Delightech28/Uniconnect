@@ -15,16 +15,16 @@ import ComingSoonOverlay from '../ComingSoonOverlay';
 
 const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   // Coming soon overlay logic - initialize deadline and check immediately
-  const [showOverlay, setShowOverlay] = useState(true);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
     // Initialize/check deadline in localStorage
     const storageKey = 'comingSoonDeadline';
     let deadline = localStorage.getItem(storageKey);
 
-    if (!deadline) {
-      // First time - set deadline to 5 days from now
-      deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).getTime();
+      if (!deadline) {
+      // First time - set deadline to 6 days from now
+      deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
       localStorage.setItem(storageKey, deadline);
     }
 
@@ -227,7 +227,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   };
 
   return (
-    <div className={`flex flex-col min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-white'}`}>
+    <div className={`flex flex-col min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-white'}`} style={{ overscrollBehaviorY: 'contain' }}>
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       
       <div className="flex-1 flex">

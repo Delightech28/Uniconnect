@@ -25,8 +25,8 @@ const ComingSoonOverlay = ({ featureName = 'Feature', onClose }) => {
       let deadline = localStorage.getItem(storageKey);
 
       if (!deadline) {
-        // Set deadline to 5 days from now
-        deadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).getTime();
+        // Set deadline to 6 days from now
+        deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
         localStorage.setItem(storageKey, deadline);
       } else {
         deadline = parseInt(deadline, 10);
@@ -48,6 +48,7 @@ const ComingSoonOverlay = ({ featureName = 'Feature', onClose }) => {
         // Clear the deadline from localStorage
         localStorage.removeItem('comingSoonDeadline');
         clearInterval(interval);
+        if (onClose) onClose();
         return;
       }
 

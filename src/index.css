@@ -39,16 +39,15 @@
 /* Prevent page panning/shake on touchpad / touch devices */
 html, body, #root {
   overflow-x: hidden;
-  overscroll-behavior-x: contain;
-  /* prevent scrolling past the top/bottom (disable overscroll bounce/chain) */
-  overscroll-behavior-y: contain;
+  overscroll-behavior: none; /* disable scroll chaining / bounce globally */
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  height: 100%;
 }
 
 /* Ensure the app root allows natural scrolling on small screens */
 @media (max-width: 640px) {
   html, body, #root {
-    overscroll-behavior-y: contain;
+    overscroll-behavior: none;
   }
 }
