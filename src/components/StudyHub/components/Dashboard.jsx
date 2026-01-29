@@ -31,7 +31,7 @@ const Dashboard = ({
       description: 'Test your knowledge with AI-generated quizzes',
       icon: BookOpen,
       color: 'from-blue-600 to-blue-500',
-      onClick: () => onStartQuiz(Array.from(selectedTopics)),
+      onClick: () => onStartQuiz(),
     },
     {
       id: 'chat',
@@ -39,7 +39,7 @@ const Dashboard = ({
       description: 'Ask questions about any topic',
       icon: MessageSquare,
       color: 'from-purple-600 to-purple-500',
-      onClick: () => onStartChat({ topics: Array.from(selectedTopics) }),
+      onClick: () => onStartChat(),
     },
     {
       id: 'podcast',

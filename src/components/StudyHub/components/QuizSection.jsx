@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, Clock, MapPin, Target, Zap, Rocket, Activity, Lock, ArrowRight, BookOpen, ExternalLink, X } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, Clock, MapPin, Target, Zap, Rocket, Activity, Lock, ArrowLeft, BookOpen, ExternalLink, X } from 'lucide-react';
 import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
+  // State for quiz setup
+  const [selectedTopic, setSelectedTopic] = useState(topics?.[0]?.id || null);
+  const [numQuestions, setNumQuestions] = useState(5);
+  const [timePerQuestion, setTimePerQuestion] = useState(30);
+
+  // State for quiz execution
+  const [questions, setQuestions] = useState([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [userAnswers, setUserAnswers] = useState([]);
+  const [isQuizRunning, setIsQuizRunning] = useState(false);
+  const [isShowingResults, setIsShowingResults] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(timePerQuestion);
+  const [aiFeedback, setAiFeedback] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [validationRef, setValidationRef] = useState(null);
 
   const startQuiz = async () => {
     if (!selectedTopic) return;
@@ -219,65 +234,60 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   return (
     <div className="p-4 sm:p-12 max-w-7xl mx-auto space-y-8 sm:space-y-12 mb-24">
       <div className="space-y-2 px-2">
-        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">Curriculum</h2>
-        <p className="text-gray-500 font-bold text-base sm:text-lg">Assess your mastery level.</p>
+        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">Quiz Yourself</h2>
+        <p className={`font-bold text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Test your knowledge with AI-generated questions.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {topics.map((topic, index) => {
-          const isFailing = topic.score !== undefined && topic.score < 70;
-          return (
-            <button
-              key={topic.id}
-              onClick={() => setSelectedTopic(topic.id)}
-              className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
-                selectedTopic === topic.id 
-                  ? 'border-unispace bg-unispace/5' 
-                  : 'bg-white dark:bg-zinc-900 border-gray-50 dark:border-zinc-800'
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="w-10 h-10 bg-gray-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-unispace group-hover:text-white transition-colors">{index + 1}</div>
-                {topic.passed ? <CheckCircle2 className="text-unispace" size={24}/> : isFailing ? <XCircle className="text-red-500" size={24}/> : null}
-              </div>
-              <div className="space-y-1 sm:space-y-2">
-                <h3 className="text-lg sm:text-xl font-bold dark:text-white leading-tight">{topic.title}</h3>
-                <p className="text-xs text-gray-400 font-semibold line-clamp-1">{topic.subtopics.join(', ')}</p>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
-                <div className="text-[9px] font-black uppercase text-gray-400 tracking-widest">{topic.score !== undefined ? `${topic.score}% Mastery` : 'Not Attempted'}</div>
-                <ArrowRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
-          );
-        })}
+        {topics && topics.map((topic, index) => (
+          <button
+            key={topic || index}
+            onClick={() => setSelectedTopic(topic)}
+            className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
+              selectedTopic === topic 
+                ? 'border-unispace bg-unispace/5' 
+                : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? 'dark:border-zinc-800' : ''}`
+            }`}
+          >
+            <div className="flex justify-between items-start">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <h3 className={`text-lg sm:text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{topic}</h3>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
+              <div className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Ready</div>
+              <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        ))}
       </div>
 
       {selectedTopic && (
-        <div className="bg-white dark:bg-zinc-900 p-6 sm:p-12 rounded-[32px] sm:rounded-[50px] shadow-2xl border border-gray-100 dark:border-zinc-800 animate-in slide-in-from-bottom-4 duration-500">
+        <div className={`${isDarkMode ? 'bg-zinc-900' : 'bg-white'} p-6 sm:p-12 rounded-[32px] sm:rounded-[50px] shadow-2xl ${isDarkMode ? 'border border-zinc-800' : 'border border-gray-100'} animate-in slide-in-from-bottom-4 duration-500`}>
           <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-10">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-unispace/10 text-unispace rounded-xl flex items-center justify-center shadow-inner"><Zap size={20} /></div>
-            <h3 className="text-xl sm:text-2xl font-bold dark:text-white">Settings</h3>
+            <h3 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : ''}`}>Quiz Settings</h3>
           </div>
           
           <div className="flex flex-col gap-6 sm:gap-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
               <div className="space-y-2 sm:space-y-3">
                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block px-1">Questions</label>
-                <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} className="w-full p-4 bg-gray-50 dark:bg-zinc-800 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer">
-                  {[10, 20, 30, 50].map(n => <option key={n} value={n}>{n} Items</option>)}
+                <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
+                  {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n} Items</option>)}
                 </select>
               </div>
               
               <div className="space-y-2 sm:space-y-3">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block px-1">Timer</label>
-                <select value={timePerQuestion} onChange={e => setTimePerQuestion(Number(e.target.value))} className="w-full p-4 bg-gray-50 dark:bg-zinc-800 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block px-1">Time Per Question</label>
+                <select value={timePerQuestion} onChange={e => setTimePerQuestion(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
                   {[15, 30, 45, 60].map(n => <option key={n} value={n}>{n} Seconds</option>)}
                 </select>
               </div>
             </div>
 
-            <button onClick={startQuiz} className="w-full py-4 sm:py-5 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-unispace/20">Begin Assessment</button>
+            <button onClick={startQuiz} className="w-full py-4 sm:py-5 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-unispace/20">Begin Quiz</button>
           </div>
         </div>
       )}
