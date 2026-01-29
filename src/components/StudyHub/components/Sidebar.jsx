@@ -43,7 +43,7 @@ const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadCli
       </div>
 
       {/* Desktop Left Sidebar */}
-      <div className={`hidden md:flex fixed left-0 top-0 bottom-0 w-20 flex-col items-center justify-between py-8 border-r ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className={`hidden md:flex fixed left-0 top-0 bottom-0 w-20 mt-12 flex-col items-center justify-between py-8 border-r ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="flex flex-col gap-4">
           {menuItems.map((item) => {
             const Icon = item.icon;

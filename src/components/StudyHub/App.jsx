@@ -12,6 +12,8 @@ import TutorSection from './components/TutorSection';
 import DocumentSummary from './components/Summary/DocumentSummary';
 import { analyzeDocument, generateTopics } from './services/geminiService';
 import ComingSoonOverlay from '../ComingSoonOverlay';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   // Coming soon overlay logic - initialize deadline and check immediately
@@ -85,14 +87,12 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
     abortRef.current = new AbortController();
 
     try {
-      // Extract text from PDF using pdfjs
-      const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
-      // Set the worker source URL to CDN
-      GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      
-      // Convert File to ArrayBuffer
+      // Use local pdfjs-dist ESM build and Vite-provided worker URL
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+
+      // Convert File to ArrayBuffer and parse
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let text = '';
       
       for (let i = 1; i <= pdf.numPages; i++) {
