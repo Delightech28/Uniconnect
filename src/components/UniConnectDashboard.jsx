@@ -360,10 +360,13 @@ mb-4">CampusFeed</p>
 </button>
 {/* Author info and menu */}
 <div className="flex-grow flex items-start justify-between">
-<div className="flex flex-col">
-<p className="text-sm sm:text-base font-semibold text-secondary dark:text-white cursor-pointer hover:underline" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p> {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block ml-1" />}
-<p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
-</div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <p className="text-sm sm:text-base font-semibold text-secondary dark:text-white cursor-pointer hover:underline mb-0" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
+                {authorGenders[post.authorId] && <GenderBadge gender={authorGenders[post.authorId]} size="sm" className="inline-block" />}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
+            </div>
 </div>
 </div>
 {/* Content below - full width */}
