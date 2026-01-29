@@ -75,8 +75,8 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB limit');
+    if (!file || !(file instanceof Blob)) {
+      alert('Invalid file object');
       return;
     }
 
@@ -85,11 +85,25 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
     abortRef.current = new AbortController();
 
     try {
-      const text = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsText(file);
-      });
+      // Extract text from PDF using pdfjs
+      const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist');
+      // Set the worker source URL to CDN
+      GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      
+      // Convert File to ArrayBuffer
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await getDocument({ data: arrayBuffer }).promise;
+      let text = '';
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        text += textContent.items.map((item) => item.str).join(' ') + '\n';
+      }
+
+      if (!text.trim()) {
+        throw new Error('No text content found in PDF. Please ensure the PDF contains selectable text.');
+      }
 
       setLoadingMessage('Extracting topics...');
       const extractedTopics = await generateTopics(text, abortRef.current.signal);

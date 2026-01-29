@@ -25,23 +25,10 @@ const FileUpload = ({ onFileUpload, isDarkMode, progress = 0, stage }) => {
       return;
     }
 
-
-      setIsReading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = e.target?.result;
-      onFileUpload({
-        name: file.name,
-        type: file.type,
-        data: data
-      });
-      setTimeout(() => setIsReading(false), 500);
-    };
-    reader.onerror = () => {
-      setIsReading(false);
-      setError("Failed to read file.");
-    };
-    reader.readAsDataURL(file);
+    setIsReading(true);
+    // Pass the File object directly to the parent
+    onFileUpload(file);
+    setTimeout(() => setIsReading(false), 500);
   };
 
   const handleDrop = (e) => {
