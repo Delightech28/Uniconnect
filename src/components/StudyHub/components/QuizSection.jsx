@@ -4,7 +4,7 @@ import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
   // State for quiz setup
-  const [selectedTopic, setSelectedTopic] = useState(topics?.[0]?.id || null);
+  const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
   const [numQuestions, setNumQuestions] = useState(5);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
 
@@ -21,19 +21,19 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
 
   const startQuiz = async () => {
     if (!selectedTopic) return;
-    const topicIdx = topics.findIndex(t => t.id === selectedTopic);
     setLoading(true);
     setLoadingMessage(`Constructing ${numQuestions} questions...`);
     try {
-      const qs = await generateQuiz(docText, topics[topicIdx].title, numQuestions);
+      const qs = await generateQuiz(docText, selectedTopic, numQuestions);
       setQuestions(qs);
       setUserAnswers(new Array(qs.length).fill(-1));
       setCurrentIdx(0);
+      setIsShowingResults(false);
       setIsQuizRunning(true);
       setTimeLeft(timePerQuestion);
       setAiFeedback(null);
     } catch (e) {
-      alert("AI Service Capacity Reached.");
+      alert("Failed to generate quiz: " + (e.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -68,9 +68,8 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     if (!selectedTopic || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
-      const topicTitle = topics.find(t => t.id === selectedTopic)?.title || '';
       const feedback = await getQuizFeedback(docText, questions, userAnswers.map((ans, idx) => ({
-        isCorrect: ans === questions[idx].correctAnswerIndex || (questions[idx].correctAnswer !== undefined && ans === questions[idx].correctAnswer)
+        isCorrect: ans === questions[idx].correctAnswerIndex
       })));
       setAiFeedback(feedback);
     } catch (e) {
@@ -83,9 +82,9 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   const finishQuiz = () => {
     setIsShowingResults(true);
     const correctCount = userAnswers.reduce((acc, ans, idx) => 
-      ans === questions[idx].correctAnswer ? acc + 1 : acc
+      ans === (questions[idx]?.correctAnswerIndex ?? -1) ? acc + 1 : acc
     , 0);
-    const score = (correctCount / questions.length) * 100;
+    const score = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
     if (selectedTopic) {
       onQuizComplete(selectedTopic, score);
     }
@@ -94,9 +93,9 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   if (isQuizRunning) {
     if (isShowingResults) {
       const correctCount = userAnswers.reduce((acc, ans, idx) => 
-        ans === questions[idx].correctAnswerIndex ? acc + 1 : ans === questions[idx].correctAnswer ? acc + 1 : acc
+        ans === questions[idx].correctAnswerIndex ? acc + 1 : acc
       , 0);
-      const score = Math.round((correctCount / questions.length) * 100);
+      const score = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
 
       return (
         <div className="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 animate-in fade-in duration-500 mb-24">
@@ -134,12 +133,12 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               {questions.map((q, idx) => (
                 <div key={q.id} className="p-5 sm:p-8 border border-gray-100 dark:border-zinc-800 rounded-2xl sm:rounded-[32px] bg-gray-50/20 dark:bg-zinc-800/20 space-y-4">
                   <div className="flex justify-between gap-4">
-                    <p className="font-semibold text-base sm:text-lg dark:text-white leading-snug">{idx + 1}. {q.question}</p>
-                    {userAnswers[idx] === q.correctAnswer ? <CheckCircle2 className="text-unispace shrink-0" size={24}/> : <XCircle className="text-red-500 shrink-0" size={24}/>}
+                    <p className="font-semibold text-base sm:text-lg dark:text-white leading-snug">{idx + 1}. {q.text}</p>
+                    {userAnswers[idx] === q.correctAnswerIndex ? <CheckCircle2 className="text-unispace shrink-0" size={24}/> : <XCircle className="text-red-500 shrink-0" size={24}/>}
                   </div>
                   <div className="text-xs sm:text-sm space-y-1">
-                    <p className="text-gray-400">Chosen: <span className={userAnswers[idx] === q.correctAnswer ? 'text-unispace' : 'text-red-500'}>{q.options[userAnswers[idx]] || 'Timed Out'}</span></p>
-                    <p className="text-gray-900 dark:text-zinc-100 font-bold">Correct: {q.options[q.correctAnswer]}</p>
+                    <p className="text-gray-400">Chosen: <span className={userAnswers[idx] === q.correctAnswerIndex ? 'text-unispace' : 'text-red-500'}>{q.options[userAnswers[idx]] || 'Timed Out'}</span></p>
+                    <p className="text-gray-900 dark:text-zinc-100 font-bold">Correct: {q.options[q.correctAnswerIndex]}</p>
                   </div>
                   <div className="p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-xl border dark:border-zinc-700 text-xs sm:text-sm leading-relaxed">
                     <div className="font-bold text-unispace uppercase text-[9px] tracking-widest mb-2">Explanation</div>
@@ -176,6 +175,31 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     }
 
     const currentQ = questions[currentIdx];
+    
+    if (!currentQ || questions.length === 0) {
+      return (
+        <div className="max-w-3xl mx-auto py-6 sm:py-12 px-4 sm:px-6 mb-24">
+          <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl flex flex-col items-center justify-center gap-8 min-h-96">
+            {/* Animated gradient background */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 bg-gradient-to-r from-unispace to-[#07bc0c] rounded-full blur-lg opacity-50 animate-pulse"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-gray-200 dark:border-zinc-700 border-t-unispace border-r-[#07bc0c] rounded-full animate-spin"></div>
+              </div>
+            </div>
+            <div className="text-center space-y-3">
+              <p className="text-lg font-bold dark:text-white">Loading questions...</p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="max-w-3xl mx-auto py-6 sm:py-12 px-4 sm:px-6 animate-in slide-in-from-bottom-6 duration-500 mb-24">
         <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl space-y-8 sm:space-y-12">

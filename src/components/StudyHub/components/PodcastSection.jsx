@@ -126,7 +126,7 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
               <div className="relative">
                 <select value={selectedTopic || ''} onChange={e => setSelectedTopic(e.target.value)} className="w-full p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border-none outline-none font-bold text-xs appearance-none cursor-pointer">
                   <option value="">Select Topic</option>
-                  {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                  {topics.map((t, idx) => <option key={idx} value={t}>{t}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
               </div>
