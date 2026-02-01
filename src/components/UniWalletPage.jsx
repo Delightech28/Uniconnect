@@ -1,4 +1,4 @@
-   import React, { useState, useEffect } from 'react'; 
+  import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
@@ -13,11 +13,11 @@ const navLinks = [
     { name: 'Wallet', path: '/uni-wallet', active: true }, 
 ]; 
  
-const actionButtons = [ 
-    { icon: 'account_balance_wallet', label: 'Fund Wallet', primary: true }, 
-    { icon: 'arrow_upward', label: 'Send Money', primary: false }, 
-    { icon: 'arrow_downward', label: 'Receive Money', primary: false }, 
-]; 
+const actionButtons = [
+  { icon: 'account_balance_wallet', label: 'Fund Wallet', primary: true },
+  { icon: 'arrow_upward', label: 'Send Money', primary: false },
+  { icon: 'arrow_downward', label: 'Receive Money', primary: false },
+];
  
 const transactions = [ 
     { type: 'debit', icon: 'arrow_upward', title: 'Sent to @bisi', date: 'June 15, 2024', amount: '- ₦2,500.00', color: 'red' }, 
@@ -47,15 +47,15 @@ text-base">verified</span>
     </div> 
 ); 
  
-const ActionButton = ({ icon, label, primary }) => ( 
-    <button className={`w-full flex items-center justify-center gap-2 
-rounded-lg h-12 px-4 text-base font-semibold transition-transform 
-hover:scale-105 ${primary ? 'bg-primary text-white' : 
-'bg-background-light dark:bg-slate-700 text-secondary dark:text-white'}`}> 
-        <span className="material-symbols-outlined">{icon}</span> 
-        <span>{label}</span> 
-    </button> 
-); 
+const ActionButton = ({ icon, label, primary, onClick }) => (
+  <button
+    className={`w-full flex items-center justify-center gap-2 rounded-lg h-12 px-4 text-base font-semibold transition-transform hover:scale-105 ${primary ? 'bg-primary text-white' : 'bg-background-light dark:bg-slate-700 text-secondary dark:text-white'}`}
+    onClick={onClick}
+  >
+    <span className="material-symbols-outlined">{icon}</span>
+    <span>{label}</span>
+  </button>
+);
  
 const TransactionItem = ({ transaction }) => { 
     const colors = { 
@@ -92,51 +92,140 @@ dark:text-slate-400">{transaction.date}</p>
  
  
 // --- Main Page Component --- 
-const UniWalletPage = () => { 
+const UniWalletPage = () => {
   const { darkMode, toggleTheme } = useTheme();
- 
-  return ( 
+  const [showFundModal, setShowFundModal] = useState(false);
+  const [fundForm, setFundForm] = useState({
+    accountNumber: '',
+    bank: '',
+    amount: '',
+    beneficiary: '',
+  });
+
+  // Placeholder: Replace with real bank list or API
+  const banks = [
+    { code: '044', name: 'Access Bank' },
+    { code: '011', name: 'First Bank' },
+    { code: '058', name: 'GTBank' },
+    { code: '232', name: 'Sterling Bank' },
+    { code: '221', name: 'Stanbic IBTC' },
+    { code: '033', name: 'UBA' },
+    { code: '057', name: 'Zenith Bank' },
+  ];
+
+  const handleFundInput = (e) => {
+    const { name, value } = e.target;
+    setFundForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFundSubmit = (e) => {
+    e.preventDefault();
+    // TODO: Integrate Paystack payment here
+    alert('Paystack integration goes here');
+  };
+
+  return (
     <div>
-    <div className="w-full h-screen flex flex-col"> 
-      <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} /> 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8"> 
-        <div className="max-w-4xl mx-auto"> 
-          <h1 className="text-secondary dark:text-white text-3xl font-bold 
-leading-tight font-display mb-8">My UniWallet</h1> 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8"> 
-            <div className="md:col-span-1 flex flex-col gap-6"> 
-              <BalanceCard /> 
-              <div className="bg-white dark:bg-secondary rounded-xl 
-shadow-md p-6 flex flex-col gap-4"> 
- 
-                {actionButtons.map(btn => <ActionButton key={btn.label} 
-{...btn} />)} 
-              </div> 
-            </div> 
-            <div className="md:col-span-2 bg-white dark:bg-secondary 
-rounded-xl shadow-md p-6"> 
-              <div className="flex justify-between items-center mb-6"> 
-                <h2 className="text-secondary dark:text-white text-xl 
-font-bold font-display">Recent Transactions</h2> 
-                <a className="text-primary text-sm font-medium 
-hover:underline" href="#">View All</a> 
-              </div> 
-              <div className="space-y-4"> 
-                {transactions.map((tx, index) => <TransactionItem key={index} 
-transaction={tx} />)} 
-                <a className="block w-full text-center text-primary text-sm 
-font-medium mt-6 pt-4 border-t border-slate-200 dark:border-slate-700" 
-href="#">View Full Transaction History</a> 
-              </div> 
-            </div> 
-          </div> 
-        </div> 
-      </main> 
+      <div className="w-full h-screen flex flex-col">
+        <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
+        <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-secondary dark:text-white text-3xl font-bold leading-tight font-display mb-8">My UniWallet</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-1 flex flex-col gap-6">
+                <BalanceCard />
+                <div className="bg-white dark:bg-secondary rounded-xl shadow-md p-6 flex flex-col gap-4">
+                  <ActionButton
+                    icon="account_balance_wallet"
+                    label="Fund Wallet"
+                    primary={true}
+                    onClick={() => setShowFundModal(true)}
+                  />
+                  <ActionButton icon="arrow_upward" label="Send Money" primary={false} />
+                  <ActionButton icon="arrow_downward" label="Receive Money" primary={false} />
+                </div>
+              </div>
+              <div className="md:col-span-2 bg-white dark:bg-secondary rounded-xl shadow-md p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-secondary dark:text-white text-xl font-bold font-display">Recent Transactions</h2>
+                  <a className="text-primary text-sm font-medium hover:underline" href="#">View All</a>
+                </div>
+                <div className="space-y-4">
+                  {transactions.map((tx, index) => <TransactionItem key={index} transaction={tx} />)}
+                  <a className="block w-full text-center text-primary text-sm font-medium mt-6 pt-4 border-t border-slate-200 dark:border-slate-700" href="#">View Full Transaction History</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        {/* Fund Wallet Modal */}
+        {showFundModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white dark:bg-secondary rounded-xl shadow-lg p-8 w-full max-w-md relative">
+              <button className="absolute top-3 right-3 text-slate-400 hover:text-primary" onClick={() => setShowFundModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+              <h2 className="text-xl font-bold mb-4 text-secondary dark:text-white">Fund Wallet</h2>
+              <form onSubmit={handleFundSubmit} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    value={fundForm.accountNumber}
+                    onChange={handleFundInput}
+                    className="form-input w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Select Bank</label>
+                  <select
+                    name="bank"
+                    value={fundForm.bank}
+                    onChange={handleFundInput}
+                    className="form-select w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+                    required
+                  >
+                    <option value="">Select a bank</option>
+                    {banks.map((b) => (
+                      <option key={b.code} value={b.code}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Amount</label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={fundForm.amount}
+                    onChange={handleFundInput}
+                    className="form-input w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+                    min="100"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Beneficiary Name</label>
+                  <input
+                    type="text"
+                    name="beneficiary"
+                    value={fundForm.beneficiary}
+                    onChange={handleFundInput}
+                    className="form-input w-full rounded-lg border-slate-300 dark:border-slate-600 bg-background-light dark:bg-slate-800 text-secondary dark:text-white"
+                    required
+                  />
+                </div>
+                <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-colors">Continue to Paystack</button>
+              </form>
+            </div>
+          </div>
+        )}
+        <Footer darkMode={darkMode} />
       </div>
-      <Footer darkMode={darkMode} />
     </div>
-  ); 
-}; 
+  );
+};
  
 export default UniWalletPage; 
 
