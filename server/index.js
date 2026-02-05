@@ -12,10 +12,40 @@ const FRONTEND_ORIGIN = import.meta.env.FRONTEND_ORIGIN || 'http://localhost:517
 app.use(cors({ origin: FRONTEND_ORIGIN }));
 app.use(express.json());
 
-const PAYSTACK_SECRET = import.meta.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 if (!PAYSTACK_SECRET) {
   console.warn('Warning: PAYSTACK_SECRET_KEY is not set in server environment');
 }
+
+app.post('/verify-account', async (req, res) => {
+  try {
+    const { accountNumber, bankCode } = req.body;
+
+    if (!accountNumber || !bankCode) {
+      return res.status(400).json({ error: 'Missing account number or bank code' });
+    }
+
+    const verifyResp = await fetch(
+      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET}`,
+        },
+      }
+    );
+
+    const verifyData = await verifyResp.json();
+    if (!verifyResp.ok || !verifyData.data) {
+      return res.status(400).json({ error: 'Account verification failed', details: verifyData });
+    }
+
+    return res.json({ success: true, data: verifyData.data });
+  } catch (err) {
+    console.error('Verify account error:', err);
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
 
 app.post('/transfer', async (req, res) => {
   try {

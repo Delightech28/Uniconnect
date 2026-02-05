@@ -95,17 +95,26 @@ const SendMoneyPage = () => {
       setVerifying(true);
       setVerificationError('');
 
-      const verificationResult = await verifyAccountNumber(
-        formData.accountNumber,
-        formData.selectedBank
-      );
+      // Call backend to verify account
+      const resp = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:4000'}/verify-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountNumber: formData.accountNumber,
+          bankCode: formData.selectedBank,
+        }),
+      });
 
-      if (verificationResult) {
-        setAccountName(verificationResult.account_name);
-        setAccountVerified(true);
-      } else {
-        setVerificationError('Account verification failed. Please check your details.');
+      const result = await resp.json();
+      if (!resp.ok || !result.success) {
+        console.error('Verification failed', result);
+        setVerificationError(result.error || 'Account verification failed. Please check your details.');
+        return;
       }
+
+      const verificationResult = result.data;
+      setAccountName(verificationResult.account_name);
+      setAccountVerified(true);
     } catch (error) {
       console.error('Verification error:', error);
       setVerificationError('Error verifying account. Please try again.');
@@ -322,7 +331,7 @@ const SendMoneyPage = () => {
                   <button
                     onClick={handleVerifyAccount}
                     disabled={verifying || !formData.selectedBank || !formData.accountNumber}
-                    className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white rounded-lg font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-3 sm:px-6 py-3 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white rounded-lg font-semibold text-sm sm:text-base hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {verifying ? 'Verifying...' : 'Verify'}
                   </button>
