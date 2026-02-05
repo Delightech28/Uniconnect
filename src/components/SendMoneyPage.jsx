@@ -31,6 +31,7 @@ const SendMoneyPage = () => {
   const [verificationError, setVerificationError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
 
   // Load user on mount
   useEffect(() => {
@@ -115,90 +116,110 @@ const SendMoneyPage = () => {
 
   // Handle send money submission
   const handleSendMoney = async () => {
+    // start spinner immediately for UX
+    setProcessing(true);
+
     // Validation
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       setErrorMessage('Please enter a valid amount');
+      setProcessing(false);
       return;
     }
 
     if (!accountVerified) {
       setErrorMessage('Please verify the account first');
+      setProcessing(false);
       return;
     }
 
     const amount = parseFloat(formData.amount);
 
     if (amount > (user.walletBalance || 0)) {
-      setErrorMessage('Insufficient wallet balance');
+      // show animated insufficient funds modal
+      setShowInsufficientModal(true);
+      setProcessing(false);
       return;
     }
 
     try {
-      setProcessing(true);
       setErrorMessage('');
       setSuccessMessage('');
 
       // Generate unique reference
       const reference = `SM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Charge the card via Paystack
-      const paymentResult = await chargeWithPaystackInline(
-        user.email,
-        amount,
-        PAYSTACK_PUBLIC_KEY
-      );
+      // Call backend to create recipient and initiate transfer from platform balance
+      const resp = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:4000'}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountNumber: formData.accountNumber,
+          bankCode: formData.selectedBank,
+          accountName: accountName,
+          amount: amount,
+          reference,
+        }),
+      });
 
-      if (paymentResult && paymentResult.status === 'success') {
-        // Payment successful - deduct from sender's wallet
-        const senderRef = doc(db, 'users', user.id);
-        const newSenderBalance = (user.walletBalance || 0) - amount;
-
-        await updateDoc(senderRef, {
-          walletBalance: newSenderBalance,
-          lastTransactionDate: serverTimestamp(),
-        });
-
-        // Log transaction
-        await addDoc(collection(db, 'users', user.id, 'transactions'), {
-          type: 'debit',
-          title: `Sent to ${accountName}`,
-          amount,
-          bankDetails: {
-            bankCode: formData.selectedBank,
-            bankName: banks.find(b => b.code === formData.selectedBank)?.name,
-            accountNumber: formData.accountNumber,
-            accountName: accountName,
-          },
-          reference: paymentResult.reference,
-          paystackTransactionId: paymentResult.id,
-          note: formData.note,
-          timestamp: serverTimestamp(),
-          status: 'completed',
-        });
-
-        setSuccessMessage(`Successfully sent ₦${amount.toLocaleString()} to ${accountName}!`);
-
-        // Reset form
-        setFormData({
-          selectedBank: '',
-          accountNumber: '',
-          amount: '',
-          note: '',
-        });
-        setAccountVerified(false);
-        setAccountName('');
-
-        // Update local user balance
-        setUser(prev => ({
-          ...prev,
-          walletBalance: newSenderBalance,
-        }));
-
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          navigate('/uni-wallet');
-        }, 2000);
+      const result = await resp.json();
+      if (!resp.ok || !result.success) {
+        console.error('Transfer failed', result);
+        setErrorMessage(result.error || 'Transfer failed.');
+        return;
       }
+
+      const transferData = result.data;
+
+      // Transfer initiated successfully — deduct from sender wallet and log
+      const senderRef = doc(db, 'users', user.id);
+      const newSenderBalance = (user.walletBalance || 0) - amount;
+
+      await updateDoc(senderRef, {
+        walletBalance: newSenderBalance,
+        lastTransactionDate: serverTimestamp(),
+      });
+
+      // Log transaction
+      await addDoc(collection(db, 'users', user.id, 'transactions'), {
+        type: 'debit',
+        title: `Sent to ${accountName}`,
+        amount,
+        bankDetails: {
+          bankCode: formData.selectedBank,
+          bankName: banks.find(b => b.code === formData.selectedBank)?.name,
+          accountNumber: formData.accountNumber,
+          accountName: accountName,
+        },
+        reference: reference,
+        paystack_transfer_id: transferData.id,
+        transfer_status: transferData.status,
+        note: formData.note,
+        timestamp: serverTimestamp(),
+        status: transferData.status === 'success' ? 'completed' : 'pending',
+      });
+
+      setSuccessMessage(`Transfer initiated ₦${amount.toLocaleString()} to ${accountName}.`);
+
+      // Reset form
+      setFormData({
+        selectedBank: '',
+        accountNumber: '',
+        amount: '',
+        note: '',
+      });
+      setAccountVerified(false);
+      setAccountName('');
+
+      // Update local user balance
+      setUser(prev => ({
+        ...prev,
+        walletBalance: newSenderBalance,
+      }));
+
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        navigate('/uni-wallet');
+      }, 2000);
     } catch (error) {
       console.error('Send error:', error);
       setErrorMessage(error.message || 'Payment failed. Please try again.');
@@ -436,6 +457,32 @@ const SendMoneyPage = () => {
           </div>
         </main>
       </div>
+      {/* Insufficient funds modal */}
+      {showInsufficientModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-secondary rounded-xl p-6 w-full max-w-sm mx-4 text-center shadow-lg">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center"></span>
+                </span>
+                <span className="animate-ping absolute inline-flex h-24 w-24 rounded-full bg-red-400 opacity-75"></span>
+                <div className="relative z-10 w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl">
+                  <span className="material-symbols-outlined">close</span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-red-700">Insufficient Funds</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">You don't have enough balance to complete this transfer.</p>
+              <button
+                onClick={() => setShowInsufficientModal(false)}
+                className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Footer darkMode={darkMode} />
     </div>
   );
