@@ -47,8 +47,10 @@ text-base">verified</span>
     </div> 
 ); 
  
-const ActionButton = ({ icon, label, primary }) => ( 
-    <button className={`w-full flex items-center justify-center gap-2 
+const ActionButton = ({ icon, label, primary, onClick }) => ( 
+    <button 
+        onClick={onClick}
+        className={`w-full flex items-center justify-center gap-2 
 rounded-lg h-12 px-4 text-base font-semibold transition-transform 
 hover:scale-105 ${primary ? 'bg-primary text-white' : 
 'bg-background-light dark:bg-slate-700 text-secondary dark:text-white'}`}> 
@@ -94,6 +96,7 @@ dark:text-slate-400">{transaction.date}</p>
 // --- Main Page Component --- 
 const UniWalletPage = () => { 
   const { darkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
  
   return ( 
     <div>
@@ -109,8 +112,19 @@ leading-tight font-display mb-8">My UniWallet</h1>
               <div className="bg-white dark:bg-secondary rounded-xl 
 shadow-md p-6 flex flex-col gap-4"> 
  
-                {actionButtons.map(btn => <ActionButton key={btn.label} 
-{...btn} />)} 
+                {actionButtons.map(btn => (
+                  <ActionButton 
+                    key={btn.label} 
+                    {...btn} 
+                    onClick={() => {
+                      if (btn.label === 'Fund Wallet') {
+                        navigate('/fund-wallet');
+                      } else if (btn.label === 'Send Money') {
+                        navigate('/send-money');
+                      }
+                    }}
+                  />
+                ))} 
               </div> 
             </div> 
             <div className="md:col-span-2 bg-white dark:bg-secondary 

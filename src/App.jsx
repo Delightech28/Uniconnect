@@ -32,6 +32,8 @@ import CreatePostPage from "./components/CreatePostPage";
 import TransactionHistory from "./components/TransactionHistory";
 import ProductDetailsPage from "./components/ProductDetailsPage";
 import InboxPage from "./components/InboxPage";
+import FundWalletPage from "./components/FundWalletPage";
+import SendMoneyPage from "./components/SendMoneyPage";
 import Header from "./components/Header";
 import EditProfilePage from "./components/EditProfilePage";
 import ProfilePage from "./components/ProfilePage";
@@ -107,6 +109,8 @@ function App() {
         <Route path="/document-info" element={<DocumentInfo />} />
         <Route path="/quiz-results" element={<ProtectedRoute><QuizResultsPage /></ProtectedRoute>} />
         <Route path="/uni-wallet" element={<ProtectedRoute><UniWalletPage /></ProtectedRoute>} />
+        <Route path="/fund-wallet" element={<ProtectedRoute><FundWalletPage /></ProtectedRoute>} />
+        <Route path="/send-money" element={<ProtectedRoute><SendMoneyPage /></ProtectedRoute>} />
         <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
         <Route path="/create-post" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
         <Route path="/edit-post/:postId" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
