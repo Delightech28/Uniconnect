@@ -59,6 +59,9 @@ app.post('/create-virtual-account', async (req, res) => {
       return res.status(500).json({ error: 'PAYSTACK_SECRET_KEY not configured' });
     }
 
+    // Phone is required by Paystack for dedicated accounts
+    const phoneNumber = phone && phone.trim() !== '' ? phone : '08000000000';
+
     // Step 1: Create or get customer
     const customerResp = await fetch('https://api.paystack.co/customer', {
       method: 'POST',
@@ -70,7 +73,7 @@ app.post('/create-virtual-account', async (req, res) => {
         email: email,
         first_name: firstName,
         last_name: lastName,
-        phone: phone || '',
+        phone: phoneNumber,
       }),
     });
 

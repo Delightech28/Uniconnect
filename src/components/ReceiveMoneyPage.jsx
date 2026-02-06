@@ -35,15 +35,16 @@ const ReceiveMoneyPage = () => {
           // Check if user already has a virtual account
           if (userData.virtualAccount) {
             setBankDetails(userData.virtualAccount);
+            setLoading(false);
           } else {
             // Auto-generate virtual account if not exists
             await generateVirtualAccount(userData);
+            setLoading(false);
           }
         }
       } catch (error) {
         console.error('Error loading user data:', error);
         toast.error('Failed to load your details');
-      } finally {
         setLoading(false);
       }
     };
@@ -68,7 +69,12 @@ const ReceiveMoneyPage = () => {
       const firstName = userData.displayName?.split(' ')[0] || userData.fullName?.split(' ')[0] || 'User';
       const lastName = userData.displayName?.split(' ')[1] || userData.fullName?.split(' ')[1] || 'Account';
       const email = userData.email || auth.currentUser?.email;
-      const phone = userData.phone || '';
+      let phone = userData.phone || '';
+
+      // Phone is required by Paystack - use a placeholder if not available
+      if (!phone || phone.trim() === '') {
+        phone = '08000000000'; // Placeholder - user should update their profile
+      }
 
       toast.loading('Creating your virtual account...');
 
@@ -106,10 +112,10 @@ const ReceiveMoneyPage = () => {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full min-h-screen flex flex-col bg-background-light dark:bg-slate-900">
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
       
-      <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8 relative z-0">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-8">
