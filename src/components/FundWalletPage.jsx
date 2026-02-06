@@ -169,11 +169,15 @@ const FundWalletPage = () => {
         const currentBalance = user.walletBalance || 0;
         const newBalance = currentBalance + amount;
 
+        console.log('Funding wallet:', { currentBalance, amount, newBalance });
+
         // Update user's wallet balance
         await updateDoc(userRef, {
           walletBalance: newBalance,
           lastFundingDate: serverTimestamp(),
         });
+
+        console.log('Wallet balance updated in Firestore');
 
         // Log transaction
         await addDoc(collection(db, 'users', user.id, 'transactions'), {
@@ -188,6 +192,8 @@ const FundWalletPage = () => {
           status: 'completed',
         });
 
+        console.log('Transaction logged');
+
         // Save account for future use (optional)
         await addDoc(collection(db, 'users', user.id, 'bankAccounts'), {
           accountNumber: formData.accountNumber,
@@ -199,6 +205,14 @@ const FundWalletPage = () => {
         });
 
         setSuccessMessage(`Wallet funded successfully! ₦${amount.toLocaleString()} added to your wallet.`);
+        
+        // Update local user state with new balance
+        setUser(prev => ({
+          ...prev,
+          walletBalance: newBalance,
+        }));
+
+        console.log('Local state updated with new balance:', newBalance);
         
         // Reset form
         setFormData({
