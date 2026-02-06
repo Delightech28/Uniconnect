@@ -43,9 +43,9 @@ export default async function handler(req, res) {
 
     const { event, data } = req.body;
 
-    console.log(`Webhook event: ${event}`);
+    console.log(`Webhook event: ${event}`, JSON.stringify(data));
 
-    // Handle transfer success
+    // Handle incoming transfer to virtual account
     if (event === 'transfer.success') {
       const { recipient, amount, reference, status } = data;
 
@@ -53,15 +53,25 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: false, message: 'Transfer not successful' });
       }
 
-      // Find user by paystackCustomerId or email
+      // Find user by dedicated account ID (recipientId from Paystack)
       const usersRef = db.collection('users');
-      const snapshot = await usersRef
-        .where('paystackCustomerId', '==', recipient?.toString())
+      
+      // Try to find by dedicated account ID first
+      let snapshot = await usersRef
+        .where('paystackDedicatedAccountId', '==', recipient?.toString())
         .limit(1)
         .get();
 
       if (snapshot.empty) {
-        console.warn(`No user found for recipient: ${recipient}`);
+        // Fallback: try paystackCustomerId
+        snapshot = await usersRef
+          .where('paystackCustomerId', '==', recipient?.toString())
+          .limit(1)
+          .get();
+      }
+
+      if (snapshot.empty) {
+        console.warn(`No user found for recipient/dedicated account: ${recipient}`);
         return res.status(200).json({ success: false, message: 'User not found' });
       }
 
