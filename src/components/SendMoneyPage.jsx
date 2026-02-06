@@ -354,10 +354,21 @@ const SendMoneyPage = () => {
                 </div>
 
                 {verificationError && (
-                  <div className="mt-2">
-                    <p className="text-red-500 text-sm">{verificationError}</p>
+                  <div className="mt-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+                    <p className="text-red-700 dark:text-red-300 text-sm font-semibold mb-2">❌ Verification Failed</p>
+                    <p className="text-red-600 dark:text-red-400 text-sm mb-2">
+                      {verificationError}
+                    </p>
+                    <p className="text-red-600 dark:text-red-400 text-xs">
+                      💡 Please check:
+                      <ul className="mt-1 ml-4 space-y-1">
+                        <li>• Account number is correct (usually 10 digits)</li>
+                        <li>• You selected the correct bank</li>
+                        <li>• The account is active and valid</li>
+                      </ul>
+                    </p>
                     {paystackVerifyDetails && (
-                      <pre className="text-xs text-red-600 mt-2 whitespace-pre-wrap bg-red-50 dark:bg-red-900/20 p-2 rounded">{typeof paystackVerifyDetails === 'string' ? paystackVerifyDetails : JSON.stringify(paystackVerifyDetails, null, 2)}</pre>
+                      <pre className="text-xs text-red-600 mt-2 whitespace-pre-wrap bg-red-50 dark:bg-red-900/30 p-2 rounded">{typeof paystackVerifyDetails === 'string' ? paystackVerifyDetails : JSON.stringify(paystackVerifyDetails, null, 2)}</pre>
                     )}
                   </div>
                 )}

@@ -30,7 +30,35 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Create dedicated virtual account on Paystack
+    // Step 1: Create or get customer
+    const customerResp = await fetch('https://api.paystack.co/customer', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PAYSTACK_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone || '',
+      }),
+    });
+
+    const customerData = await customerResp.json();
+    console.log('Paystack customer response:', customerData);
+
+    if (!customerResp.ok || !customerData.data) {
+      console.error('Customer creation failed:', customerData);
+      return res.status(400).json({ 
+        error: 'Failed to create customer account', 
+        details: customerData.message || 'Unknown error'
+      });
+    }
+
+    const customerId = customerData.data.id;
+
+    // Step 2: Create dedicated virtual account for this customer
     const accountResp = await fetch('https://api.paystack.co/dedicated_account', {
       method: 'POST',
       headers: {
@@ -38,21 +66,19 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-        phone: phone || '',
-        preferred_bank: 'wema-bank', // or use another bank code if preferred
+        customer: customerId,
+        preferred_bank: 'wema-bank',
       }),
     });
 
     const accountData = await accountResp.json();
+    console.log('Paystack dedicated_account response:', accountData);
 
     if (!accountResp.ok || !accountData.data) {
       console.error('Virtual account creation failed:', accountData);
       return res.status(400).json({ 
         error: 'Failed to create virtual account', 
-        details: accountData.message || 'Unknown error' 
+        details: accountData.message || JSON.stringify(accountData)
       });
     }
 
@@ -65,7 +91,7 @@ export default async function handler(req, res) {
         bankName: virtualAccount.bank?.name || 'Wema Bank',
         bankCode: virtualAccount.bank?.code || '035',
         accountName: `${firstName} ${lastName}`,
-        paystackCustomerId: virtualAccount.customer?.id,
+        paystackCustomerId: customerId,
         paystackAccountId: virtualAccount.id,
       }
     });
