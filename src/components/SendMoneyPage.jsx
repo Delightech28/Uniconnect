@@ -190,19 +190,30 @@ const SendMoneyPage = () => {
       if (!resp.ok || !result.success) {
         console.error('Transfer failed', result);
         setErrorMessage(result.error || 'Transfer failed.');
+        setProcessing(false);
         return;
       }
 
       const transferData = result.data;
+      console.log('Transfer initiated successfully:', transferData);
 
       // Transfer initiated successfully — deduct from sender wallet and log
       const senderRef = doc(db, 'users', user.id);
       const newSenderBalance = (user.walletBalance || 0) - amount;
 
+      console.log('Updating sender wallet:', { 
+        userId: user.id, 
+        oldBalance: user.walletBalance, 
+        amount, 
+        newBalance: newSenderBalance 
+      });
+
       await updateDoc(senderRef, {
         walletBalance: newSenderBalance,
         lastTransactionDate: serverTimestamp(),
       });
+
+      console.log('Wallet updated successfully');
 
       // Log transaction
       await addDoc(collection(db, 'users', user.id, 'transactions'), {
@@ -223,6 +234,8 @@ const SendMoneyPage = () => {
         status: transferData.status === 'success' ? 'completed' : 'pending',
       });
 
+      console.log('Transaction logged successfully');
+
       setSuccessMessage(`Transfer initiated ₦${amount.toLocaleString()} to ${accountName}.`);
 
       // Reset form
@@ -241,6 +254,8 @@ const SendMoneyPage = () => {
         walletBalance: newSenderBalance,
       }));
 
+      console.log('Local state updated, balance:', newSenderBalance);
+
       // Redirect after 2 seconds
       setTimeout(() => {
         navigate('/uni-wallet');
@@ -248,6 +263,7 @@ const SendMoneyPage = () => {
     } catch (error) {
       console.error('Send error:', error);
       setErrorMessage(error.message || 'Payment failed. Please try again.');
+      setProcessing(false);
     } finally {
       setProcessing(false);
     }
