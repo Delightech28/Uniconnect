@@ -62,7 +62,7 @@ app.post('/create-virtual-account', async (req, res) => {
     // Phone is required by Paystack for dedicated accounts
     const phoneNumber = phone && phone.trim() !== '' ? phone : '08000000000';
 
-    // Step 1: Create or get customer
+    // Step 1: Create customer
     const customerResp = await fetch('https://api.paystack.co/customer', {
       method: 'POST',
       headers: {
@@ -80,15 +80,40 @@ app.post('/create-virtual-account', async (req, res) => {
     const customerData = await customerResp.json();
     console.log('Paystack customer response:', customerData);
 
-    if (!customerResp.ok || !customerData.data) {
-      console.error('Customer creation failed:', customerData);
+    if (!customerResp.ok) {
+      console.error('Customer creation/fetch failed:', customerData);
       return res.status(400).json({ 
         error: 'Failed to create customer account', 
         details: customerData.message || 'Unknown error'
       });
     }
 
-    const customerId = customerData.data.id;
+    let customerId = customerData.data?.id;
+
+    // If customer exists but has no phone, update the customer with phone
+    if (customerData.data && !customerData.data.phone) {
+      console.log('Updating customer with phone number...');
+      const updateResp = await fetch(`https://api.paystack.co/customer/${customerId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${PAYSTACK_SECRET}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phoneNumber,
+        }),
+      });
+
+      const updateData = await updateResp.json();
+      console.log('Paystack customer update response:', updateData);
+
+      if (!updateResp.ok) {
+        console.error('Customer update failed:', updateData);
+        // Continue anyway - dedicated account might still work
+      }
+    }
 
     // Step 2: Create dedicated virtual account for this customer
     const accountResp = await fetch('https://api.paystack.co/dedicated_account', {
