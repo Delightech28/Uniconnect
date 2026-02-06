@@ -120,6 +120,8 @@ shadow-md p-6 flex flex-col gap-4">
                         navigate('/fund-wallet');
                       } else if (btn.label === 'Send Money') {
                         navigate('/send-money');
+                      } else if (btn.label === 'Receive Money') {
+                        navigate('/receive-money');
                       }
                     }}
                   />
