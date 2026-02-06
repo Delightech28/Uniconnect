@@ -14,7 +14,6 @@ const navLinks = [
 ]; 
  
 const actionButtons = [ 
-    { icon: 'account_balance_wallet', label: 'Fund Wallet', primary: true }, 
     { icon: 'arrow_upward', label: 'Send Money', primary: false }, 
     { icon: 'arrow_downward', label: 'Receive Money', primary: false }, 
 ]; 
