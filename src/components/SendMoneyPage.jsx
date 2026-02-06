@@ -9,6 +9,16 @@ import { chargeWithPaystackInline, fetchBanks, verifyAccountNumber } from '../se
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'YOUR_PAYSTACK_PUBLIC_KEY';
 
+// Determine API base: Vercel (/api), or fallback to VITE_API_BASE, or localhost
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:4000';
+  }
+  // On production (Vercel), use /api (same domain)
+  return '/api';
+};
+
 const SendMoneyPage = () => {
   const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -29,6 +39,7 @@ const SendMoneyPage = () => {
   const [accountVerified, setAccountVerified] = useState(false);
   const [accountName, setAccountName] = useState('');
   const [verificationError, setVerificationError] = useState('');
+  const [paystackVerifyDetails, setPaystackVerifyDetails] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
@@ -96,7 +107,7 @@ const SendMoneyPage = () => {
       setVerificationError('');
 
       // Call backend to verify account
-      const resp = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:4000'}/verify-account`, {
+      const resp = await fetch(`${getApiBase()}/verify-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,13 +119,18 @@ const SendMoneyPage = () => {
       const result = await resp.json();
       if (!resp.ok || !result.success) {
         console.error('Verification failed', result);
-        setVerificationError(result.error || 'Account verification failed. Please check your details.');
+        // save Paystack details for UI
+        setPaystackVerifyDetails(result.details || result);
+        // prefer Paystack message when available
+        const paystackMessage = result.details?.message || result.message || result.error;
+        setVerificationError(paystackMessage || 'Account verification failed. Please check your details.');
         return;
       }
 
       const verificationResult = result.data;
       setAccountName(verificationResult.account_name);
       setAccountVerified(true);
+      setPaystackVerifyDetails(null);
     } catch (error) {
       console.error('Verification error:', error);
       setVerificationError('Error verifying account. Please try again.');
@@ -158,7 +174,7 @@ const SendMoneyPage = () => {
       const reference = `SM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Call backend to create recipient and initiate transfer from platform balance
-      const resp = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:4000'}/transfer`, {
+      const resp = await fetch(`${getApiBase()}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -338,7 +354,12 @@ const SendMoneyPage = () => {
                 </div>
 
                 {verificationError && (
-                  <p className="text-red-500 text-sm mt-2">{verificationError}</p>
+                  <div className="mt-2">
+                    <p className="text-red-500 text-sm">{verificationError}</p>
+                    {paystackVerifyDetails && (
+                      <pre className="text-xs text-red-600 mt-2 whitespace-pre-wrap bg-red-50 dark:bg-red-900/20 p-2 rounded">{typeof paystackVerifyDetails === 'string' ? paystackVerifyDetails : JSON.stringify(paystackVerifyDetails, null, 2)}</pre>
+                    )}
+                  </div>
                 )}
 
                 {accountVerified && (

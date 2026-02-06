@@ -14,6 +14,16 @@ import {
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'YOUR_PAYSTACK_PUBLIC_KEY';
 
+// Determine API base: Vercel (/api), or fallback to VITE_API_BASE, or localhost
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:4000';
+  }
+  // On production (Vercel), use /api (same domain)
+  return '/api';
+};
+
 const FundWalletPage = () => {
   const { darkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();

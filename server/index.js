@@ -1,6 +1,6 @@
 import express from 'express';
-import fetch from 'node-fetch';
 import cors from 'cors';
+// using Node's global `fetch` (available in Node 18+)
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 
 // Allow configuring the allowed frontend origin via env (e.g. https://yourdomain.com)
-const FRONTEND_ORIGIN = import.meta.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 app.use(cors({ origin: FRONTEND_ORIGIN }));
 app.use(express.json());
 
