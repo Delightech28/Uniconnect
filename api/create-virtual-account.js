@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         bankCode: virtualAccount.bank?.code || '035',
         accountName: `${firstName} ${lastName}`,
         paystackCustomerId: customerId,
-        paystackAccountId: virtualAccount.id,
+        paystackDedicatedAccountId: virtualAccount.id, // This is the key ID for matching webhook
       }
     });
   } catch (err) {

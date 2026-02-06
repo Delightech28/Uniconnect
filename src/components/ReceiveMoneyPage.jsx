@@ -84,6 +84,7 @@ const ReceiveMoneyPage = () => {
       const userRef = doc(db, 'users', auth.currentUser.uid);
       await updateDoc(userRef, {
         virtualAccount: accountData,
+        paystackDedicatedAccountId: accountData.paystackDedicatedAccountId, // Store separately for webhook matching
       });
 
       setBankDetails(accountData);
