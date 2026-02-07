@@ -48,6 +48,18 @@ service cloud.firestore {
         allow create, delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == connectionId);
         allow update: if false;
       }
+
+      // Transactions subcollection: allow users to read and create their own transactions
+      match /transactions/{transactionId} {
+        allow read, create: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false; // Transactions should be immutable
+      }
+
+      // Bank accounts subcollection: allow users to manage their saved bank accounts
+      match /bankAccounts/{accountId} {
+        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if false; // Re-saving overwrites or just delete and re-add
+      }
     }
     
     // Public listings collection: anyone can read listings
