@@ -57,31 +57,45 @@ export const verifyAccountNumber = async (accountNumber, bankCode) => {
 /**
  * Initialize payment transaction with Paystack
  * This is used to collect money FROM the user TO your wallet
+ * @param {string} email - User's email
+ * @param {number} amount - Amount in Naira
+ * @param {string} reference - Unique transaction reference
+ * @param {string} callbackUrl - URL to redirect after payment
+ * @param {string[]} channels - Payment channels to enable (e.g., ['card', 'bank', 'ussd', 'qr', 'mobile_money'])
  */
-export const initializePayment = async (email, amount, reference) => {
+export const initializePayment = async (email, amount, reference, callbackUrl = null, channels = ['card', 'bank', 'ussd', 'qr']) => {
   try {
+    const payload = {
+      email,
+      amount: amount * 100, // Paystack uses kobo (multiply by 100)
+      reference,
+      channels: channels, // Enable multiple payment channels
+    };
+
+    // Add callback URL if provided
+    if (callbackUrl) {
+      payload.callback_url = callbackUrl;
+    }
+
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email,
-        amount: amount * 100, // Paystack uses kobo (multiply by 100)
-        reference,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to initialize payment');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to initialize payment');
     }
 
     const data = await response.json();
     return data.data;
   } catch (error) {
     console.error('Error initializing payment:', error);
-    return null;
+    throw error;
   }
 };
 
