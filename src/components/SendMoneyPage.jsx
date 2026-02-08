@@ -189,7 +189,20 @@ const SendMoneyPage = () => {
       const result = await resp.json();
       if (!resp.ok || !result.success) {
         console.error('Transfer failed', result);
-        setErrorMessage(result.error || 'Transfer failed.');
+        
+        // Show more detailed error message
+        let errorMsg = result.error || 'Transfer failed.';
+        
+        // Add helpful context based on error code
+        if (result.code === 'INSUFFICIENT_BALANCE') {
+          errorMsg = 'Transfer failed: Your Paystack account has insufficient balance. Please contact support.';
+        } else if (result.code === 'INVALID_RECIPIENT') {
+          errorMsg = 'Transfer failed: Invalid recipient account. Please verify the account details and try again.';
+        } else if (result.details?.message) {
+          errorMsg = `Transfer failed: ${result.details.message}`;
+        }
+        
+        setErrorMessage(errorMsg);
         setProcessing(false);
         return;
       }

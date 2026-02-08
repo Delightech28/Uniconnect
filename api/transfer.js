@@ -47,7 +47,12 @@ export default async function handler(req, res) {
 
     const recipientData = await recipientResp.json();
     if (!recipientResp.ok || !recipientData.data) {
-      return res.status(500).json({ error: 'Failed to create transfer recipient', details: recipientData });
+      const errorMessage = recipientData.message || 'Failed to create transfer recipient';
+      return res.status(500).json({ 
+        error: errorMessage,
+        details: recipientData,
+        code: 'RECIPIENT_CREATION_FAILED'
+      });
     }
 
     const recipientCode = recipientData.data.recipient_code;
@@ -69,7 +74,32 @@ export default async function handler(req, res) {
 
     const transferData = await transferResp.json();
     if (!transferResp.ok) {
-      return res.status(500).json({ error: 'Failed to initiate transfer', details: transferData });
+      // Extract more detailed error message from Paystack
+      const errorMessage = transferData.message || 'Failed to initiate transfer';
+      const errorDetails = transferData.data || transferData;
+      
+      // Check for common errors
+      if (errorMessage.includes('balance') || errorMessage.includes('insufficient')) {
+        return res.status(500).json({ 
+          error: 'Insufficient Paystack balance. Please fund your Paystack account to enable transfers.',
+          details: errorDetails,
+          code: 'INSUFFICIENT_BALANCE'
+        });
+      }
+      
+      if (errorMessage.includes('recipient') || errorMessage.includes('invalid')) {
+        return res.status(500).json({ 
+          error: 'Invalid recipient account. Please verify the account details.',
+          details: errorDetails,
+          code: 'INVALID_RECIPIENT'
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: errorMessage,
+        details: errorDetails,
+        code: transferData.status || 'TRANSFER_FAILED'
+      });
     }
 
     return res.status(200).json({ success: true, data: transferData.data });
