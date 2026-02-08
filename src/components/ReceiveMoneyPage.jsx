@@ -152,8 +152,8 @@ const ReceiveMoneyPage = () => {
     }
 
     const amountValue = parseFloat(amount);
-    if (amountValue < 50) {
-      setErrorMessage('Minimum amount is ₦50');
+    if (amountValue < 100) {
+      setErrorMessage('Minimum amount is ₦100');
       return;
     }
 
@@ -265,12 +265,12 @@ const ReceiveMoneyPage = () => {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount in Naira"
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  min="50"
-                  step="50"
+                  min="100"
+                  step="100"
                 />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                Minimum: ₦50 | Maximum: ₦1,000,000
+                Minimum: ₦100 | Maximum: ₦1,000,000
               </p>
             </div>
 
