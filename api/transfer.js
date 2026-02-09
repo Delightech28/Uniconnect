@@ -87,6 +87,15 @@ export default async function handler(req, res) {
         });
       }
       
+      if (errorMessage.includes('third party') || errorMessage.includes('payouts') || errorMessage.includes('cannot initiate')) {
+        return res.status(500).json({ 
+          error: 'Bank transfers are not enabled on your Paystack account. Please enable transfers in your Paystack dashboard or contact Paystack support to activate this feature.',
+          details: errorDetails,
+          code: 'TRANSFERS_NOT_ENABLED',
+          helpUrl: 'https://dashboard.paystack.com/#/settings/developer'
+        });
+      }
+      
       if (errorMessage.includes('recipient') || errorMessage.includes('invalid')) {
         return res.status(500).json({ 
           error: 'Invalid recipient account. Please verify the account details.',

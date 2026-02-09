@@ -344,6 +344,8 @@ const SendMoneyPage = () => {
           // Add helpful context based on error code
           if (result.code === 'INSUFFICIENT_BALANCE') {
             errorMsg = 'Transfer failed: Your Paystack account has insufficient balance. Please contact support.';
+          } else if (result.code === 'TRANSFERS_NOT_ENABLED') {
+            errorMsg = 'Bank transfers are not enabled on your Paystack account. Please enable transfers in your Paystack dashboard or contact Paystack support.';
           } else if (result.code === 'INVALID_RECIPIENT') {
             errorMsg = 'Transfer failed: Invalid recipient account. Please verify the account details and try again.';
           } else if (result.details?.message) {
