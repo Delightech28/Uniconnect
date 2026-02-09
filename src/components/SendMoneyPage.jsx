@@ -4,7 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
 import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { chargeWithPaystackInline, fetchBanks, verifyAccountNumber } from '../services/paystackService';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'YOUR_PAYSTACK_PUBLIC_KEY';
@@ -32,10 +32,12 @@ const SendMoneyPage = () => {
   const [formData, setFormData] = useState({
     selectedBank: '',
     accountNumber: '',
+    username: '',
     amount: '',
     note: '',
   });
 
+  const [transferType, setTransferType] = useState('bank'); // 'bank' or 'username'
   const [accountVerified, setAccountVerified] = useState(false);
   const [accountName, setAccountName] = useState('');
   const [verificationError, setVerificationError] = useState('');
@@ -43,6 +45,8 @@ const SendMoneyPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [recipientUser, setRecipientUser] = useState(null);
+  const [searchingUsername, setSearchingUsername] = useState(false);
 
   // Load user on mount
   useEffect(() => {
@@ -87,6 +91,66 @@ const SendMoneyPage = () => {
       setAccountVerified(false);
       setAccountName('');
       setVerificationError('');
+    }
+    
+    // Reset username search when username changes
+    if (name === 'username' && transferType === 'username') {
+      setRecipientUser(null);
+      setAccountVerified(false);
+    }
+  };
+
+  // Handle username lookup
+  const handleSearchUsername = async () => {
+    const username = formData.username?.trim().toLowerCase().replace('@', '');
+    
+    if (!username) {
+      setVerificationError('Please enter a username');
+      return;
+    }
+
+    if (username.length < 3) {
+      setVerificationError('Username must be at least 3 characters');
+      return;
+    }
+
+    try {
+      setSearchingUsername(true);
+      setVerificationError('');
+      setRecipientUser(null);
+
+      // Search for user by username
+      const usernameQuery = query(
+        collection(db, 'users'),
+        where('username', '==', username)
+      );
+      const snapshot = await getDocs(usernameQuery);
+
+      if (snapshot.empty) {
+        setVerificationError('User not found. Please check the username.');
+        return;
+      }
+
+      const recipientDoc = snapshot.docs[0];
+      const recipientData = recipientDoc.data();
+
+      // Don't allow sending to yourself
+      if (recipientDoc.id === user.id) {
+        setVerificationError('You cannot send money to yourself');
+        return;
+      }
+
+      setRecipientUser({
+        id: recipientDoc.id,
+        ...recipientData
+      });
+      setAccountName(recipientData.displayName || recipientData.email || username);
+      setAccountVerified(true);
+    } catch (error) {
+      console.error('Error searching username:', error);
+      setVerificationError('Error searching for user. Please try again.');
+    } finally {
+      setSearchingUsername(false);
     }
   };
 
@@ -152,7 +216,7 @@ const SendMoneyPage = () => {
     }
 
     if (!accountVerified) {
-      setErrorMessage('Please verify the account first');
+      setErrorMessage(transferType === 'username' ? 'Please search and verify the username first' : 'Please verify the account first');
       setProcessing(false);
       return;
     }
@@ -173,106 +237,192 @@ const SendMoneyPage = () => {
       // Generate unique reference
       const reference = `SM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Call backend to create recipient and initiate transfer from platform balance
-      const resp = await fetch(`${getApiBase()}/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountNumber: formData.accountNumber,
-          bankCode: formData.selectedBank,
-          accountName: accountName,
-          amount: amount,
-          reference,
-        }),
-      });
-
-      const result = await resp.json();
-      if (!resp.ok || !result.success) {
-        console.error('Transfer failed', result);
+      if (transferType === 'username') {
+        // Direct wallet-to-wallet transfer
+        const senderRef = doc(db, 'users', user.id);
+        const recipientRef = doc(db, 'users', recipientUser.id);
         
-        // Show more detailed error message
-        let errorMsg = result.error || 'Transfer failed.';
+        const senderDoc = await getDoc(senderRef);
+        const recipientDoc = await getDoc(recipientRef);
         
-        // Add helpful context based on error code
-        if (result.code === 'INSUFFICIENT_BALANCE') {
-          errorMsg = 'Transfer failed: Your Paystack account has insufficient balance. Please contact support.';
-        } else if (result.code === 'INVALID_RECIPIENT') {
-          errorMsg = 'Transfer failed: Invalid recipient account. Please verify the account details and try again.';
-        } else if (result.details?.message) {
-          errorMsg = `Transfer failed: ${result.details.message}`;
+        if (!senderDoc.exists() || !recipientDoc.exists()) {
+          setErrorMessage('User not found. Please try again.');
+          setProcessing(false);
+          return;
         }
+
+        const senderBalance = senderDoc.data().walletBalance || 0;
+        const recipientBalance = recipientDoc.data().walletBalance || 0;
         
-        setErrorMessage(errorMsg);
-        setProcessing(false);
-        return;
+        const newSenderBalance = senderBalance - amount;
+        const newRecipientBalance = recipientBalance + amount;
+
+        // Update both wallets atomically (in a batch would be better, but this works)
+        await updateDoc(senderRef, {
+          walletBalance: newSenderBalance,
+          lastTransactionDate: serverTimestamp(),
+        });
+
+        await updateDoc(recipientRef, {
+          walletBalance: newRecipientBalance,
+          lastTransactionDate: serverTimestamp(),
+        });
+
+        // Log transaction for sender
+        await addDoc(collection(db, 'users', user.id, 'transactions'), {
+          type: 'debit',
+          title: `Sent to @${recipientUser.username}`,
+          amount,
+          recipientUsername: recipientUser.username,
+          recipientId: recipientUser.id,
+          recipientName: accountName,
+          reference: reference,
+          note: formData.note,
+          timestamp: serverTimestamp(),
+          status: 'completed',
+        });
+
+        // Log transaction for recipient
+        await addDoc(collection(db, 'users', recipientUser.id, 'transactions'), {
+          type: 'credit',
+          title: `Received from @${user.username || user.email}`,
+          amount,
+          senderUsername: user.username,
+          senderId: user.id,
+          senderName: user.displayName || user.email,
+          reference: reference,
+          note: formData.note,
+          timestamp: serverTimestamp(),
+          status: 'completed',
+        });
+
+        setSuccessMessage(`Sent ₦${amount.toLocaleString()} to @${recipientUser.username}.`);
+
+        // Reset form
+        setFormData({
+          selectedBank: '',
+          accountNumber: '',
+          username: '',
+          amount: '',
+          note: '',
+        });
+        setAccountVerified(false);
+        setAccountName('');
+        setRecipientUser(null);
+
+        // Update local user balance
+        setUser(prev => ({
+          ...prev,
+          walletBalance: newSenderBalance,
+        }));
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          navigate('/uni-wallet');
+        }, 2000);
+      } else {
+        // Bank transfer (existing logic)
+        const resp = await fetch(`${getApiBase()}/transfer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountNumber: formData.accountNumber,
+            bankCode: formData.selectedBank,
+            accountName: accountName,
+            amount: amount,
+            reference,
+          }),
+        });
+
+        const result = await resp.json();
+        if (!resp.ok || !result.success) {
+          console.error('Transfer failed', result);
+          
+          // Show more detailed error message
+          let errorMsg = result.error || 'Transfer failed.';
+          
+          // Add helpful context based on error code
+          if (result.code === 'INSUFFICIENT_BALANCE') {
+            errorMsg = 'Transfer failed: Your Paystack account has insufficient balance. Please contact support.';
+          } else if (result.code === 'INVALID_RECIPIENT') {
+            errorMsg = 'Transfer failed: Invalid recipient account. Please verify the account details and try again.';
+          } else if (result.details?.message) {
+            errorMsg = `Transfer failed: ${result.details.message}`;
+          }
+          
+          setErrorMessage(errorMsg);
+          setProcessing(false);
+          return;
+        }
+
+        const transferData = result.data;
+        console.log('Transfer initiated successfully:', transferData);
+
+        // Transfer initiated successfully — deduct from sender wallet and log
+        const senderRef = doc(db, 'users', user.id);
+        const newSenderBalance = (user.walletBalance || 0) - amount;
+
+        console.log('Updating sender wallet:', { 
+          userId: user.id, 
+          oldBalance: user.walletBalance, 
+          amount, 
+          newBalance: newSenderBalance 
+        });
+
+        await updateDoc(senderRef, {
+          walletBalance: newSenderBalance,
+          lastTransactionDate: serverTimestamp(),
+        });
+
+        console.log('Wallet updated successfully');
+
+        // Log transaction
+        await addDoc(collection(db, 'users', user.id, 'transactions'), {
+          type: 'debit',
+          title: `Sent to ${accountName}`,
+          amount,
+          bankDetails: {
+            bankCode: formData.selectedBank,
+            bankName: banks.find(b => b.code === formData.selectedBank)?.name,
+            accountNumber: formData.accountNumber,
+            accountName: accountName,
+          },
+          reference: reference,
+          paystack_transfer_id: transferData.id,
+          transfer_status: transferData.status,
+          note: formData.note,
+          timestamp: serverTimestamp(),
+          status: transferData.status === 'success' ? 'completed' : 'pending',
+        });
+
+        console.log('Transaction logged successfully');
+
+        setSuccessMessage(`Transfer initiated ₦${amount.toLocaleString()} to ${accountName}.`);
+
+        // Reset form
+        setFormData({
+          selectedBank: '',
+          accountNumber: '',
+          username: '',
+          amount: '',
+          note: '',
+        });
+        setAccountVerified(false);
+        setAccountName('');
+
+        // Update local user balance
+        setUser(prev => ({
+          ...prev,
+          walletBalance: newSenderBalance,
+        }));
+
+        console.log('Local state updated, balance:', newSenderBalance);
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          navigate('/uni-wallet');
+        }, 2000);
       }
-
-      const transferData = result.data;
-      console.log('Transfer initiated successfully:', transferData);
-
-      // Transfer initiated successfully — deduct from sender wallet and log
-      const senderRef = doc(db, 'users', user.id);
-      const newSenderBalance = (user.walletBalance || 0) - amount;
-
-      console.log('Updating sender wallet:', { 
-        userId: user.id, 
-        oldBalance: user.walletBalance, 
-        amount, 
-        newBalance: newSenderBalance 
-      });
-
-      await updateDoc(senderRef, {
-        walletBalance: newSenderBalance,
-        lastTransactionDate: serverTimestamp(),
-      });
-
-      console.log('Wallet updated successfully');
-
-      // Log transaction
-      await addDoc(collection(db, 'users', user.id, 'transactions'), {
-        type: 'debit',
-        title: `Sent to ${accountName}`,
-        amount,
-        bankDetails: {
-          bankCode: formData.selectedBank,
-          bankName: banks.find(b => b.code === formData.selectedBank)?.name,
-          accountNumber: formData.accountNumber,
-          accountName: accountName,
-        },
-        reference: reference,
-        paystack_transfer_id: transferData.id,
-        transfer_status: transferData.status,
-        note: formData.note,
-        timestamp: serverTimestamp(),
-        status: transferData.status === 'success' ? 'completed' : 'pending',
-      });
-
-      console.log('Transaction logged successfully');
-
-      setSuccessMessage(`Transfer initiated ₦${amount.toLocaleString()} to ${accountName}.`);
-
-      // Reset form
-      setFormData({
-        selectedBank: '',
-        accountNumber: '',
-        amount: '',
-        note: '',
-      });
-      setAccountVerified(false);
-      setAccountName('');
-
-      // Update local user balance
-      setUser(prev => ({
-        ...prev,
-        walletBalance: newSenderBalance,
-      }));
-
-      console.log('Local state updated, balance:', newSenderBalance);
-
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/uni-wallet');
-      }, 2000);
     } catch (error) {
       console.error('Send error:', error);
       setErrorMessage(error.message || 'Payment failed. Please try again.');
@@ -338,6 +488,99 @@ const SendMoneyPage = () => {
 
             {/* Main Form Card */}
             <div className="bg-white dark:bg-secondary rounded-xl shadow-md p-8">
+              {/* Transfer Type Toggle */}
+              <div className="mb-8">
+                <label className="block text-secondary dark:text-white font-semibold mb-3">
+                  Send Money To
+                </label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransferType('bank');
+                      setAccountVerified(false);
+                      setAccountName('');
+                      setRecipientUser(null);
+                      setVerificationError('');
+                    }}
+                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition ${
+                      transferType === 'bank'
+                        ? 'bg-primary text-white'
+                        : 'bg-slate-100 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined align-middle mr-2">account_balance</span>
+                    Bank Account
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransferType('username');
+                      setAccountVerified(false);
+                      setAccountName('');
+                      setRecipientUser(null);
+                      setVerificationError('');
+                    }}
+                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition ${
+                      transferType === 'username'
+                        ? 'bg-primary text-white'
+                        : 'bg-slate-100 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined align-middle mr-2">person</span>
+                    Username
+                  </button>
+                </div>
+              </div>
+
+              {transferType === 'username' ? (
+                /* Username Input */
+                <div className="mb-8">
+                  <label className="block text-secondary dark:text-white font-semibold mb-3">
+                    Username <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-3.5 text-slate-400">@</span>
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder="Enter username"
+                        className="w-full pl-8 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        maxLength="20"
+                      />
+                    </div>
+                    <button
+                      onClick={handleSearchUsername}
+                      disabled={searchingUsername || !formData.username}
+                      className="px-3 sm:px-6 py-3 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white rounded-lg font-semibold text-sm sm:text-base hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {searchingUsername ? 'Searching...' : 'Search'}
+                    </button>
+                  </div>
+
+                  {verificationError && (
+                    <div className="mt-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+                      <p className="text-red-700 dark:text-red-300 text-sm font-semibold mb-2">❌ {verificationError}</p>
+                    </div>
+                  )}
+
+                  {accountVerified && recipientUser && (
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg">
+                      <p className="text-green-700 dark:text-green-300 text-sm font-semibold">
+                        ✓ User Found
+                      </p>
+                      <p className="text-green-600 dark:text-green-400 text-sm mt-1">
+                        {accountName} (@{recipientUser.username})
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Bank Selection (existing code) */
+                <>
               {/* Bank Selection */}
               <div className="mb-8">
                 <label className="block text-secondary dark:text-white font-semibold mb-3">
@@ -413,6 +656,8 @@ const SendMoneyPage = () => {
                   </div>
                 )}
               </div>
+              </>
+              )}
 
               {/* Amount Section */}
               <div className="mb-8">
@@ -458,16 +703,28 @@ const SendMoneyPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">To:</span>
-                      <span className="text-secondary dark:text-white font-semibold">{accountName}</span>
+                      <span className="text-secondary dark:text-white font-semibold">
+                        {transferType === 'username' ? `@${recipientUser?.username}` : accountName}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Bank:</span>
-                      <span className="text-secondary dark:text-white font-semibold">{banks.find(b => b.code === formData.selectedBank)?.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Account:</span>
-                      <span className="text-secondary dark:text-white font-semibold">{formData.accountNumber}</span>
-                    </div>
+                    {transferType === 'bank' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Bank:</span>
+                          <span className="text-secondary dark:text-white font-semibold">{banks.find(b => b.code === formData.selectedBank)?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Account:</span>
+                          <span className="text-secondary dark:text-white font-semibold">{formData.accountNumber}</span>
+                        </div>
+                      </>
+                    )}
+                    {transferType === 'username' && recipientUser && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">Name:</span>
+                        <span className="text-secondary dark:text-white font-semibold">{accountName}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-600 dark:text-slate-400">Amount:</span>
                       <span className="text-secondary dark:text-white font-semibold">₦{parseFloat(formData.amount).toLocaleString()}</span>
@@ -502,8 +759,11 @@ const SendMoneyPage = () => {
               {/* Info Box */}
               <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
                 <p className="text-blue-700 dark:text-blue-300 text-sm">
-                  <strong>How it works:</strong> The recipient will receive the money immediately in their wallet. 
-                  Both you and the recipient will receive transaction confirmations.
+                  <strong>How it works:</strong> {
+                    transferType === 'username' 
+                      ? 'Send money directly to another UniConnect user\'s wallet. The transfer is instant and both parties will receive notifications.'
+                      : 'The recipient will receive the money immediately in their wallet. Both you and the recipient will receive transaction confirmations.'
+                  }
                 </p>
               </div>
             </div>

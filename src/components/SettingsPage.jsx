@@ -1,6 +1,6 @@
  import React, { useState, useEffect } from 'react'; 
  import { auth, db } from '../firebase';
- import { doc, getDoc, updateDoc } from 'firebase/firestore';
+ import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
  import { onAuthStateChanged } from 'firebase/auth';
  import { useTheme } from '../hooks/useTheme';
  import AppHeader from './AppHeader';
@@ -87,6 +87,10 @@ function SettingsPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [editingPhone, setEditingPhone] = useState(false);
     const [savingPhone, setSavingPhone] = useState(false);
+    const [username, setUsername] = useState('');
+    const [editingUsername, setEditingUsername] = useState(false);
+    const [savingUsername, setSavingUsername] = useState(false);
+    const [usernameError, setUsernameError] = useState('');
     const navigate = useNavigate(); 
  
     // Use global theme hook so the settings page stays in sync with the app
@@ -114,6 +118,10 @@ function SettingsPage() {
                         
                         if (userData.phone) {
                             setPhoneNumber(userData.phone);
+                        }
+                        
+                        if (userData.username) {
+                            setUsername(userData.username);
                         }
                         
                         if (userData.passwordLastChanged) {
@@ -225,6 +233,63 @@ function SettingsPage() {
         }
     };
 
+    const handleUsernameSave = async () => {
+        try {
+            setSavingUsername(true);
+            setUsernameError('');
+            const user = auth.currentUser;
+            if (!user) throw new Error('User not authenticated');
+
+            const newUsername = username.trim().toLowerCase();
+
+            // Validate username
+            if (!newUsername) {
+                setUsernameError('Username cannot be empty');
+                return;
+            }
+
+            if (newUsername.length < 3) {
+                setUsernameError('Username must be at least 3 characters');
+                return;
+            }
+
+            if (newUsername.length > 20) {
+                setUsernameError('Username must be less than 20 characters');
+                return;
+            }
+
+            // Check if username contains only alphanumeric characters and underscores
+            if (!/^[a-z0-9_]+$/.test(newUsername)) {
+                setUsernameError('Username can only contain letters, numbers, and underscores');
+                return;
+            }
+
+            // Check if username is already taken by another user
+            const usernameQuery = query(
+                collection(db, 'users'),
+                where('username', '==', newUsername)
+            );
+            const snapshot = await getDocs(usernameQuery);
+            
+            if (!snapshot.empty && snapshot.docs[0].id !== user.uid) {
+                setUsernameError('Username is already taken');
+                return;
+            }
+
+            await updateDoc(doc(db, 'users', user.uid), {
+                username: newUsername,
+            });
+
+            setEditingUsername(false);
+            toast.success('Username updated successfully!');
+        } catch (error) {
+            console.error('Error saving username:', error);
+            toast.error('Failed to save username');
+        } finally {
+            setSavingUsername(false);
+        }
+    };
+
     // Privacy Settings Handlers
     const handlePrivacySettingChange = (setting, value) => {
         setPrivacySettings(prev => ({
@@ -261,6 +326,68 @@ function SettingsPage() {
                                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{settings.email}</p>
                             </div>
                         </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex-1">
+                                <h3 className="text-sm sm:text-base font-semibold text-secondary dark:text-white">Username</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                                    {username ? `@${username}` : 'No username set'}
+                                </p>
+                                {!username && (
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                        Set a username to receive money from other users
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setEditingUsername(!editingUsername);
+                                    setUsernameError('');
+                                }}
+                                className="mt-2 sm:mt-0 text-xs sm:text-sm font-medium text-primary hover:underline self-start sm:self-center"
+                            >
+                                {editingUsername ? 'Cancel' : 'Edit'}
+                            </button>
+                        </div>
+
+                        {editingUsername && (
+                            <div className="py-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <label className="block text-sm font-medium text-secondary dark:text-white mb-2">
+                                    Enter Username
+                                </label>
+                                <div className="flex gap-3">
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-slate-400">@</span>
+                                            <input
+                                                type="text"
+                                                value={username}
+                                                onChange={(e) => {
+                                                    setUsername(e.target.value);
+                                                    setUsernameError('');
+                                                }}
+                                                placeholder="username"
+                                                className="w-full pl-8 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-secondary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                                maxLength={20}
+                                            />
+                                        </div>
+                                        {usernameError && (
+                                            <p className="text-xs text-red-500 mt-1">{usernameError}</p>
+                                        )}
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                            3-20 characters, letters, numbers, and underscores only
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleUsernameSave}
+                                        disabled={savingUsername}
+                                        className="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    >
+                                        {savingUsername ? 'Saving...' : 'Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-slate-200 dark:border-slate-700">
                             <div className="flex-1">

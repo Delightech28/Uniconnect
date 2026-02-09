@@ -4,7 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import toast from 'react-hot-toast';
 import { auth, db, storage } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
@@ -444,9 +444,13 @@ const handleNext = async (e) => {
 				try { localStorage.removeItem('referral_code'); } catch (e) {}
 			}
 
+			// Generate unique username for guest
+			const guestUsername = await generateUsername(formData.displayName, formData.email, user.uid);
+			
 			await setDoc(doc(db, 'users', user.uid), {
 				email: formData.email,
 				displayName: formData.displayName || '',
+				username: guestUsername, // Auto-generated unique username
 				bio: formData.bio || '',
 				interests: formData.interests || [],
 				registerAs: 'Guest',
@@ -481,6 +485,46 @@ const handleNext = async (e) => {
 	}
 };
 
+// Generate a unique username based on display name or email
+const generateUsername = async (displayName, email, userId) => {
+  // Create base username from display name or email
+  let baseUsername = '';
+  if (displayName && displayName.trim()) {
+    // Use display name, remove spaces, make lowercase, keep only alphanumeric
+    baseUsername = displayName.trim().toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 15);
+  } else if (email) {
+    // Use email prefix before @
+    baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 15);
+  }
+  
+  // If still empty, use user ID prefix
+  if (!baseUsername) {
+    baseUsername = userId ? userId.substring(0, 8) : Math.random().toString(36).substring(2, 10);
+  }
+  
+  // Check if username exists, if so append numbers
+  let username = baseUsername;
+  let counter = 1;
+  let exists = true;
+  
+  while (exists && counter < 1000) {
+    const usernameQuery = query(
+      collection(db, 'users'),
+      where('username', '==', username)
+    );
+    const snapshot = await getDocs(usernameQuery);
+    
+    if (snapshot.empty) {
+      exists = false;
+    } else {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+  }
+  
+  return username;
+};
+
 const handleGoogleSignUp = async () => {
   toast('Coming soon — please use email to sign up', { icon: '⏳' });
 };
@@ -513,9 +557,13 @@ const handleSubmit = async (e) => {
 			return;
 		}
 
+		// Generate unique username
+		const username = await generateUsername(formData.displayName, formData.email, user.uid);
+		
 		const userData = {
 			email: formData.email,
 			displayName: formData.displayName || '',
+			username: username, // Auto-generated unique username
 			bio: formData.bio || '',
 			interests: formData.interests || [],
 			registerAs: formData.registerAs,
