@@ -368,13 +368,15 @@ const ProfilePage = () => {
         toast.success('Profile liked!');
         // Send notification
         try {
+          console.log('Sending like notification to user:', userId);
           await notifyUserLiked(userId, {
             likerId: currentUser.uid,
-            likerName: currentUser.displayName || 'Someone',
-            likerAvatar: userDoc?.avatarUrl || '/default_avatar.png',
+            likerName: currentUser.displayName || currentUser.email || 'Someone',
+            likerAvatar: currentUser.photoURL || userDoc?.avatarUrl || '/default_avatar.png',
           });
+          console.log('Like notification sent successfully');
         } catch (err) {
-          console.warn('Failed to send like notification:', err);
+          console.error('Failed to send like notification:', err);
         }
       } else {
         toast.success('Profile unliked');

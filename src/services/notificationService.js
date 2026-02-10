@@ -184,6 +184,7 @@ export const createNotification = async (
   metadata = {}
 ) => {
   try {
+    console.log(`Creating ${type} notification for user ${userId}:`, { title, description, metadata });
     const config = NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG.system_announcement;
 
     const notificationRef = await addDoc(
@@ -199,6 +200,7 @@ export const createNotification = async (
       }
     );
 
+    console.log(`Notification created with ID: ${notificationRef.id}`);
     return notificationRef.id;
   } catch (error) {
     console.error('Error creating notification:', error);
@@ -474,27 +476,73 @@ export const getNotifications = async (userId, limitCount = 50) => {
  */
 export const subscribeToNotifications = (userId, callback) => {
   try {
+    console.log(`Subscribing to notifications for user: ${userId}`);
     const q = query(
       collection(db, 'users', userId, 'notifications'),
       orderBy('createdAt', 'desc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const notifications = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          time: data.createdAt
-            ? getTimeAgo(new Date(data.createdAt.toDate()))
-            : 'Just now',
-        };
-      });
-      callback(notifications);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        console.log(`Received ${snapshot.size} notifications for user ${userId}`);
+        const notifications = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log(`Notification ${doc.id}:`, { type: data.type, title: data.title });
+          return {
+            id: doc.id,
+            ...data,
+            time: data.createdAt
+              ? getTimeAgo(new Date(data.createdAt.toDate()))
+              : 'Just now',
+          };
+        });
+        callback(notifications);
+      },
+      (error) => {
+        console.error(`Error listening to notifications for user ${userId}:`, error);
+        // Call callback with empty array on error to prevent UI from hanging
+        callback([]);
+      }
+    );
   } catch (error) {
-    console.error('Error subscribing to notifications:', error);
+    console.error('Error setting up notification subscription:', error);
     return () => {};
+  }
+};
+
+/**
+ * Fetch notifications manually (for debugging)
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} - Array of notifications
+ */
+export const fetchNotificationsOnce = async (userId) => {
+  try {
+    console.log(`Fetching notifications for user: ${userId}`);
+    const q = query(
+      collection(db, 'users', userId, 'notifications'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    console.log(`Found ${snapshot.size} notifications`);
+    
+    const notifications = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      console.log(`Notification ${doc.id}:`, { type: data.type, title: data.title });
+      return {
+        id: doc.id,
+        ...data,
+        time: data.createdAt
+          ? getTimeAgo(new Date(data.createdAt.toDate()))
+          : 'Just now',
+      };
+    });
+    
+    return notifications;
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    throw error;
   }
 };
 
@@ -906,19 +954,22 @@ export const notifySecurityAlert = async (userId, alertData) => {
 */
 export const notifyUserLiked = async (userId, likerData) => {
   try {
+    console.log(`Creating user_liked_you notification for user: ${userId}`, likerData);
     await createNotification(
       userId,
-      'favorite',
+      'user_liked_you',
       `${likerData.likerName} liked your profile!`,
       `${likerData.likerName} just liked your profile. Check it out!`,
       {
-        likerId: likerData.likerId,
+        userId: likerData.likerId,
         likerName: likerData.likerName,
         likerAvatar: likerData.likerAvatar,
       }
     );
+    console.log(`User liked notification created successfully for user: ${userId}`);
   } catch (error) {
     console.error('Error notifying user liked:', error);
+    throw error;
   }
 };
 
@@ -929,20 +980,22 @@ export const notifyUserLiked = async (userId, likerData) => {
  */
 export const notifyConnectionRequest = async (userId, requesterData) => {
   try {
+    console.log(`Creating connection request notification for user: ${userId}`, requesterData);
     await createNotification(
       userId,
-      'new_follower', // Using existing type but with connection context
+      'connection_request',
       `${requesterData.requesterName} sent you a connection request`,
       `${requesterData.requesterName} wants to connect with you. Accept or decline their request.`,
       {
-        requesterId: requesterData.requesterId,
+        userId: requesterData.requesterId,
         requesterName: requesterData.requesterName,
         requesterAvatar: requesterData.requesterAvatar,
-        type: 'connection_request',
       }
     );
+    console.log(`Connection request notification created successfully for user: ${userId}`);
   } catch (error) {
     console.error('Error notifying connection request:', error);
+    throw error;
   }
 };
 

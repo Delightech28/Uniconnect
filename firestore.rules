@@ -17,7 +17,7 @@ service cloud.firestore {
 
       // Notifications subcollection: each user can only access their own notifications
       match /notifications/{notificationId} {
-        allow create: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null; // Any authenticated user can create notifications for any user
         allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       }
 

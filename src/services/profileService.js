@@ -238,14 +238,18 @@ export const sendConnectionRequest = async (currentUserId, targetUserId) => {
     // Send notification to target user
     if (typeof notifyConnectionRequest === 'function') {
       try {
+        console.log('Sending notification to target user:', targetUserId);
         await notifyConnectionRequest(targetUserId, {
           requesterId: currentUserId,
-          requesterName: currentUserData.displayName || 'Someone',
+          requesterName: currentUserData.displayName || currentUserData.email || 'Someone',
           requesterAvatar: currentUserData.avatarUrl || '/default_avatar.png',
         });
+        console.log('Notification sent successfully');
       } catch (notifErr) {
-        console.warn('Failed to send connection notification:', notifErr);
+        console.error('Failed to send connection notification:', notifErr);
       }
+    } else {
+      console.warn('notifyConnectionRequest function not available');
     }
 
     return 'sent';
