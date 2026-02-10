@@ -50,6 +50,8 @@ export const NOTIFICATION_TYPES = {
   NEW_FOLLOWER: 'new_follower',
   POST_LIKED: 'post_liked',
   POST_COMMENTED: 'post_commented',
+  USER_LIKED_YOU: 'user_liked_you',
+  CONNECTION_REQUEST: 'connection_request',
   
   // Referral
   REFERRAL_JOINED: 'referral_joined',
@@ -137,6 +139,16 @@ const NOTIFICATION_CONFIG = {
     icon: 'comment',
     iconBg: 'bg-cyan-500/10 dark:bg-cyan-400/20',
     iconColor: 'text-cyan-500 dark:text-cyan-400',
+  },
+  user_liked_you: {
+    icon: 'favorite',
+    iconBg: 'bg-red-500/10 dark:bg-red-400/20',
+    iconColor: 'text-red-500 dark:text-red-400',
+  },
+  connection_request: {
+    icon: 'person_add',
+    iconBg: 'bg-blue-500/10 dark:bg-blue-400/20',
+    iconColor: 'text-blue-500 dark:text-blue-400',
   },
   referral_joined: {
     icon: 'person_add',

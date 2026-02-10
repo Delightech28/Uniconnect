@@ -230,22 +230,42 @@ const ProfilePage = () => {
     const targetUserId = userId || currentUser?.uid;
     if (!targetUserId) return;
 
+    let isMounted = true;
+    let postsCountCache = null;
+
     const userRef = doc(db, 'users', targetUserId);
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {
+      if (!isMounted) return;
+      
       if (snapshot.exists()) {
         const data = snapshot.data();
+        
+        // If we don't have a cached posts count, query for it
+        if (postsCountCache === null) {
+          try {
+            const postsQ = query(collection(db, 'posts'), where('authorId', '==', targetUserId));
+            const postsSnap = await getDocs(postsQ);
+            postsCountCache = postsSnap.size;
+          } catch (err) {
+            console.warn('Failed to count posts:', err);
+            postsCountCache = 0;
+          }
+        }
+        
         const derived = {
           itemsSold: data.itemsSold || 0,
           itemsListed: data.itemsListed || 0,
           sellerRating: data.sellerRating || 0,
           reviews: data.reviews || 0,
-          postsCreated: data.postsCreated || 0,
+          postsCreated: data.postsCreated !== undefined ? data.postsCreated : postsCountCache,
           followerCount: data.followerCount || 0,
           followingCount: data.followingCount || 0,
           joinDate: data.createdAt || data.joinDate || null,
         };
 
-        setStats(derived);
+        if (isMounted) {
+          setStats(derived);
+        }
 
         // If the user doc doesn't have precomputed stats, compute from collections as a fallback
         const needsFallback = (derived.postsCreated === 0 && derived.itemsSold === 0 && derived.reviews === 0);
@@ -253,7 +273,9 @@ const ProfilePage = () => {
           try {
             const computed = await getProfileStats(targetUserId);
             // Merge computed stats (prefer computed non-zero values)
-            setStats(prev => ({ ...derived, ...Object.fromEntries(Object.entries(computed).map(([k,v]) => [k, v ?? prev[k]])) }));
+            if (isMounted) {
+              setStats(prev => ({ ...derived, ...Object.fromEntries(Object.entries(computed).map(([k,v]) => [k, v ?? prev[k]])) }));
+            }
           } catch (err) {
             console.warn('Fallback getProfileStats failed', err);
           }
@@ -261,7 +283,10 @@ const ProfilePage = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [userId, currentUser?.uid]);
 
   const handleSendConnectionRequest = async () => {

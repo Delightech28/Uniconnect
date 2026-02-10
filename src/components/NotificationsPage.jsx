@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 
 // --- Sub-components for better organization ---
 
-const NotificationItem = ({ notification, onMarkRead, onDelete, onOpen }) => {
+const NotificationItem = ({ notification, onMarkRead, onDelete, onOpen, onAcceptConnection, onDeclineConnection }) => {
   const handleClick = () => {
     if (notification.unread) {
       onMarkRead(notification.id);
@@ -24,10 +24,11 @@ const NotificationItem = ({ notification, onMarkRead, onDelete, onOpen }) => {
     if (onOpen) onOpen(notification);
   };
 
+  const isConnectionRequest = notification.type === 'connection_request';
+
   return (
     <li
-      onClick={handleClick}
-      className="p-4 sm:p-6 flex items-start gap-4 hover:bg-background-light/50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+      className="p-4 sm:p-6 flex items-start gap-4 hover:bg-background-light/50 dark:hover:bg-slate-800/50 transition-colors group"
     >
       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notification.iconBg}`}>
         <span className={`material-symbols-outlined ${notification.iconColor}`}>
@@ -44,6 +45,28 @@ const NotificationItem = ({ notification, onMarkRead, onDelete, onOpen }) => {
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
           {notification.time}
         </p>
+        {isConnectionRequest && (
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAcceptConnection?.(notification.id, notification.metadata?.userId);
+              }}
+              className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/80 transition-colors"
+            >
+              Accept
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeclineConnection?.(notification.id, notification.metadata?.userId);
+              }}
+              className="px-3 py-1.5 bg-slate-300 dark:bg-slate-700 text-secondary dark:text-white text-xs font-medium rounded-lg hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors"
+            >
+              Decline
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         {notification.unread && (
@@ -140,6 +163,29 @@ const NotificationsPage = () => {
     }
   };
 
+  const handleAcceptConnection = async (notificationId, userId) => {
+    try {
+      // Here you would add the connection to a 'connections' collection
+      // For now, just delete the notification
+      await deleteNotification(user.uid, notificationId);
+      toast.success('Connection accepted!', { duration: 2000 });
+    } catch (error) {
+      console.error('Error accepting connection:', error);
+      toast.error('Failed to accept connection');
+    }
+  };
+
+  const handleDeclineConnection = async (notificationId, userId) => {
+    try {
+      // Delete the notification to decline the request
+      await deleteNotification(user.uid, notificationId);
+      toast.success('Connection declined', { duration: 2000 });
+    } catch (error) {
+      console.error('Error declining connection:', error);
+      toast.error('Failed to decline connection');
+    }
+  };
+
   const unreadCount = notifications.filter((n) => n.unread).length;
   const hasUnread = unreadCount > 0;
 
@@ -211,6 +257,8 @@ const NotificationsPage = () => {
                     notification={notification}
                     onMarkRead={handleMarkAsRead}
                     onDelete={handleDeleteNotification}
+                    onAcceptConnection={handleAcceptConnection}
+                    onDeclineConnection={handleDeclineConnection}
                     onOpen={(n) => {
                       // Navigate based on metadata (post, conversation, product, etc.)
                       const meta = n.metadata || {};

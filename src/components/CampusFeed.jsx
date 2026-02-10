@@ -30,35 +30,77 @@ const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onS
   </div>
 );
 
-const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, onToggleLike, liked, onAvatarClick }) => (
-  <div className="flex items-start gap-3">
-    <img
-      alt={`${name}'s profile picture`}
-      onClick={onAvatarClick}
-      className={`${isAuthor ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover shrink-0 cursor-pointer`}
-      src={img && img.length > 0 ? img : getDefaultAvatar('male')}
-    />
-    <div className="flex-grow">
-      <div className={`${isAuthor ? 'bg-slate-200 dark:bg-slate-700/50' : 'bg-background-light dark:bg-slate-800'} rounded-lg p-3`}>
-        <p className="font-semibold text-secondary dark:text-white text-sm cursor-pointer hover:underline" onClick={onAvatarClick}>
-          {name} {isAuthor && <span className="ml-1 text-xs font-normal text-primary">(Author)</span>}
-        </p>
-        <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">{text}</p>
-      </div>
-      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1.5 px-2">
-        <button onClick={() => onToggleLike && onToggleLike(postId, commentId)} className={`hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary font-medium ${liked ? 'text-primary' : ''}`}>Like</button>
-        <span>·</span>
-        <span>{time}</span>
-        {likes > 0 && (
-          <div className="flex items-center gap-1 ml-auto">
-            <span className={`material-symbols-outlined text-base ${likes > 5 ? 'text-primary' : 'text-slate-400'}`}>thumb_up</span>
-            <span>{likes}</span>
+const Comment = ({ img, name, isAuthor, time, text, likes, commentId, postId, onToggleLike, liked, onAvatarClick, onDelete, onReply, userId }) => {
+  const [showMenu, setShowMenu] = React.useState(false);
+  const currentUser = auth.currentUser;
+  const isCommentAuthor = currentUser?.uid === userId;
+
+  return (
+    <div className="flex items-start gap-3 py-3">
+      <img
+        alt={`${name}'s profile picture`}
+        onClick={onAvatarClick}
+        className="w-9 h-9 rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+        src={img && img.length > 0 ? img : getDefaultAvatar('male')}
+      />
+      <div className="flex-grow min-w-0">
+        <div className="bg-background-light dark:bg-slate-800 rounded-2xl p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="font-semibold text-secondary dark:text-white text-sm cursor-pointer hover:underline inline-flex items-center gap-1.5" onClick={onAvatarClick}>
+                {name}
+                {isAuthor && <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">Author</span>}
+              </p>
+            </div>
+            {isCommentAuthor && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-1 hover:bg-slate-300/50 dark:hover:bg-slate-700/50 rounded transition-colors"
+                  title="Options"
+                >
+                  <span className="material-symbols-outlined text-lg">more_vert</span>
+                </button>
+                {showMenu && (
+                  <div className="absolute right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-10">
+                    <button
+                      onClick={() => {
+                        onDelete?.(postId, commentId);
+                        setShowMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
+          <p className="text-slate-700 dark:text-slate-300 text-sm mt-2 break-words">{text}</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2 px-1">
+          <button
+            onClick={() => onToggleLike?.(postId, commentId)}
+            className={`flex items-center gap-1 font-medium transition-colors ${liked ? 'text-primary dark:text-primary' : 'hover:text-primary'}`}
+          >
+            <span className="material-symbols-outlined text-base">thumb_up</span>
+            {likes > 0 && <span>{likes}</span>}
+          </button>
+          <button
+            onClick={() => onReply?.(name, commentId)}
+            className="flex items-center gap-1 font-medium hover:text-primary transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">reply</span>
+            Reply
+          </button>
+          <span className="text-slate-400">·</span>
+          <span>{time}</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- Main App Component ---
 
@@ -309,6 +351,38 @@ function PostItem({ post }) {
     }
   };
 
+  const handleDeleteComment = async (postId, commentId) => {
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/uni-connect-login');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+
+    try {
+      const commentDocRef = doc(db, 'posts', postId, 'comments', commentId);
+      await deleteDoc(commentDocRef);
+      toast.success('Comment deleted', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+      toast.error('Failed to delete comment');
+    }
+  };
+
+  const handleReplyComment = (name, commentId) => {
+    const replyText = `@${name} `;
+    setNewComment(replyText);
+    // Focus the input field
+    const inputField = document.querySelector(`[data-comment-input="${post.id}"]`);
+    if (inputField) {
+      inputField.focus();
+      inputField.setSelectionRange(replyText.length, replyText.length);
+    }
+  };
+
   const handlePostComment = async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -516,6 +590,7 @@ function PostItem({ post }) {
             ></div>
             <div className="relative flex-grow">
               <textarea
+                data-comment-input={post.id}
                 className="form-textarea w-full rounded-lg bg-background-light dark:bg-slate-800 border border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary text-secondary dark:text-white placeholder:text-slate-500"
                 placeholder="Add a comment..."
                 rows="2"
@@ -550,9 +625,12 @@ function PostItem({ post }) {
                   likes={commentLikes[comment.id] || 0}
                   commentId={comment.id}
                   postId={post.id}
+                  userId={comment.authorId}
                   onToggleLike={toggleCommentLike}
                   liked={commentLikes[`${comment.id}_liked`] || false}
                   onAvatarClick={() => navigate(`/profile/${comment.authorId}`)}
+                  onDelete={handleDeleteComment}
+                  onReply={handleReplyComment}
                 />
               ))}
             </div>
