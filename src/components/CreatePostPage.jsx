@@ -458,7 +458,7 @@ dark:border-border-dark px-4 sm:px-10 py-3">
                     <main className="p-4 sm:p-6 md:p-10 space-y-8"> 
  
 
-                        <h1 className="text-3xl sm:text-4xl font-black 
+                        <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black 
 tracking-[-0.033em]">{isEditMode ? 'Edit Post' : 'Create a New Post'}</h1> 
  
                         <div className="space-y-6"> 

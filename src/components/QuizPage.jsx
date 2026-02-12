@@ -164,9 +164,9 @@ font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col">
 <div className="max-w-2xl mx-auto bg-white
 dark:bg-secondary rounded-xl shadow-lg p-6 sm:p-8 text-center">
 
-<h1 className="text-3xl font-bold text-secondary
+<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary
 dark:text-white">Quiz Completed!</h1>
-<p className="text-slate-500 dark:text-slate-400 mt-2">You
+<p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">You
 have successfully finished the quiz.</p>
 <div className="my-8">
 <p className="text-lg">Your Score:</p>
@@ -178,7 +178,7 @@ quizData.length) * 100).toFixed(0)}%</p>
 <button
 onClick={handleRestart}
 className="w-full sm:w-auto flex items-center justify-center
-gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold
+gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all
 hover:bg-primary/90 transition-colors"
 >
 <span

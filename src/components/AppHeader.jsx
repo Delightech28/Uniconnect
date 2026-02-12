@@ -157,8 +157,8 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
       <header className={`sticky top-0 z-20 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-700 px-4 sm:px-10 py-3 bg-background-light/80 dark:bg-slate-900/90 backdrop-blur-sm transition-all duration-300 ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{backgroundColor: darkMode ? 'rgba(15, 23, 42, 0.9)' : '#c2ebc2'}}>
         <div className="flex items-center gap-4 lg:gap-8">
           <NavLink to={currentUser ? "/dashboard" : "/"} className="flex items-center gap-0 text-secondary hover:opacity-80 transition-opacity">
-            <img src="/logo/white_greenbg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain"/>
-            <h2 className="text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
+            <img src="/logo/white_greenbg.png" alt="UniSpace" className="h-10 sm:h-12 w-10 sm:w-12 mb-1 object-contain"/>
+            <h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight tracking-tight -ml-3">niSpace</h2>
           </NavLink>
           <nav className="hidden lg:flex items-center gap-6">
             <NavLink to="/dashboard" className={({isActive}) => `text-sm font-medium cursor-pointer transition-colors ${isActive ? 'text-primary font-bold' : 'text-secondary hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary'}`}>

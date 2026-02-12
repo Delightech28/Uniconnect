@@ -431,7 +431,7 @@ const ProfilePage = () => {
                     backgroundPosition: 'center',
                   }}
                 />
-                <h1 className="text-3xl font-bold text-secondary dark:text-white">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary dark:text-white\">
                   {name}
                   {userDoc?.gender && (
                     <GenderBadge gender={userDoc.gender} size="lg" className="ml-2" />
@@ -452,44 +452,43 @@ const ProfilePage = () => {
               {/* Stats */}
               <div className="flex-1">
                 {stats && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {stats?.connectionsCount ?? connections.length ?? 0}
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Connections
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                       </p>
                     </div>
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                         {stats.itemsSold}
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         Items Sold
                       </p>
                     </div>
-                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
                         {stats.postsCreated}
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         Posts
                       </p>
                     </div>
-                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
                         {typeof stats.sellerRating === 'number' ? stats.sellerRating.toFixed(1) : Number(stats.sellerRating || 0).toFixed(1)}⭐
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         Seller Rating
                       </p>
                     </div>
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4">
-                      <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                         {stats.reviews}
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         Reviews
                       </p>
                     </div>

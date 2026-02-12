@@ -282,11 +282,11 @@ shadow-md p-6">
 dark:text-slate-400"> 
                     {product.category} 
                   </span> 
-                  <h1 className="text-3xl font-bold text-secondary 
+                  <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-secondary 
 dark:text-white mt-2"> 
                     {product.name} 
                   </h1> 
-                  <p className="text-3xl font-bold text-primary mt-4"> 
+                  <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-primary mt-4"> 
                     ₦{product.price.toLocaleString()} 
                   </p> 
                    
@@ -350,11 +350,11 @@ dark:text-slate-400">{seller.details}</p>
                             toast.error('Purchase failed. Please try again.');
                           }
                         }
-                      }} className="flex w-full items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal transition-colors hover:bg-green-600">
+                      }} className="flex w-full items-center justify-center gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold leading-normal transition-colors hover:bg-green-600 active:scale-95">
                         <span className="material-symbols-outlined">account_balance_wallet</span>
                         <span>Buy Now</span>
                       </button>
-                      <button onClick={handleMessageSeller} className="flex w-full items-center justify-center gap-2 rounded-lg h-12 px-6 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white text-base font-bold leading-normal transition-colors hover:bg-slate-300 dark:hover:bg-slate-600">
+                      <button onClick={handleMessageSeller} className="flex w-full items-center justify-center gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white text-xs sm:text-sm font-bold leading-normal transition-colors hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95">
                         <span className="material-symbols-outlined">chat</span>
                         <span>Message Seller</span>
                       </button>
@@ -368,7 +368,7 @@ dark:text-slate-400">{seller.details}</p>
 shadow-md p-6 mt-8"> 
  
  
-              <h2 className="text-2xl font-bold text-secondary 
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-secondary 
 dark:text-white">Description</h2> 
               {/* Using Tailwind's typography plugin for beautiful default 
 styling */} 

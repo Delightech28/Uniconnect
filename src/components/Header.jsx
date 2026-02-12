@@ -15,7 +15,7 @@ xmlns="http://www.w3.org/2000/svg">
 fill="currentColor"></path> 
             </svg> 
         </div> 
-        <h2 className="text-xl font-bold leading-tight 
+        <h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight 
 tracking-[-0.015em]">UniSpace</h2> 
     </div> 
 ); 
@@ -44,19 +44,19 @@ leading-normal" placeholder="Search" />
 
 const NavLinks = () => ( 
     <> 
-        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 transition-colors" href="#">Dashboard</a> 
-        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 transition-colors" href="#">Marketplace</a> 
-        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 transition-colors" href="/uni-doc">UniDoc</a> 
-        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 cursor-pointer transition-colors" href="/study-hub">StudyHub</a>
-        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+        <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 transition-colors" href="/campusfeed">CampusFeed</a> 
-    <a className="text-secondary dark:text-white dark:hover:text-green-400 text-sm 
+    <a className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm 
 font-medium leading-normal py-2 transition-colors" href="#">Wallet</a> 
-    <Link className="text-secondary dark:text-white dark:hover:text-green-400 text-sm font-medium leading-normal py-2 transition-colors" to="/student-referral">Referral</Link>
+    <Link className="text-secondary dark:text-white dark:hover:text-green-400 text-xs sm:text-sm font-medium leading-normal py-2 transition-colors" to="/student-referral">Referral</Link>
     </> 
 ); 
  

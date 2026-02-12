@@ -74,12 +74,10 @@ const Greeting = () => {
     return () => unsubscribe();
   }, []);
 
-  return (
     <h1 className="text-secondary dark:text-white tracking-light
-text-2xl sm:text-3xl font-bold leading-tight px-4 text-left pb-6">
+text-xl sm:text-2xl lg:text-3xl font-bold leading-tight px-3 sm:px-4 text-left pb-3 sm:pb-4 lg:pb-6">
       {greeting}, {userData?.displayName || 'there'}!
     </h1>
-  );
 };
 
 const Logo = () => (
@@ -108,7 +106,7 @@ strokeDashoffset="25"
 ></circle>
 </svg>
 <div className="absolute inset-0 flex items-center justify-center">
-<span className="text-2xl font-bold
+<span className="text-lg sm:text-xl lg:text-2xl font-bold
 text-primary">{percentage}%</span>
 </div>
 </div>
@@ -271,39 +269,35 @@ dark:hover:bg-slate-800 rounded" onClick={() => setIsMenuOpen(false)}>{link.labe
 <div className="lg:col-span-1 flex flex-col gap-6">
 <div className="bg-white dark:bg-secondary rounded-xl
 shadow-md p-6 flex flex-col gap-4">
-<p className="text-secondary dark:text-white text-xl
+<p className="text-secondary dark:text-white text-lg sm:text-xl lg:text-2xl
 font-bold">UniWallet</p>
 <div className="text-center">
 <p className="text-slate-500 dark:text-slate-400
-text-sm">Available Balance</p>
-<p className="text-primary text-4xl
+text-xs sm:text-sm">Available Balance</p>
+<p className="text-primary text-2xl sm:text-3xl lg:text-4xl
 font-bold">₦0.00</p>
 </div>
-<div className="flex justify-center gap-3 mt-2">
-<button className="flex-1 rounded-lg h-10 px-4 bg-primary
-text-white">Add Funds</button>
-<button className="flex-1 rounded-lg h-10 px-4
-bg-background-light dark:bg-slate-700 text-secondary
-dark:text-white">Send Money</button>
+<div className="flex justify-center gap-2 sm:gap-3 mt-2 sm:mt-3">
+<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all">Add Funds</button>
+<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-background-light dark:bg-slate-700 text-secondary dark:text-white text-xs sm:text-sm font-bold hover:bg-background-light/80 dark:hover:bg-slate-600 active:scale-95 transition-all">Send Money</button>
 </div>
-<a className="text-center text-primary text-sm font-medium
-mt-2" href="#">View full transaction history</a>
+<a className="text-center text-primary text-xs sm:text-sm font-medium mt-2 sm:mt-3 hover:underline" href="#">View full transaction history</a>
 </div>
 </div>
 {/* --- Right Column --- */}
 <div className="lg:col-span-2 flex flex-col gap-6">
 <div className="bg-white dark:bg-secondary rounded-xl
 shadow-md p-6">
-<p className="text-secondary dark:text-white text-xl font-bold
+<p className="text-secondary dark:text-white text-lg sm:text-xl lg:text-2xl font-bold
 mb-4">Recent Marketplace Activity</p>
 <div className="flex border-b border-slate-200
 dark:border-slate-700">
 <button onClick={() => setMarketplaceTab('listings')}
-className={`py-2 px-4 text-sm font-medium ${marketplaceTab ===
+className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium ${marketplaceTab ===
 'listings' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-secondary dark:hover:text-white'}`}>My
 Listings</button>
 <button onClick={() => setMarketplaceTab('purchases')}
-className={`py-2 px-4 text-sm font-medium ${marketplaceTab ===
+className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium ${marketplaceTab ===
 'purchases' ? 'text-primary border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400 hover:text-secondary dark:hover:text-white'}`}>My
 Purchases
 </button>
@@ -316,9 +310,9 @@ userListings.map((item) => (
 <img className="w-16 h-16 rounded-lg object-cover"
 alt={item.name} src={item.images?.[0] || 'https://via.placeholder.com/64'} />
 <div className="flex-1">
-<p className="font-semibold text-secondary
+<p className="font-semibold text-xs sm:text-sm text-secondary
 dark:text-white">{item.name}</p>
-<p className="text-sm text-slate-500
+<p className="text-xs sm:text-sm text-slate-500
 dark:text-slate-400">Price: <span
 className="text-primary">{item.price}</span></p>
 </div>
@@ -335,13 +329,13 @@ text-center">No listings found. <Link to="/sell-item" className="text-primary ho
 text-center">No purchases found.</p>
 )}
 </div>
-<Link className="block text-center text-primary text-sm
-font-medium mt-4 hover:underline" to="/my-listings">View All Listings</Link>
+<Link className="block text-center text-primary text-xs sm:text-sm
+font-medium mt-3 sm:mt-4 hover:underline" to="/my-listings">View All Listings</Link>
 </div>
 <div className="bg-white dark:bg-secondary rounded-xl
 shadow-md p-6">
-<p className="text-secondary dark:text-white text-xl font-bold
-mb-4">CampusFeed</p>
+<p className="text-secondary dark:text-white text-lg sm:text-xl lg:text-2xl font-bold
+mb-3 sm:mb-4">CampusFeed</p>
 <div className="space-y-4">
 {campusFeedPosts.map((post) => (
 <div key={post.id} className="flex flex-col gap-2">

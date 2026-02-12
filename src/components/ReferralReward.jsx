@@ -96,11 +96,11 @@ const ReferralReward = () => {
                 <PartyPopper size={48} strokeWidth={1.5} />
               </div>
               <div className="flex flex-col gap-3">
-                <h1 className="text-slate-900 dark:text-slate-50 text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
-                  Congratulations! <br className="hidden sm:block" />
+                <h1 className="text-slate-900 dark:text-slate-50 text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black leading-tight tracking-tight\">
+                  Congratulations! <br className="hidden sm:block\" />
                   You've Earned Your Spot!
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400 text-base md:text-lg font-normal leading-relaxed max-w-2xl mx-auto">
+                <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm md:text-base lg:text-lg font-normal leading-relaxed max-w-2xl mx-auto\">
                   You've successfully invited 10+ students to UniConnect. As a reward, your profile is now eligible to be featured on our landing page for everyone to see!
                 </p>
               </div>
@@ -112,7 +112,7 @@ const ReferralReward = () => {
               {/* Primary Action */}
               <a 
                 href="#" 
-                className="group flex min-w-[200px] w-full sm:w-auto items-center justify-center rounded-lg h-12 px-8 bg-[#07bc0c] text-white text-base font-bold shadow-lg shadow-[#07bc0c]/30 hover:bg-[#07bc0c]/90 hover:scale-[1.02] transition-all duration-300"
+                className="group flex min-w-[200px] w-full sm:w-auto items-center justify-center rounded-lg h-10 sm:h-11 px-4 sm:px-8 bg-[#07bc0c] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#07bc0c]/30 hover:bg-[#07bc0c]/90 hover:scale-[1.02] transition-all duration-300"
               >
                 <span>View Your Profile on Landing Page</span>
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />

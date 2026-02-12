@@ -154,7 +154,7 @@ export default function CampusFeed() {
             <div className="layout-content-container flex flex-col max-w-3xl mx-auto">
               {/* Page Title & Action */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                <h1 className="text-secondary dark:text-white text-3xl font-bold leading-tight">CampusFeed</h1>
+                <h1 className="text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl font-bold leading-tight">CampusFeed</h1>
                 <button onClick={() => navigate('/create-post')} className="flex items-center justify-center gap-2 h-10 px-4 mt-4 sm:mt-0 text-sm font-bold text-white bg-primary rounded-lg">
                   <span className="material-symbols-outlined">add</span>
                   <span>New Post</span>

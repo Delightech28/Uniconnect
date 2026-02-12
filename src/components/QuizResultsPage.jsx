@@ -117,10 +117,10 @@ items-center rounded-xl p-6 sm:p-8 shadow-lg bg-white
 dark:bg-slate-900"> 
                 <div className="w-full"> 
                     <div className="mb-6 text-center"> 
-                        <h1 className="text-3xl font-black text-slate-900 
+                        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-slate-900 
 dark:text-white">Quiz Results: "Introduction to Nigerian Constitutional 
 Law"</h1> 
-                        <p className="mt-2 text-slate-600 
+                        <p className="mt-2 text-xs sm:text-sm text-slate-600 
 dark:text-slate-400">Great effort! Here is your performance 
 breakdown.</p> 
                     </div> 

@@ -203,13 +203,13 @@ mx-auto">
 items-start gap-4 mb-8">
 <div>
 <h1 className="text-secondary dark:text-white tracking-light
-text-3xl font-bold leading-tight mb-2">My Marketplace Listings</h1>
-<p className="text-slate-600 dark:text-slate-300">Manage
+text-xl sm:text-2xl lg:text-3xl font-bold leading-tight mb-2">My Marketplace Listings</h1>
+<p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Manage
 your active and inactive product listings.</p>
 </div>
 <a className="flex items-center justify-center gap-2
-rounded-lg h-12 px-6 bg-primary text-white text-base font-bold
-leading-normal w-full sm:w-auto flex-shrink-0" href="/sell-item">
+rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold
+leading-normal w-full sm:w-auto flex-shrink-0 hover:bg-primary/90 active:scale-95 transition-all" href="/sell-item">
 <span
 className="material-symbols-outlined">add_circle</span>
 <span>Create New Listing</span>

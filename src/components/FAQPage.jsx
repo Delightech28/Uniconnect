@@ -126,7 +126,7 @@ const FAQPage = () => {
             <div className="flex flex-col items-center gap-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-8 my-10 text-center">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Still need help?</h3>
               <p className="text-slate-600 dark:text-slate-400">Can't find the answer you're looking for? Don't worry, our support team is here to help.</p>
-              <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] mt-4 hover:bg-primary/90 transition-colors">
+              <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold leading-normal tracking-[0.015em] mt-4 hover:bg-primary/90 active:scale-95 transition-all">
                 <span className="truncate">Contact Support</span>
               </button>
             </div>

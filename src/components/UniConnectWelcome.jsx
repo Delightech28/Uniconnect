@@ -86,10 +86,10 @@ const UniConnectWelcome = () => {
                 The ultimate digital ecosystem for Nigerian university students. Join our community to access resources, collaborate on projects, and discover new opportunities.
               </p>
               <div className="flex flex-wrap justify-center gap-4 w-full">
-                <button className="flex items-center justify-center rounded-lg h-12 px-8 bg-[#07bc0c] hover:bg-[#06a50a] text-white text-base font-bold shadow-lg shadow-[#07bc0c]/25 transition-all active:scale-95">
+                <button className="flex items-center justify-center rounded-lg h-10 sm:h-11 px-4 sm:px-8 bg-[#07bc0c] hover:bg-[#06a50a] text-white text-xs sm:text-sm font-bold shadow-lg shadow-[#07bc0c]/25 transition-all active:scale-95">
                   Get Started
                 </button>
-                <button className="flex items-center justify-center rounded-lg h-12 px-8 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-50 text-base font-bold transition-all active:scale-95">
+                <button className="flex items-center justify-center rounded-lg h-10 sm:h-11 px-4 sm:px-8 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-50 text-xs sm:text-sm font-bold transition-all active:scale-95">
                   Learn More
                 </button>
               </div>

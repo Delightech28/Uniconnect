@@ -154,11 +154,11 @@ return (
 <div className="max-w-7xl mx-auto">
 <div className="flex flex-col md:flex-row md:items-center
 md:justify-between gap-4 mb-8">
-<h1 className="text-secondary dark:text-white text-3xl
+<h1 className="text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl
 font-bold">UniMarket</h1>
 <Link to="/sell-item" className="flex items-center justify-center gap-2
-rounded-lg h-10 px-6 bg-primary text-white text-sm font-bold w-full
-md:w-auto">
+rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold w-full
+md:w-auto hover:bg-primary/90 active:scale-95 transition-all">
 	<span className="material-symbols-outlined">add_circle</span>
 	<span>Sell an Item</span>
 </Link>
@@ -173,7 +173,7 @@ pl-3 pointer-events-none text-slate-500">
 className="material-symbols-outlined">search</span>
 </div>
 <input
-className="form-input w-full pl-10 pr-4 py-2 h-12 rounded-lg
+className="form-input w-full pl-10 pr-4 py-2 h-10 sm:h-11 rounded-lg
 bg-background-light dark:bg-slate-800 border-transparent
 focus:border-primary focus:ring-primary text-secondary dark:text-white"
 placeholder="Search for items..."
@@ -183,7 +183,7 @@ onChange={(e) => setSearchTerm(e.target.value)}
 />
 </div>
 <select
-className="form-select flex-shrink-0 w-full sm:w-48 h-12
+className="form-select flex-shrink-0 w-full sm:w-48 h-10 sm:h-11
 rounded-lg bg-background-light dark:bg-slate-800 border-transparent
 focus:border-primary focus:ring-primary text-secondary dark:text-white"
 value={selectedCategory}
@@ -202,9 +202,9 @@ xl:grid-cols-4 gap-6">
 </div>
 {filteredProducts.length === 0 && (
 <div className="text-center py-16 col-span-full">
-<p className="text-xl font-semibold text-secondary
-dark:text-white">No items found</p>
-<p className="text-slate-500 dark:text-slate-400 mt-2">Try adjusting your search or category filters.</p>
+<p className="text-lg sm:text-xl font-semibold text-secondary
+dark:text-white\">No items found</p>
+<p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2\">Try adjusting your search or category filters.</p>
 </div>
 )}
 </div>

@@ -71,11 +71,11 @@ return (
 <div className="flex w-full max-w-3xl flex-col items-center gap-8
 rounded-xl bg-background-light dark:bg-gray-900/50 p-6 sm:p-10">
 <div className="flex flex-col gap-3 text-center">
-<p className="text-black dark:text-white text-3xl sm:text-4xl
+<p className="text-black dark:text-white text-xl sm:text-2xl md:text-3xl lg:text-4xl
 font-black leading-tight tracking-tighter">
 Help &amp; Support
 </p>
-<p className="text-gray-600 dark:text-gray-300 text-base
+<p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base
 font-normal leading-normal max-w-xl mx-auto">
 Having trouble with verification? Find answers to common
 questions below or contact our support team for assistance.

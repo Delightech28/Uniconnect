@@ -196,11 +196,11 @@ const NotificationsPage = () => {
         <div className="flex flex-col max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-              <h1 className="text-secondary dark:text-white text-3xl font-bold leading-tight">
+              <h1 className="text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl font-bold leading-tight">
                 Notifications
               </h1>
               {unreadCount > 0 && (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                   You have {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
                 </p>
               )}

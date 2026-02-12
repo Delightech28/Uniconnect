@@ -64,16 +64,16 @@ dark:text-white">
 viewBox="0 0 48 48"><path d="M44
 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z"></path></svg>
 </div>
-<h2 className="text-xl font-bold leading-tight
+<h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight
 tracking-tight">UniSpace</h2>
 </div>
 <nav className="hidden lg:flex items-center gap-6">
 {navLinks.map(link => (
 link.href.startsWith('http') ? (
-<a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" className={`text-sm
+<a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" className={`text-xs sm:text-sm
 font-medium ${link.active ? 'text-primary font-bold' : 'text-secondary dark:text-white'}`}>{link.name}</a>
 ) : (
-<a key={link.name} href={link.href} className={`text-sm
+<a key={link.name} href={link.href} className={`text-xs sm:text-sm
 font-medium ${link.active ? 'text-primary font-bold' : 'text-secondary dark:text-white'}`}>{link.name}</a>
 )
 ))}
@@ -415,9 +415,9 @@ return (
 <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
 <div className="max-w-4xl mx-auto">
 <div className="mb-8">
-<h1 className="text-secondary dark:text-white text-3xl font-bold
+<h1 className="text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl font-bold
 leading-tight mb-2">Create a New Listing</h1>
-<p className="text-slate-600 dark:text-slate-300">Fill in the
+<p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">Fill in the
 details below to sell your item on UniMarket.</p>
 </div>
 <div className="bg-white dark:bg-secondary rounded-xl

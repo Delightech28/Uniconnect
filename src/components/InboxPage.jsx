@@ -408,7 +408,7 @@ function InboxPage() {
                     {/* Header */}
                     <div className="p-4 border-b border-border-light dark:border-border-dark">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-2xl font-bold">Messages</h2>
+                            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold\">Messages</h2>
                             {/* <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
                                 <span className="material-symbols-outlined text-xl">compose</span>
                             </button> */}
@@ -598,8 +598,8 @@ function InboxPage() {
                         <div className="flex-1 flex items-center justify-center">
                             <div className="text-center">
                                 <span className="material-symbols-outlined text-white text-6xl opacity-20 block mb-4">mail</span>
-                                <h3 className="text-xl text-white font-bold mb-2">Select a conversation</h3>
-                                <p className="text-white text-sm">
+                                <h3 className="text-lg sm:text-xl text-white font-bold mb-2\">Select a conversation</h3>
+                                <p className="text-white text-xs sm:text-sm\">
                                     Choose a conversation from the list to start messaging
                                 </p>
                             </div>

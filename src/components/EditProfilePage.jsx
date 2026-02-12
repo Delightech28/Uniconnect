@@ -264,9 +264,9 @@ font-display min-h-screen flex flex-col">
       <main className="flex-1 py-10"> 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"> 
           <div className="mb-8"> 
-            <h1 className="text-3xl font-bold text-secondary 
-dark:text-white">Edit Profile</h1> 
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Update 
+            <h1 className=\"text-xl sm:text-2xl lg:text-3xl font-bold text-secondary 
+dark:text-white\">Edit Profile</h1> 
+            <p className=\"text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1\">Update 
 your profile information.</p> 
           </div> 
           <div className="bg-white dark:bg-secondary rounded-xl 

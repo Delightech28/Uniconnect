@@ -149,8 +149,8 @@ text-base">security</span>
           <span>Transactions are secure and encrypted.</span> 
         </div> 
         <button type="submit" className="w-full flex items-center 
-justify-center rounded-lg h-12 px-6 bg-primary text-white text-base 
-font-bold hover:bg-green-700 transition-colors"> 
+justify-center rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm 
+font-bold hover:bg-green-700 active:scale-95 transition-all\">
           <span className="truncate">Review & Send</span> 
         </button> 
       </form> 

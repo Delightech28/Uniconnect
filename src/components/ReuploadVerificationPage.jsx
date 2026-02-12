@@ -132,12 +132,12 @@ shadow-sm">
 <div className="flex justify-center items-center gap-2">
 <span className="material-symbols-outlined !text-4xl
 text-error text-red-500">warning</span>
-<p className="text-black dark:text-white text-3xl sm:text-4xl
+<p className="text-black dark:text-white text-xl sm:text-2xl md:text-3xl lg:text-4xl
 font-black leading-tight tracking-tighter">
 Re-upload Your Documents
 </p>
 </div>
-<p className="text-gray-600 dark:text-gray-300 text-base
+<p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base
 font-normal leading-normal max-w-lg mx-auto">
 Your previous verification attempt failed. Please review the
 requirements and upload your documents again.

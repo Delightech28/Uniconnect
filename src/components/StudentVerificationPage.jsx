@@ -265,7 +265,7 @@ const StudentVerificationPage = () => {
                     <button
                       onClick={handleSubmit}
                       disabled={!selectedFile || isSubmitting}
-                      className="flex w-full cursor-pointer items-center justify-center rounded-lg h-12 px-4 bg-clientPrimary text-white text-base font-medium hover:bg-opacity-90 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      className="flex w-full cursor-pointer items-center justify-center rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-clientPrimary text-white text-xs sm:text-sm font-medium hover:bg-opacity-90 active:scale-95 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? 'Submitting...' : 'Submit Document'}
                     </button>

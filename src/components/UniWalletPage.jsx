@@ -30,9 +30,9 @@ const BalanceCard = ({ balance }) => (
 const ActionButton = ({ icon, label, primary, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center justify-center gap-2 rounded-lg h-12 px-4 text-base font-semibold transition-transform hover:scale-105 ${primary
-        ? 'bg-primary text-white'
-        : 'bg-background-light dark:bg-slate-700 text-secondary dark:text-white'
+    className={`w-full flex items-center justify-center gap-2 rounded-lg h-10 sm:h-11 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-transform hover:scale-105 active:scale-95 ${primary
+        ? 'bg-primary text-white hover:bg-primary/90'
+        : 'bg-background-light dark:bg-slate-700 text-secondary dark:text-white hover:bg-background-light/80 dark:hover:bg-slate-600'
       }`}
   >
     <span className="material-symbols-outlined">{icon}</span>
