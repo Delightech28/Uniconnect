@@ -229,10 +229,10 @@ const ReceiveMoneyPage = () => {
               <span className="material-symbols-outlined">arrow_back</span>
               <span>Back to Wallet</span>
             </button>
-            <h1 className=\"text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl font-bold font-display\">
+            <h1 className="text-secondary dark:text-white text-xl sm:text-2xl lg:text-3xl font-bold font-display">
               Receive Money
             </h1>
-            <p className=\"text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-2\">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-2">
               Fund your wallet with multiple payment options via Paystack
             </p>
           </div>

@@ -80,6 +80,7 @@ service cloud.firestore {
     // Conversations and messages: participants-only access
     match /conversations/{convoId} {
       // Allow creating a conversation if requester is authenticated and is one of the participants
+      // Conversation creation typically happens when selecting a connection or starting a new chat
       allow create: if request.auth != null
         && request.resource.data.participants is list
         && request.auth.uid in request.resource.data.participants
@@ -90,7 +91,8 @@ service cloud.firestore {
       allow get: if request.auth != null && request.auth.uid in resource.data.participants;
       allow list: if request.auth != null && request.auth.uid != null; // limited by client queries (should use array-contains)
 
-      // Allow updating conversation metadata only to participants and prevent changing participants list
+      // Allow updating conversation metadata (lastMessage, lastTimestamp, unreadCount with increment(), etc.) only to participants
+      // Prevent changing participants list
       allow update: if request.auth != null
         && request.auth.uid in resource.data.participants
         && request.resource.data.participants == resource.data.participants;
@@ -113,6 +115,17 @@ service cloud.firestore {
 
         // No updates/deletes from clients
         allow update, delete: if false;
+      }
+
+      // Typing presence subcollection: ephemeral presence docs for typing indicators
+      // Each user has a doc with their userId as the docId, containing lastActive timestamp
+      match /typing/{userId} {
+        // Allow users to write their own typing presence doc
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        // Allow participants to read typing presence to show indicators
+        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        // Allow auto-cleanup: users can delete their own doc or system can delete old ones
+        allow delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 

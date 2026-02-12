@@ -3,13 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import useVerified from '../hooks/useVerified';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp, deleteDoc, setDoc, increment } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
 import GenderBadge from './GenderBadge';
 import { getDefaultAvatar } from '../services/avatarService';
 import { notifyNewMessage } from '../services/notificationService';
+import { getConnections } from '../services/profileService';
+import { searchGifs } from '../services/giphyService';
 
 const MY_AVATAR_URL = null;
 
@@ -17,10 +19,10 @@ const MY_AVATAR_URL = null;
 const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
     <div
         onClick={onSelect}
-        className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-all duration-200 relative group ${
+        className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-all duration-300 relative group animate-fade-in border-l-4 ${
             isActive 
-                ? 'bg-primary/15 border-l-4 border-primary' 
-                : 'hover:bg-background-light dark:hover:bg-background-dark/50'
+                ? 'bg-primary/15 border-primary' 
+                : 'border-transparent hover:bg-background-light dark:hover:bg-background-dark/50 hover:border-primary/30'
         }`}
     >
         <div className="flex items-center gap-3 w-full min-w-0">
@@ -29,16 +31,16 @@ const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
                 <div 
                     onClick={(e) => { e.stopPropagation(); onAvatarClick?.(); }} 
                     style={{ backgroundImage: `url(${convo.avatarUrl})` }} 
-                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-11 shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all"
+                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-11 shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all duration-200"
                 />
-                {convo.isOnline && <div className="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-background-dark" />}
+                {convo.isOnline && <div className="absolute bottom-0 right-0 size-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-background-dark animate-pulse-soft" />}
             </div>
             
             {/* Content */}
             <div className="flex flex-col justify-center min-w-0 flex-1">
                 <div className="flex justify-between items-center gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                        <p className={`text-sm truncate ${isActive || convo.unreadCount > 0 ? 'font-bold' : 'font-medium'}`}>
+                        <p className={`text-sm truncate transition-all duration-200 ${isActive || convo.unreadCount > 0 ? 'font-bold text-text-primary-light dark:text-text-primary-dark' : 'font-medium text-text-primary-light dark:text-text-primary-dark'}`}>
                             {convo.name}
                         </p>
                         {convo.gender && <GenderBadge gender={convo.gender} size="xs" className="shrink-0" />}
@@ -47,14 +49,14 @@ const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
                         {convo.timestamp}
                     </p>
                 </div>
-                <p className={`text-xs truncate ${isActive ? 'text-text-primary-light dark:text-text-primary-dark font-medium' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>
+                <p className={`text-xs truncate transition-all duration-200 ${isActive ? 'text-text-primary-light dark:text-text-primary-dark font-medium' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}>
                     {convo.lastMessage}
                 </p>
             </div>
             
             {/* Unread Badge */}
             {convo.unreadCount > 0 && (
-                <div className="shrink-0 flex size-5 items-center justify-center rounded-full bg-accent text-white text-xs font-bold animate-pulse">
+                <div className="shrink-0 flex size-5 items-center justify-center rounded-full bg-accent text-white text-xs font-bold animate-pulse-soft">
                     {convo.unreadCount > 9 ? '9+' : convo.unreadCount}
                 </div>
             )}
@@ -64,31 +66,40 @@ const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
 
 // --- Message Bubble Component ---
 const MessageBubble = ({ message, senderAvatar, isMe, onAvatarClick, senderName }) => {
+    const [showReactions, setShowReactions] = useState(false);
+    const reactions = message.reactions || {};
+    const reactionCounts = Object.values(reactions).reduce((acc, uids) => acc + (uids?.length || 0), 0);
+
     return (
-        <div className={`flex items-end gap-2 group ${isMe ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-end gap-2 group ${isMe ? 'flex-row-reverse' : ''} animate-slide-up`}>
             <div 
                 onClick={(e) => { e.stopPropagation(); onAvatarClick?.(); }} 
                 style={{ backgroundImage: `url(${isMe ? MY_AVATAR_URL : senderAvatar})` }} 
                 className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
             />
-            <div className={`max-w-xs md:max-w-md ${isMe ? 'flex flex-col items-end' : ''}`}>
+            <div className={`max-w-xs sm:max-w-sm md:max-w-md ${isMe ? 'flex flex-col items-end' : ''}`}>
                 {!isMe && senderName && (
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1 ml-2 font-medium">
                         {senderName}
                     </p>
                 )}
-                <div className={`p-3 rounded-2xl break-words ${
+                <div className={`p-2 sm:p-3 rounded-2xl break-words transition-all duration-200 hover:shadow-md ${
                     isMe 
                         ? 'rounded-br-none bg-primary text-white' 
                         : 'rounded-bl-none bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark'
                 }`}>
-                    {message.text && <p className="text-sm">{message.text}</p>}
+                    {message.text && <p className="text-xs sm:text-sm">{message.text}</p>}
+                    {message.gifUrl && (
+                        <div className="mt-2">
+                            <img src={message.gifUrl} alt="GIF" className="max-w-xs rounded-lg max-h-64 animate-fade-in" />
+                        </div>
+                    )}
                     {message.fileUrl && (
                         <div className="mt-2">
                             {message.fileType?.startsWith('image/') ? (
-                                <img src={message.fileUrl} alt="attachment" className="max-w-xs rounded-lg max-h-64" />
+                                <img src={message.fileUrl} alt="attachment" className="max-w-xs rounded-lg max-h-64 animate-fade-in" />
                             ) : (
-                                <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm underline hover:opacity-75">
+                                <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs sm:text-sm underline hover:opacity-75 transition-opacity">
                                     <span className="material-symbols-outlined text-base">download</span>
                                     {message.fileName || 'File'}
                                 </a>
@@ -96,9 +107,45 @@ const MessageBubble = ({ message, senderAvatar, isMe, onAvatarClick, senderName 
                         </div>
                     )}
                 </div>
-                <p className={`text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1 ${isMe ? 'mr-2' : 'ml-2'}`}>
-                    {message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                </p>
+
+                {/* Reactions Display */}
+                {reactionCounts > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1 px-1">
+                        {Object.entries(reactions).map(([emoji, userIds]) => 
+                            userIds?.length > 0 && (
+                                <button
+                                    key={emoji}
+                                    onClick={() => setShowReactions(!showReactions)}
+                                    className="bg-gray-300 dark:bg-gray-600 px-1.5 py-0.5 rounded-full text-xs hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                                    title={`${userIds.length} person(s) reacted`}
+                                >
+                                    {emoji} {userIds.length > 1 && userIds.length}
+                                </button>
+                            )
+                        )}
+                    </div>
+                )}
+
+                {/* Timestamp & Read Receipt */}
+                <div className={`flex items-center gap-1 mt-1 ${isMe ? 'flex-row-reverse mr-2' : 'ml-2'}`}>
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        {message.createdAt ? new Date(message.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </p>
+                    {isMe && (
+                        <span className={`text-xs ${message.readAt ? 'text-blue-500' : 'text-gray-400'}`} title={message.readAt ? 'Read' : 'Delivered'}>
+                            {message.readAt ? '✓✓' : '✓'}
+                        </span>
+                    )}
+                </div>
+
+                {/* Reaction Picker Button */}
+                <button
+                    onClick={() => setShowReactions(!showReactions)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-sm mt-1 hover:text-primary"
+                    title="Add reaction"
+                >
+                    😊
+                </button>
             </div>
         </div>
     );
@@ -111,6 +158,7 @@ function InboxPage() {
     const [user, setUser] = useState(null);
     const [userAvatar, setUserAvatar] = useState(null);
     const [conversations, setConversations] = useState([]);
+    const [connectionsList, setConnectionsList] = useState([]);
     const [activeConvoId, setActiveConvoId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -123,105 +171,151 @@ function InboxPage() {
     const [typingUsers, setTypingUsers] = useState({});
     const messagesRef = useRef(null);
     const fileInputRef = useRef(null);
+    const [emojiOpen, setEmojiOpen] = useState(false);
+    const [gifOpen, setGifOpen] = useState(false);
+    const [gifQuery, setGifQuery] = useState('');
+    const [gifResults, setGifResults] = useState([]);
+    const [gifLoading, setGifLoading] = useState(false);
 
     useEffect(() => {
         const unsubAuth = onAuthStateChanged(auth, async (u) => {
             setUser(u);
-            if (u) {
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', u.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        setUserAvatar(userData.avatarUrl || getDefaultAvatar(userData.gender || 'male'));
-                    }
-                } catch (err) {
-                    console.error('Error fetching user avatar:', err);
-                }
-            }
         });
         return () => unsubAuth();
-    }, []);
-
-    // Redirect unverified users away from Inbox
-    const { isLoading: verifyingLoading, verified, status } = useVerified();
-    useEffect(() => {
-        if (!verifyingLoading && !verified) {
-            if (status === 'failed') {
-                // send to failed page
-                window.location.href = '/verification-failed';
-            } else {
-                window.location.href = '/verification-pending';
-            }
-        }
-    }, [verifyingLoading, verified, status]);
-
-    // Subscribe to conversations for this user
-    const location = useLocation();
-    const convoParam = useMemo(() => new URLSearchParams(location.search).get('convo'), [location.search]);
+    }, [user]);
 
     useEffect(() => {
         if (!user) return;
-        const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid), orderBy('lastTimestamp', 'desc'));
-        const unsub = onSnapshot(q, (snap) => {
-                const promises = snap.docs.map(async (d) => {
-                const data = d.data();
-                let name = data.name || 'Unknown';
-                let avatarUrl = data.avatarUrl || null;
-                let gender = data.gender || null;
-                let otherParticipantId = null;
+        let mounted = true;
 
-                // If name is still "Unknown", try to fetch from the other participant's user doc
-                if (name === 'Unknown' && data.participants && user.uid) {
-                    otherParticipantId = data.participants.find((p) => p !== user.uid);
-                    if (otherParticipantId) {
-                        try {
-                            const userDoc = await getDoc(doc(db, 'users', otherParticipantId));
-                            if (userDoc.exists()) {
-                                const userData = userDoc.data();
-                                const displayName = userData.displayName?.trim();
-                                const emailPrefix = userData.email?.split('@')[0];
-                                name = displayName || emailPrefix || userData.email || 'Unknown';
-                                if (userData.avatarUrl) {
-                                    avatarUrl = userData.avatarUrl;
+        (async () => {
+            try {
+                const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid), orderBy('lastTimestamp', 'desc'));
+                const unsub = onSnapshot(q, async (snap) => {
+                    const promises = snap.docs.map(async (d) => {
+                        const data = d.data();
+                        const otherParticipantId = data.participants?.find(p => p !== user.uid);
+                        let name = 'Unknown';
+                        let avatarUrl = null;
+                        let gender = null;
+
+                        if (otherParticipantId) {
+                            try {
+                                const otherUserDoc = await getDoc(doc(db, 'users', otherParticipantId));
+                                if (otherUserDoc.exists()) {
+                                    const userData = otherUserDoc.data();
+                                    name = userData.displayName || (userData.email || '').split('@')[0] || 'User';
+                                    if (userData.avatarUrl) {
+                                        avatarUrl = userData.avatarUrl;
+                                    }
+                                    gender = userData.gender || null;
+                                    console.log('Fetched missing seller info for conversation:', name); // Debug
                                 }
-                                gender = userData.gender || null;
-                                console.log('Fetched missing seller info for conversation:', name); // Debug
+                            } catch (err) {
+                                console.warn('Failed to fetch other participant info:', err);
                             }
-                        } catch (err) {
-                            console.warn('Failed to fetch other participant info:', err);
                         }
+
+                        // Use gender-based default if no avatar URL
+                        if (!avatarUrl) {
+                            avatarUrl = getDefaultAvatar(gender || 'male');
+                        }
+
+                        return {
+                            id: d.id,
+                            ...data,
+                            name,
+                            avatarUrl,
+                            gender,
+                            otherParticipantId,
+                            timestamp: data.lastTimestamp ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                            unreadCount: data.unreadCount || 0,
+                        };
+                    });
+
+                    Promise.all(promises).then((items) => {
+                        if (!mounted) return;
+                        setConversations(items);
+                    });
+                }, (err) => console.error('Conversations subscription error', err));
+                return () => unsub();
+            } catch (err) {
+                console.error('Error setting up conversations listener:', err);
+            }
+        })();
+
+        return () => { mounted = false; };
+    }, [user]);
+
+    // Fetch accepted connections and merge into the left list as "quick start" items
+    useEffect(() => {
+        let mounted = true;
+        if (!user) return;
+        (async () => {
+            try {
+                const conns = await getConnections(user.uid);
+                if (!mounted) return;
+                // normalize connection entries
+                const normalized = conns.map(c => ({
+                    id: `conn:${c.id}`,
+                    userId: c.id,
+                    name: c.displayName || (c.email || '').split('@')[0] || 'User',
+                    avatarUrl: c.avatarUrl || getDefaultAvatar(c.gender || 'male'),
+                    gender: c.gender || null,
+                    lastMessage: '',
+                    lastTimestamp: null,
+                    unreadCount: 0,
+                    isConnectionOnly: true,
+                    isOnline: c.isOnline || false,
+                }));
+                setConnectionsList(normalized);
+            } catch (err) {
+                console.warn('Failed to load connections for inbox:', err);
+            }
+        })();
+        return () => { mounted = false; };
+    }, [user]);
+
+    // Handle recipientId query parameter (when clicking Message from profile)
+    const location = useLocation();
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const recipientId = params.get('recipientId');
+        
+        if (recipientId && user && conversations.length >= 0) {
+            // Look for existing conversation with this recipient
+            const existingConvo = conversations.find(c => c.otherParticipantId === recipientId);
+            
+            if (existingConvo) {
+                // Select existing conversation and mark as read
+                setActiveConvoId(existingConvo.id);
+                setIsChatVisible(true);
+                try {
+                    updateDoc(doc(db, 'conversations', existingConvo.id), {
+                        unreadCount: 0,
+                    });
+                } catch (err) {
+                    console.warn('Failed to mark conversation as read:', err);
+                }
+            } else {
+                // Create new conversation with this recipient
+                (async () => {
+                    try {
+                        const convoRef = await addDoc(collection(db, 'conversations'), {
+                            participants: [user.uid, recipientId],
+                            lastMessage: '',
+                            lastTimestamp: serverTimestamp(),
+                            unreadCount: 0,
+                        });
+                        setActiveConvoId(convoRef.id);
+                        setIsChatVisible(true);
+                    } catch (err) {
+                        console.error('Failed to create conversation from profile:', err);
                     }
-                }
-
-                // Use gender-based default if no avatar URL
-                if (!avatarUrl) {
-                    avatarUrl = getDefaultAvatar(gender || 'male');
-                }
-
-                return {
-                    id: d.id,
-                    ...data,
-                    name,
-                    avatarUrl,
-                    gender,
-                    otherParticipantId,
-                    timestamp: data.lastTimestamp ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-                    unreadCount: data.unreadCount || 0,
-                };
-            });
-
-            Promise.all(promises).then((items) => {
-                setConversations(items);
-                // prefer convo param if present, otherwise auto-select first convo
-                if (convoParam) {
-                    setActiveConvoId(convoParam);
-                } else if (!activeConvoId && items.length) {
-                    setActiveConvoId(items[0].id);
-                }
-            });
-        }, (err) => console.error('Conversations subscription error', err));
-        return () => unsub();
-    }, [user, convoParam, activeConvoId, location.search]);
+                })();
+            }
+        }
+    }, [location.search, user, conversations]);
 
     // Subscribe to messages for active conversation
     useEffect(() => {
@@ -245,7 +339,15 @@ function InboxPage() {
         return () => unsub();
     }, [activeConvoId, user]);
 
-    const filteredConversations = useMemo(() => conversations.filter(c => {
+    const mergedConversations = useMemo(() => {
+        // Merge active conversations with connections (show connections not already in conversations)
+        const otherConvos = conversations || [];
+        const existingOtherIds = new Set(otherConvos.map(c => c.otherParticipantId));
+        const extra = (connectionsList || []).filter(c => !existingOtherIds.has(c.userId));
+        return [...otherConvos, ...extra];
+    }, [conversations, connectionsList]);
+
+    const filteredConversations = useMemo(() => mergedConversations.filter(c => {
         const q = searchTerm.trim().toLowerCase();
         const matchesSearch = !q || (c.title || c.name || '').toLowerCase().includes(q) || (c.lastMessage || '').toLowerCase().includes(q);
         
@@ -258,6 +360,26 @@ function InboxPage() {
     }), [conversations, searchTerm, filterType]);
 
     const handleSelectConvo = (id) => {
+        // If this is a connection-only entry (no conversation yet), create a conversation document first
+        if (id && id.startsWith && id.startsWith('conn:')) {
+            const otherId = id.split(':')[1];
+            (async () => {
+                try {
+                    // create conversation doc
+                    const convoRef = await addDoc(collection(db, 'conversations'), {
+                        participants: [user.uid, otherId],
+                        lastMessage: '',
+                        lastTimestamp: serverTimestamp(),
+                        unreadCount: 0,
+                    });
+                    setActiveConvoId(convoRef.id);
+                    setIsChatVisible(true);
+                } catch (err) {
+                    console.error('Failed to create conversation for connection:', err);
+                }
+            })();
+            return;
+        }
         setActiveConvoId(id);
         setIsChatVisible(true);
         // Mark conversation as read (reset unreadCount to 0)
@@ -330,6 +452,7 @@ function InboxPage() {
 
                             // Clear inputs
                             setNewMessage('');
+                            if (user && activeConvoId) { deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)).catch(()=>{}); }
                             setSelectedFile(null);
                             setIsUploading(false);
                             resolve();
@@ -373,9 +496,118 @@ function InboxPage() {
 
             // Clear inputs
             setNewMessage('');
+            if (user && activeConvoId) { deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)).catch(()=>{}); }
             setSelectedFile(null);
         } catch (err) {
             console.error('Failed to send message', err);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // --- Typing presence: write ephemeral doc and listen to others ---
+    const typingTimeoutRef = useRef(null);
+    const lastTypingAtRef = useRef(0);
+
+    const writeTyping = async () => {
+        if (!user || !activeConvoId) return;
+        const now = Date.now();
+        lastTypingAtRef.current = now;
+        try {
+            await setDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid), {
+                lastActive: serverTimestamp(),
+            });
+        } catch (err) {
+            console.warn('Failed to write typing presence', err);
+        }
+
+        // schedule clearing after 4s of inactivity
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(async () => {
+            const elapsed = Date.now() - lastTypingAtRef.current;
+            if (elapsed >= 3500) {
+                try { await deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)); } catch (e) { }
+            }
+        }, 4000);
+    };
+
+    useEffect(() => {
+        if (!activeConvoId) return;
+        const typingCol = collection(db, 'conversations', activeConvoId, 'typing');
+        const unsubTyping = onSnapshot(typingCol, (snap) => {
+            const map = {};
+            const now = Date.now();
+            snap.docs.forEach(d => {
+                const id = d.id;
+                const data = d.data();
+                const lastActive = data?.lastActive?.toMillis ? data.lastActive.toMillis() : (data?.lastActive ? data.lastActive : 0);
+                // consider typing if lastActive within 5s
+                if (lastActive && (now - lastActive) < 5000 && id !== user?.uid) {
+                    map[id] = true;
+                }
+            });
+            setTypingUsers(map);
+        }, (err) => console.warn('Typing presence listen error', err));
+
+        return () => {
+            unsubTyping();
+            // clear our typing doc when switching convo
+            if (user && activeConvoId) {
+                deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)).catch(() => {});
+            }
+        };
+    }, [activeConvoId, user]);
+
+    // Send a GIF message (selected from GIPHY results)
+    const handleSendGif = async (url) => {
+        if (!user || !activeConvoId) return;
+        setGifOpen(false);
+        setGifQuery('');
+        setGifResults([]);
+        setNewMessage('');
+        if (user && activeConvoId) { deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)).catch(()=>{}); }
+        setSelectedFile(null);
+        setIsUploading(true);
+        try {
+            await addDoc(collection(db, `conversations/${activeConvoId}/messages`), {
+                text: '',
+                gifUrl: url,
+                senderId: user.uid,
+                createdAt: serverTimestamp()
+            });
+
+            // Update conversation metadata and increment unread
+            try {
+                const convoDoc = await getDoc(doc(db, 'conversations', activeConvoId));
+                if (convoDoc.exists()) {
+                    const participants = convoDoc.data().participants || [];
+                    const recipientId = participants.find(p => p !== user.uid);
+                    await updateDoc(doc(db, 'conversations', activeConvoId), {
+                        lastMessage: '📷 GIF',
+                        lastTimestamp: serverTimestamp(),
+                        lastSenderId: user.uid,
+                        unreadCount: increment(1),
+                    });
+
+                    if (recipientId) {
+                        try {
+                            await notifyNewMessage(recipientId, {
+                                conversationId: activeConvoId,
+                                senderId: user.uid,
+                                senderName: user.displayName || user.email?.split('@')?.[0] || 'User',
+                                senderAvatar: null,
+                                messagePreview: '📷 GIF',
+                            });
+                        } catch (notifErr) {
+                            console.warn('Failed to send notification for GIF', notifErr);
+                        }
+                    }
+                }
+            } catch (metaErr) {
+                console.warn('Failed to update conversation metadata for GIF', metaErr);
+            }
+        } catch (err) {
+            console.error('Failed to send GIF', err);
         } finally {
             setIsUploading(false);
         }
@@ -402,11 +634,11 @@ function InboxPage() {
             {/* Main Content */}
             <main className="flex flex-1 overflow-auto">
                 {/* Sidebar - Conversation List */}
-                <aside className={`w-full md:w-96 flex-col border-r border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark transition-all duration-300 ${
+                <aside className={`w-full sm:w-80 md:w-96 flex-col border-r border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark transition-all duration-300 transform ${
                     isChatVisible ? 'hidden md:flex' : 'flex'
                 }`}>
                     {/* Header */}
-                    <div className="p-4 border-b border-border-light dark:border-border-dark">
+                    <div className="p-3 sm:p-4 border-b border-border-light dark:border-border-dark">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold\">Messages</h2>
                             {/* <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
@@ -444,7 +676,7 @@ function InboxPage() {
                     </div>
 
                     {/* Conversations List */}
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="flex-1 overflow-y-auto animate-fade-in">
                                     {filteredConversations.length > 0 ? (
                                         filteredConversations.map(convo => (
                                             <ConversationItem
@@ -499,7 +731,7 @@ function InboxPage() {
                                                 ? 'text-green-500 font-medium'
                                                 : 'text-text-secondary-light dark:text-text-secondary-dark'
                                         }`}>
-                                            {activeConversation.isOnline ? 'Active now' : 'Offline'}
+                                            {Object.keys(typingUsers || {}).length > 0 ? 'Typing...' : (activeConversation.isOnline ? 'Active now' : 'Offline')}
                                         </p>
                                     </div>
                                 </div>
@@ -521,34 +753,48 @@ function InboxPage() {
                             {/* Messages Area */}
                             <div
                                 ref={messagesRef}
-                                className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col"
+                                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col"
                             >
                                 {messages.length === 0 ? (
-                                    <div className="flex h-full items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                                    <div className="flex h-full items-center justify-center text-text-secondary-light dark:text-text-secondary-dark animate-fade-in">
                                         <div className="text-center">
                                             <span className="material-symbols-outlined text-5xl opacity-20 block mb-2">mail</span>
                                             <p className="text-sm">No messages yet. Start the conversation!</p>
                                         </div>
                                     </div>
                                 ) : (
-                                    messages.map(msg => (
-                                        <MessageBubble
-                                            key={msg.id}
-                                            message={msg}
-                                            senderAvatar={activeConversation?.avatarUrl}
-                                            isMe={user && msg.senderId === user.uid}
-                                            onAvatarClick={() => navigate(`/profile/${msg.senderId}`)}
-                                        />
-                                    ))
+                                    <>
+                                        {messages.map(msg => (
+                                            <MessageBubble
+                                                key={msg.id}
+                                                message={msg}
+                                                senderAvatar={activeConversation?.avatarUrl}
+                                                isMe={user && msg.senderId === user.uid}
+                                                onAvatarClick={() => navigate(`/profile/${msg.senderId}`)}
+                                            />
+                                        ))}
+                                        {Object.keys(typingUsers || {}).length > 0 && (
+                                            <div className="flex items-end gap-2 animate-fade-in">
+                                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 shrink-0" />
+                                                <div className="max-w-xs md:max-w-md">
+                                                    <div className="p-3 rounded-2xl rounded-bl-none bg-gray-200 dark:bg-gray-700 flex items-center gap-1.5">
+                                                        <span className="size-2 rounded-full bg-text-secondary-light dark:bg-text-secondary-dark animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                                        <span className="size-2 rounded-full bg-text-secondary-light dark:bg-text-secondary-dark animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                                        <span className="size-2 rounded-full bg-text-secondary-light dark:bg-text-secondary-dark animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
                             {/* Message Input Area */}
-                            <div className="border-t border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 shrink-0 space-y-3">
+                            <div className="relative border-t border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-3 sm:p-4 shrink-0 space-y-2 sm:space-y-3">
                                 {selectedFile && (
-                                    <div className="flex items-center gap-2 p-2 bg-background-light dark:bg-background-dark rounded-lg">
+                                    <div className="flex items-center gap-2 p-2 bg-background-light dark:bg-background-dark rounded-lg animate-fade-in">
                                         <span className="material-symbols-outlined text-sm">attachment</span>
-                                        <span className="text-sm flex-1 truncate font-medium">{selectedFile.name}</span>
+                                        <span className="text-xs sm:text-sm flex-1 truncate font-medium">{selectedFile.name}</span>
                                         <button
                                             onClick={() => setSelectedFile(null)}
                                             className="text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
@@ -558,13 +804,29 @@ function InboxPage() {
                                     </div>
                                 )}
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-end gap-1.5 sm:gap-2">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
                                         className="hidden"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                     />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setEmojiOpen(!emojiOpen)}
+                                        className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0"
+                                    >
+                                        😊
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setGifOpen(!gifOpen)}
+                                        className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0 text-xs font-bold"
+                                    >
+                                        GIF
+                                    </button>
 
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
@@ -574,24 +836,66 @@ function InboxPage() {
                                         <span className="material-symbols-outlined">attach_file</span>
                                     </button>
 
-                                    <input
-                                        className="flex-1 rounded-full bg-background-light dark:bg-background-dark border-none px-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-0 disabled:opacity-50 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
+                                    <textarea
+                                        className="flex-1 resize-none rounded-xl bg-background-light dark:bg-background-dark border-none px-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-0 disabled:opacity-50 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
                                         placeholder="Type a message..."
-                                        type="text"
                                         value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && !isUploading && handleSendMessage()}
+                                        onChange={(e) => { setNewMessage(e.target.value); writeTyping(); }}
+                                        onBlur={() => { if (user && activeConvoId) { deleteDoc(doc(db, 'conversations', activeConvoId, 'typing', user.uid)).catch(()=>{}); } }}
+                                        rows={1}
                                         disabled={isUploading}
                                     />
 
-                                    <button
-                                        onClick={handleSendMessage}
-                                        disabled={isUploading || (!newMessage.trim() && !selectedFile)}
-                                        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
-                                    >
-                                        <span className="material-symbols-outlined">{isUploading ? 'schedule' : 'send'}</span>
-                                    </button>
+                                    { (newMessage.trim() || selectedFile) ? (
+                                        <button
+                                            onClick={handleSendMessage}
+                                            disabled={isUploading || (!newMessage.trim() && !selectedFile)}
+                                            className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
+                                        >
+                                            <span className="material-symbols-outlined text-base sm:text-xl">{isUploading ? 'schedule' : 'send'}</span>
+                                        </button>
+                                    ) : (
+                                        <button className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0">
+                                            <span className="material-symbols-outlined text-base sm:text-xl">keyboard_voice</span>
+                                        </button>
+                                    )}
                                 </div>
+
+                                {/* Emoji Picker */}
+                                {emojiOpen && (
+                                    <div className="absolute bottom-20 left-6 bg-panel-light dark:bg-panel-dark p-2 rounded-lg shadow-lg">
+                                        {['😀','😂','😍','😅','😭','👍','🔥','🎉','🙌','🤝'].map(em => (
+                                            <button key={em} onClick={() => { setNewMessage(prev => prev + em); setEmojiOpen(false); }} className="p-2 text-lg">{em}</button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* GIF Picker (GIPHY search) */}
+                                {gifOpen && (
+                                    <div className="absolute bottom-20 left-2 right-2 sm:left-20 sm:w-96 bg-panel-light dark:bg-panel-dark p-3 rounded-lg shadow-lg max-h-80 overflow-auto z-50 animate-fade-in">
+                                        <div className="flex gap-2 mb-2">
+                                            <input
+                                                value={gifQuery}
+                                                onChange={(e) => setGifQuery(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runGifSearch(); } }}
+                                                placeholder="Search GIFs"
+                                                className="flex-1 rounded px-3 py-2 text-sm bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark"
+                                            />
+                                            <button onClick={runGifSearch} className="px-3 py-2 rounded bg-primary text-white text-sm hover:bg-primary/90 transition-all">Search</button>
+                                        </div>
+                                        {gifLoading ? (
+                                            <div className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center py-4">Searching...</div>
+                                        ) : (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {gifResults.length > 0 ? gifResults.map(g => (
+                                                    <img key={g.id} src={g.preview || g.url} className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity animate-fade-in" onClick={() => handleSendGif(g.url)} />
+                                                )) : (
+                                                    <div className="col-span-3 text-sm text-text-secondary-light dark:text-text-secondary-dark text-center">No GIFs found. Try another search.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (
