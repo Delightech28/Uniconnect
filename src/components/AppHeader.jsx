@@ -134,7 +134,23 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
           setUnreadCount(count);
         });
 
-        return () => unsubNotifications();
+        // Subscribe to per-user conversation mirrors to compute unread messages
+        let unsubConvoMirrors = null;
+        try {
+          const convoCol = collection(db, 'users', user.uid, 'conversations');
+          unsubConvoMirrors = onSnapshot(convoCol, (snap) => {
+            const total = snap.docs.reduce((acc, d) => acc + ((d.data().unreadCount) || 0), 0);
+            // expose for legacy use and set local state so header shows message badge
+            window.inboxUnreadCount = total;
+          }, (err) => console.warn('Per-user convo mirrors listen error', err));
+        } catch (err) {
+          console.warn('Failed to subscribe to per-user conversations for header unread count', err);
+        }
+
+        return () => {
+          try { unsubNotifications(); } catch (e) {}
+          try { unsubConvoMirrors && unsubConvoMirrors(); } catch (e) {}
+        };
       }
     });
     return () => unsubscribe();

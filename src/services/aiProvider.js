@@ -3,7 +3,7 @@
 export function getAIProvider() {
   // Vite exposes env vars on import.meta.env. Support both Vite and CRA-style envs.
   try {
-    const vite = typeof import !== 'undefined' && import.meta && import.meta.env && import.meta.env.VITE_AI_PROVIDER;
+    const vite = import.meta && import.meta.env && import.meta.env.VITE_AI_PROVIDER;
     return vite || process?.env?.REACT_APP_AI_PROVIDER || 'claude-haiku-4.5';
   } catch (e) {
     return process?.env?.REACT_APP_AI_PROVIDER || 'claude-haiku-4.5';

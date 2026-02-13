@@ -158,10 +158,10 @@ md:px-20 lg:px-40">
 toggleDarkMode={toggleTheme} />
 <main className="flex-grow flex items-center justify-center
 py-10">
-<div className="flex flex-col items-center gap-8 w-full max-w-lg
+<div className={`flex flex-col items-center gap-8 w-full max-w-lg
 bg-content-light dark:bg-content-dark rounded-xl border
 border-border-light dark:border-border-dark p-6 sm:p-8 md:p-12
-text-center">
+text-center ${darkMode ? 'text-white' : 'text-text-primary-light'}`}>
 <div className="flex flex-col items-center gap-5">
 <div className="flex h-20 w-20 items-center justify-center
 rounded-full bg-primary/20 text-primary">

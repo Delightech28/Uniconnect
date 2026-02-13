@@ -17,8 +17,15 @@ import {
   deleteDoc,
   getDocs,
   limit,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+/**
+ * Track active conversation views in memory
+ * Maps conversationId => Set of userIds currently viewing it
+ */
+const activeConversationViews = new Map();
 
 /**
  * Notification Types
@@ -168,6 +175,53 @@ const NOTIFICATION_CONFIG = {
 };
 
 /**
+ * ========== CONVERSATION ACTIVITY TRACKING ==========
+ * These functions track which users are actively viewing which conversations
+ * to avoid sending notifications when the recipient is already viewing the chat
+ */
+
+/**
+ * Mark a user as actively viewing a conversation
+ * Call this when user opens/focuses a conversation
+ * @param {string} conversationId - Conversation ID
+ * @param {string} userId - User ID
+ */
+export const trackConversationView = (conversationId, userId) => {
+  if (!activeConversationViews.has(conversationId)) {
+    activeConversationViews.set(conversationId, new Set());
+  }
+  activeConversationViews.get(conversationId).add(userId);
+  console.log(`User ${userId} now viewing conversation ${conversationId}`);
+};
+
+/**
+ * Unmark a user from viewing a conversation
+ * Call this when user closes/unfocuses a conversation
+ * @param {string} conversationId - Conversation ID
+ * @param {string} userId - User ID
+ */
+export const untrackConversationView = (conversationId, userId) => {
+  if (activeConversationViews.has(conversationId)) {
+    activeConversationViews.get(conversationId).delete(userId);
+    if (activeConversationViews.get(conversationId).size === 0) {
+      activeConversationViews.delete(conversationId);
+    }
+  }
+  console.log(`User ${userId} stopped viewing conversation ${conversationId}`);
+};
+
+/**
+ * Check if a user is currently actively viewing a conversation
+ * @param {string} conversationId - Conversation ID
+ * @param {string} userId - User ID
+ * @returns {boolean} - True if user is actively viewing
+ */
+export const isUserViewingConversation = (conversationId, userId) => {
+  return activeConversationViews.has(conversationId) && 
+         activeConversationViews.get(conversationId).has(userId);
+};
+
+/**
  * Create a notification in Firestore
  * @param {string} userId - Recipient user ID
  * @param {string} type - Notification type
@@ -305,6 +359,34 @@ export const notifyOfferReceived = async (sellerId, offerData) => {
  */
 export const notifyNewMessage = async (recipientId, messageData) => {
   try {
+    // First check an in-memory tracker (fast) and then check Firestore presence doc for the recipient
+    // If recipient is actively viewing this conversation, skip notification
+    const convoId = messageData.conversationId;
+    if (isUserViewingConversation(convoId, recipientId)) {
+      console.log(`Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`);
+      return;
+    }
+
+    // Check Firestore presence doc at conversations/{convoId}/views/{recipientId}
+    try {
+      const presenceRef = doc(db, 'conversations', convoId, 'views', recipientId);
+      const presenceSnap = await getDoc(presenceRef);
+      if (presenceSnap.exists()) {
+        const lastActive = presenceSnap.data()?.lastActive;
+        // Accept either Firestore Timestamp or millis
+        const lastMillis = lastActive && lastActive.toMillis ? lastActive.toMillis() : (lastActive || 0);
+        const now = Date.now();
+        // If user was active in last 10 seconds, skip notification
+        if (lastMillis && (now - lastMillis) < 10000) {
+          console.log(`Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`);
+          return;
+        }
+      }
+    } catch (presenceErr) {
+      console.warn('Failed to check conversation presence doc:', presenceErr);
+      // Fall through and send notification (safer than silently ignoring)
+    }
+
     await createNotification(
       recipientId,
       NOTIFICATION_TYPES.NEW_MESSAGE,
@@ -317,6 +399,7 @@ export const notifyNewMessage = async (recipientId, messageData) => {
         senderAvatar: messageData.senderAvatar,
       }
     );
+    console.log(`Notification sent to ${recipientId} for new message in conversation ${messageData.conversationId}`);
   } catch (error) {
     console.error('Error notifying new message:', error);
   }

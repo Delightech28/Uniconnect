@@ -289,6 +289,37 @@ const ProfilePage = () => {
     };
   }, [userId, currentUser?.uid]);
 
+  // Real-time listeners for current user's connections and pending requests (when viewing own profile)
+  useEffect(() => {
+    if (!currentUser) return;
+    const connsCol = collection(db, 'users', currentUser.uid, 'connections');
+    const reqCol = collection(db, 'users', currentUser.uid, 'connectionRequests');
+
+    const unsubConns = onSnapshot(connsCol, async (snap) => {
+      try {
+        const ids = snap.docs.map(d => d.id);
+        const list = await Promise.all(ids.map(async (id) => {
+          const s = await getDoc(doc(db, 'users', id));
+          return s.exists() ? { id, ...s.data() } : null;
+        }));
+        const filtered = list.filter(Boolean);
+        setConnections(filtered);
+        setStats(prev => ({ ...(prev || {}), connectionsCount: snap.size }));
+      } catch (err) {
+        console.warn('Failed to refresh connections realtime:', err);
+      }
+    }, (err) => console.warn('Connections realtime error', err));
+
+    const unsubReq = onSnapshot(reqCol, (snap) => {
+      setHasReceivedRequest(snap.size > 0);
+    }, (err) => console.warn('ConnectionRequests realtime error', err));
+
+    return () => {
+      unsubConns();
+      unsubReq();
+    };
+  }, [currentUser]);
+
   const handleSendConnectionRequest = async () => {
     if (!currentUser) {
       toast.error('Please log in to connect');
@@ -327,6 +358,8 @@ const ProfilePage = () => {
       setHasReceivedRequest(false);
       const updatedConnections = await getConnections(currentUser.uid);
       setConnections(updatedConnections);
+      // update stats.connectionsCount so UI reflects new count immediately
+      setStats(prev => ({ ...(prev || {}), connectionsCount: updatedConnections.length }));
       toast.success('Connection accepted!');
     } catch (err) {
       toast.error('Error accepting connection');
@@ -431,7 +464,7 @@ const ProfilePage = () => {
                     backgroundPosition: 'center',
                   }}
                 />
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary dark:text-white\">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary dark:text-white">
                   {name}
                   {userDoc?.gender && (
                     <GenderBadge gender={userDoc.gender} size="lg" className="ml-2" />

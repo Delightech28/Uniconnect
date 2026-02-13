@@ -21,8 +21,10 @@ Notes:
 - For production use, consider running from a Cloud Function with proper error handling
 */
 
-const admin = require('firebase-admin');
-const argv = require('minimist')(process.argv.slice(2));
+import admin from 'firebase-admin';
+import minimist from 'minimist';
+
+const argv = minimist(process.argv.slice(2));
 
 const dryRun = !!argv['dry-run'] || !!argv['dryrun'];
 

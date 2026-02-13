@@ -20,8 +20,10 @@ Notes:
 - For large collections, consider running with pagination or from a Cloud Function.
 */
 
-const admin = require('firebase-admin');
-const argv = require('minimist')(process.argv.slice(2));
+import admin from 'firebase-admin';
+import minimist from 'minimist';
+
+const argv = minimist(process.argv.slice(2));
 
 const dryRun = !!argv['dry-run'] || !!argv['dryrun'];
 

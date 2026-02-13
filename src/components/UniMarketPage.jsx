@@ -5,8 +5,7 @@ import { auth, db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
-import ComingSoonOverlay from './ComingSoonOverlay';
-import { useComingSoon } from '../hooks/useComingSoon';
+// ComingSoonOverlay removed
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
 { name: 'Dashboard', path: '/dashboard', active: false },
@@ -84,37 +83,7 @@ const UniMarketPage = () => {
 	const [selectedCategory, setSelectedCategory] = useState('All Categories');
 	const [products, setProducts] = useState(productsStateInitial);
 	
-	// Coming soon overlay logic - initialize deadline and check immediately
-	const [showOverlay, setShowOverlay] = useState(true);
-
-	useEffect(() => {
-		// Initialize/check deadline in localStorage
-		const storageKey = 'comingSoonDeadline';
-		let deadline = localStorage.getItem(storageKey);
-
-		    if (!deadline) {
-			    // First time - set deadline to 6 days from now
-			    deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
-			localStorage.setItem(storageKey, deadline);
-		}
-
-		const now = Date.now();
-		const deadlineTime = parseInt(deadline, 10);
-
-		if (now >= deadlineTime) {
-			// Countdown expired - remove overlay
-			setShowOverlay(false);
-			localStorage.removeItem(storageKey);
-		} else {
-			// Still within countdown period - show overlay
-			setShowOverlay(true);
-		}
-	}, []);
-
-	// If feature is still in coming soon period, show overlay
-	if (showOverlay) {
-		return <ComingSoonOverlay featureName="UniMarket" onClose={() => setShowOverlay(false)} />;
-	}
+	// ComingSoonOverlay removed: feature is available
 
 	// ...existing code...
 const filteredProducts = useMemo(() => {

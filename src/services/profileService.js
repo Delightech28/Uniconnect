@@ -14,6 +14,7 @@ import {
   getDocs,
   serverTimestamp,
   runTransaction,
+  increment,
 } from 'firebase/firestore';
 import {
   notifyNewFollower,
@@ -282,6 +283,10 @@ export const acceptConnectionRequest = async (currentUserId, requesterId) => {
       // create connections
       transaction.set(connARef, { userId: requesterId, createdAt: serverTimestamp() });
       transaction.set(connBRef, { userId: currentUserId, createdAt: serverTimestamp() });
+      
+      // Increment connections count on both user documents atomically using increment operator
+      transaction.update(currentUserRef, { connectionsCount: increment(1) });
+      transaction.update(requesterRef, { connectionsCount: increment(1) });
     });
 
     // Send notification to requester

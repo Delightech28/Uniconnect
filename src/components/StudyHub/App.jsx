@@ -11,48 +11,12 @@ import QuizSection from './components/QuizSection';
 import TutorSection from './components/TutorSection';
 import DocumentSummary from './components/Summary/DocumentSummary';
 import { analyzeDocument, generateTopics } from './services/geminiService';
-import ComingSoonOverlay from '../ComingSoonOverlay';
+// ComingSoonOverlay removed
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
-  // Coming soon overlay logic - initialize deadline and check immediately
-  const [showOverlay, setShowOverlay] = useState(false);
-
-  useEffect(() => {
-    // Skip coming-soon overlay entirely during local development so the
-    // StudyHub content can be worked on and viewed without interruption.
-    if (process.env.NODE_ENV === 'development') {
-      setShowOverlay(false);
-      return;
-    }
-    // Initialize/check deadline in localStorage
-    const storageKey = 'comingSoonDeadline';
-    let deadline = localStorage.getItem(storageKey);
-
-      if (!deadline) {
-      // First time - set deadline to 6 days from now
-      deadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime();
-      localStorage.setItem(storageKey, deadline);
-    }
-
-    const now = Date.now();
-    const deadlineTime = parseInt(deadline, 10);
-
-    if (now >= deadlineTime) {
-      // Countdown expired - remove overlay
-      setShowOverlay(false);
-      localStorage.removeItem(storageKey);
-    } else {
-      // Still within countdown period - show overlay
-      setShowOverlay(true);
-    }
-  }, []);
-
-  // If feature is still in coming soon period, show overlay
-  if (showOverlay) {
-    return <ComingSoonOverlay featureName="StudyHub" onClose={() => setShowOverlay(false)} />;
-  }
+  // ComingSoonOverlay removed: feature available
 
   const [currentView, setCurrentView] = useState('upload');
   const [loading, setLoading] = useState(false);

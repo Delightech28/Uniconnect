@@ -3,13 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import useVerified from '../hooks/useVerified';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp, deleteDoc, setDoc, increment } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp, deleteDoc, setDoc, increment, getDocs } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
 import GenderBadge from './GenderBadge';
 import { getDefaultAvatar } from '../services/avatarService';
-import { notifyNewMessage } from '../services/notificationService';
+import { notifyNewMessage, trackConversationView, untrackConversationView } from '../services/notificationService';
 import { getConnections } from '../services/profileService';
 import { searchGifs } from '../services/giphyService';
 
@@ -149,7 +149,7 @@ const MessageBubble = ({ message, senderAvatar, isMe, onAvatarClick, senderName 
             </div>
         </div>
     );
-}; 
+};
  
 // --- Main Page Component ---
 function InboxPage() {
@@ -158,6 +158,7 @@ function InboxPage() {
     const [user, setUser] = useState(null);
     const [userAvatar, setUserAvatar] = useState(null);
     const [conversations, setConversations] = useState([]);
+    const [perUserConversations, setPerUserConversations] = useState([]);
     const [connectionsList, setConnectionsList] = useState([]);
     const [activeConvoId, setActiveConvoId] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -247,6 +248,33 @@ function InboxPage() {
         return () => { mounted = false; };
     }, [user]);
 
+    // Listen to per-user mirrored conversations (users/{uid}/conversations)
+    useEffect(() => {
+        if (!user) return;
+        const col = collection(db, 'users', user.uid, 'conversations');
+        const unsub = onSnapshot(col, (snap) => {
+            console.log('Per-user conversations snapshot received, count:', snap.size);
+            const items = snap.docs.map(d => {
+                const data = d.data();
+                console.log('Per-user convo doc:', d.id, data);
+                return {
+                    id: d.id,
+                    ...data,
+                    // ensure consistent shape with top-level conversations
+                    otherParticipantId: (data.participants || []).find(p => p !== user.uid) || null,
+                    name: data.name || '',
+                    avatarUrl: data.avatarUrl || null,
+                    gender: data.gender || null,
+                    timestamp: data.lastTimestamp ? (data.lastTimestamp.toDate ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') : '',
+                    unreadCount: data.unreadCount || 0,
+                };
+            });
+            setPerUserConversations(items);
+        }, (err) => console.error('Per-user conversations subscription error', err));
+
+        return () => unsub();
+    }, [user]);
+
     // Fetch accepted connections and merge into the left list as "quick start" items
     useEffect(() => {
         let mounted = true;
@@ -276,46 +304,93 @@ function InboxPage() {
         return () => { mounted = false; };
     }, [user]);
 
-    // Handle recipientId query parameter (when clicking Message from profile)
+    // Handle recipientId or convo query parameter (when clicking Message from profile or product)
     const location = useLocation();
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const recipientId = params.get('recipientId');
-        
-        if (recipientId && user && conversations.length >= 0) {
-            // Look for existing conversation with this recipient
-            const existingConvo = conversations.find(c => c.otherParticipantId === recipientId);
-            
-            if (existingConvo) {
-                // Select existing conversation and mark as read
-                setActiveConvoId(existingConvo.id);
-                setIsChatVisible(true);
+        const convoParam = params.get('convo');
+
+        if (!user) return;
+
+        // If convo id supplied, open it directly
+        if (convoParam) {
+            (async () => {
                 try {
-                    updateDoc(doc(db, 'conversations', existingConvo.id), {
-                        unreadCount: 0,
-                    });
-                } catch (err) {
-                    console.warn('Failed to mark conversation as read:', err);
-                }
-            } else {
-                // Create new conversation with this recipient
-                (async () => {
-                    try {
-                        const convoRef = await addDoc(collection(db, 'conversations'), {
-                            participants: [user.uid, recipientId],
-                            lastMessage: '',
-                            lastTimestamp: serverTimestamp(),
-                            unreadCount: 0,
-                        });
-                        setActiveConvoId(convoRef.id);
+                    const convoDoc = await getDoc(doc(db, 'conversations', convoParam));
+                    if (convoDoc.exists()) {
+                        setActiveConvoId(convoParam);
                         setIsChatVisible(true);
-                    } catch (err) {
-                        console.error('Failed to create conversation from profile:', err);
+                        try { await updateDoc(doc(db, 'conversations', convoParam), { unreadCount: 0 }); } catch (e) { }
+                        return;
                     }
-                })();
-            }
+                } catch (err) {
+                    console.error('Failed to open conversation from convo param:', err);
+                }
+            })();
+            return;
         }
-    }, [location.search, user, conversations]);
+
+        if (!recipientId) return;
+
+        (async () => {
+            try {
+                // Query conversations where current user is a participant and look for a convo that includes recipientId
+                const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid));
+                const snap = await getDocs(q);
+                let existing = null;
+                snap.forEach(d => {
+                    const data = d.data();
+                    const parts = data.participants || [];
+                    if (parts.includes(recipientId)) {
+                        existing = { id: d.id, ...data };
+                    }
+                });
+
+                if (existing) {
+                    setActiveConvoId(existing.id);
+                    setIsChatVisible(true);
+                    try {
+                        await updateDoc(doc(db, 'conversations', existing.id), { unreadCount: 0 });
+                    } catch (err) {
+                        console.warn('Failed to mark conversation as read:', err);
+                    }
+                    return;
+                }
+
+                // No existing conversation found — create one on-demand
+                // Write to both top-level conversations and per-user mirrors
+                const convoRef = await addDoc(collection(db, 'conversations'), {
+                    participants: [user.uid, recipientId],
+                    lastMessage: '',
+                    lastTimestamp: serverTimestamp(),
+                    unreadCount: 0,
+                });
+
+                const convoId = convoRef.id;
+                const convoPayload = {
+                    convoId,
+                    participants: [user.uid, recipientId],
+                    lastMessage: '',
+                    lastTimestamp: serverTimestamp(),
+                    unreadCount: 0,
+                };
+
+                // Mirror to both participants' users/{uid}/conversations
+                try {
+                    await setDoc(doc(db, 'users', user.uid, 'conversations', convoId), convoPayload, { merge: true });
+                    await setDoc(doc(db, 'users', recipientId, 'conversations', convoId), convoPayload, { merge: true });
+                } catch (err) {
+                    console.warn('Failed to create per-user conversation mirrors:', err);
+                }
+
+                setActiveConvoId(convoId);
+                setIsChatVisible(true);
+            } catch (err) {
+                console.error('Failed to open/create conversation from profile recipientId:', err);
+            }
+        })();
+    }, [location.search, user]);
 
     // Subscribe to messages for active conversation
     useEffect(() => {
@@ -339,13 +414,55 @@ function InboxPage() {
         return () => unsub();
     }, [activeConvoId, user]);
 
+    // Track when user is viewing this conversation (for notification logic)
+    useEffect(() => {
+        if (!activeConvoId || !user) return;
+        
+        // Mark user as viewing this conversation
+        trackConversationView(activeConvoId, user.uid);
+        
+        // Cleanup: unmark when conversation changes or component unmounts
+        return () => {
+            untrackConversationView(activeConvoId, user.uid);
+        };
+    }, [activeConvoId, user]);
+
     const mergedConversations = useMemo(() => {
-        // Merge active conversations with connections (show connections not already in conversations)
-        const otherConvos = conversations || [];
-        const existingOtherIds = new Set(otherConvos.map(c => c.otherParticipantId));
-        const extra = (connectionsList || []).filter(c => !existingOtherIds.has(c.userId));
-        return [...otherConvos, ...extra];
-    }, [conversations, connectionsList]);
+        // Merge top-level conversations and per-user mirrored conversations only (no connection quick-start items)
+        const top = conversations || [];
+        const mirrors = perUserConversations || [];
+
+        // Index top-level by id for quick lookup
+        const byId = new Map();
+        top.forEach(c => {
+            console.log('Adding top-level conversation:', c.id, { name: c.name, lastMessage: c.lastMessage });
+            byId.set(c.id, { ...c, source: 'top' });
+        });
+
+        // Add mirrors if not present; if present, merge missing fields
+        mirrors.forEach(m => {
+            console.log('Adding mirrored conversation:', m.id, { name: m.name, lastMessage: m.lastMessage });
+            const existing = byId.get(m.id);
+            if (existing) {
+                byId.set(m.id, { ...m, ...existing });
+            } else {
+                byId.set(m.id, { ...m, source: 'mirror' });
+            }
+        });
+
+        // Convert map to array
+        let combined = Array.from(byId.values());
+        console.log('Merged conversations count:', combined.length, combined.map(c => ({ id: c.id, name: c.name })));
+
+        // Sort by timestamp if available (fallback to unchanged order)
+        combined.sort((a, b) => {
+            const ta = a.lastTimestamp && a.lastTimestamp.toDate ? a.lastTimestamp.toDate().getTime() : (a.lastTimestamp ? a.lastTimestamp : 0);
+            const tb = b.lastTimestamp && b.lastTimestamp.toDate ? b.lastTimestamp.toDate().getTime() : (b.lastTimestamp ? b.lastTimestamp : 0);
+            return (tb || 0) - (ta || 0);
+        });
+
+        return combined;
+    }, [conversations, perUserConversations]);
 
     const filteredConversations = useMemo(() => mergedConversations.filter(c => {
         const q = searchTerm.trim().toLowerCase();
@@ -357,7 +474,7 @@ function InboxPage() {
             return matchesSearch && c.isArchived;
         }
         return matchesSearch;
-    }), [conversations, searchTerm, filterType]);
+    }), [mergedConversations, searchTerm, filterType]);
 
     const handleSelectConvo = (id) => {
         // If this is a connection-only entry (no conversation yet), create a conversation document first
@@ -365,14 +482,32 @@ function InboxPage() {
             const otherId = id.split(':')[1];
             (async () => {
                 try {
-                    // create conversation doc
+                    // create conversation doc in both places
                     const convoRef = await addDoc(collection(db, 'conversations'), {
                         participants: [user.uid, otherId],
                         lastMessage: '',
                         lastTimestamp: serverTimestamp(),
                         unreadCount: 0,
                     });
-                    setActiveConvoId(convoRef.id);
+
+                    const convoId = convoRef.id;
+                    const convoPayload = {
+                        convoId,
+                        participants: [user.uid, otherId],
+                        lastMessage: '',
+                        lastTimestamp: serverTimestamp(),
+                        unreadCount: 0,
+                    };
+
+                    // Mirror to both participants' users/{uid}/conversations
+                    try {
+                        await setDoc(doc(db, 'users', user.uid, 'conversations', convoId), convoPayload, { merge: true });
+                        await setDoc(doc(db, 'users', otherId, 'conversations', convoId), convoPayload, { merge: true });
+                    } catch (err) {
+                        console.warn('Failed to create per-user conversation mirrors:', err);
+                    }
+
+                    setActiveConvoId(convoId);
                     setIsChatVisible(true);
                 } catch (err) {
                     console.error('Failed to create conversation for connection:', err);
@@ -616,10 +751,10 @@ function InboxPage() {
     // derive activeConversation object
     const activeConversation = useMemo(() => conversations.find(c => c.id === activeConvoId) || null, [conversations, activeConvoId]);
 
-    // Calculate total unread count across all conversations
+    // Calculate total unread count across all conversations (including mirrors and connections)
     const totalUnreadCount = useMemo(() => {
-        return conversations.reduce((sum, convo) => sum + (convo.unreadCount || 0), 0);
-    }, [conversations]);
+        return mergedConversations.reduce((sum, convo) => sum + (convo.unreadCount || 0), 0);
+    }, [mergedConversations]);
 
     // Export unread count to parent (App.jsx) via window or callback if needed
     useEffect(() => {
@@ -627,7 +762,7 @@ function InboxPage() {
     }, [totalUnreadCount]);
 
     return (
-        <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark text-white font-display">
+        <div className={`flex h-screen w-full flex-col bg-background-light dark:bg-background-dark ${darkMode ? 'text-white' : 'text-text-primary-light'} font-display`}>
             {/* Header */}
             <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
             
@@ -648,9 +783,9 @@ function InboxPage() {
 
                         {/* Search */}
                         <div className="relative mb-3 rounded-full border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark transition-all duration-300 focus-within:border-green-500 focus-within:border-2 focus-within:shadow-lg focus-within:shadow-green-500/20">
-                            <span className="material-symbols-outlined text-base absolute left-3 top-1/2 -translate-y-1/2 text-white transition-colors duration-300 pointer-events-none">search</span>
+                            <span className="material-symbols-outlined text-base absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-white transition-colors duration-300 pointer-events-none">search</span>
                             <input
-                                className="w-full rounded-full bg-transparent border-none px-10 py-2 text-sm focus:ring-0 focus:outline-0 transition-all text-white placeholder:text-white/60"
+                                className="w-full rounded-full bg-transparent border-none px-10 py-2 text-sm focus:ring-0 focus:outline-0 transition-all text-text-primary-light dark:text-white placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
                                 placeholder="Search conversations"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -688,7 +823,7 @@ function InboxPage() {
                                             />
                                         ))
                                     ) : (
-                                        <div className="flex h-full items-center justify-center text-white">
+                                        <div className="flex h-full items-center justify-center text-text-primary-light dark:text-white">
                                             <p className="text-sm">No conversations yet</p>
                                         </div>
                                     )}
@@ -804,7 +939,7 @@ function InboxPage() {
                                     </div>
                                 )}
 
-                                <div className="flex items-end gap-1.5 sm:gap-2">
+                                <div className="flex items-end gap-1 sm:gap-1.5 md:gap-2">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -815,7 +950,7 @@ function InboxPage() {
                                     <button
                                         type="button"
                                         onClick={() => setEmojiOpen(!emojiOpen)}
-                                        className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0"
+                                        className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0 text-lg sm:text-xl"
                                     >
                                         😊
                                     </button>
@@ -823,21 +958,21 @@ function InboxPage() {
                                     <button
                                         type="button"
                                         onClick={() => setGifOpen(!gifOpen)}
-                                        className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0 text-xs font-bold"
+                                        className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0 text-xs sm:text-sm font-bold"
                                     >
                                         GIF
                                     </button>
 
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark disabled:opacity-50"
+                                        className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark disabled:opacity-50 shrink-0"
                                         disabled={isUploading}
                                     >
-                                        <span className="material-symbols-outlined">attach_file</span>
+                                        <span className="material-symbols-outlined text-base sm:text-lg md:text-xl">attach_file</span>
                                     </button>
 
                                     <textarea
-                                        className="flex-1 resize-none rounded-xl bg-background-light dark:bg-background-dark border-none px-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-0 disabled:opacity-50 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
+                                        className="flex-1 resize-none rounded-xl bg-white dark:bg-background-dark border border-border-light dark:border-border-dark px-4 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-0 disabled:opacity-50 transition-all text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
                                         placeholder="Type a message..."
                                         value={newMessage}
                                         onChange={(e) => { setNewMessage(e.target.value); writeTyping(); }}
@@ -850,13 +985,13 @@ function InboxPage() {
                                         <button
                                             onClick={handleSendMessage}
                                             disabled={isUploading || (!newMessage.trim() && !selectedFile)}
-                                            className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
+                                            className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
                                         >
-                                            <span className="material-symbols-outlined text-base sm:text-xl">{isUploading ? 'schedule' : 'send'}</span>
+                                            <span className="material-symbols-outlined text-base sm:text-lg md:text-xl">{isUploading ? 'schedule' : 'send'}</span>
                                         </button>
                                     ) : (
-                                        <button className="flex h-9 sm:h-10 w-9 sm:w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0">
-                                            <span className="material-symbols-outlined text-base sm:text-xl">keyboard_voice</span>
+                                        <button className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0">
+                                            <span className="material-symbols-outlined text-base sm:text-lg md:text-xl">keyboard_voice</span>
                                         </button>
                                     )}
                                 </div>
@@ -901,9 +1036,9 @@ function InboxPage() {
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
                             <div className="text-center">
-                                <span className="material-symbols-outlined text-white text-6xl opacity-20 block mb-4">mail</span>
-                                <h3 className="text-lg sm:text-xl text-white font-bold mb-2\">Select a conversation</h3>
-                                <p className="text-white text-xs sm:text-sm\">
+                                <span className="material-symbols-outlined text-text-secondary-light dark:text-white text-6xl opacity-20 block mb-4">mail</span>
+                                <h3 className="text-lg sm:text-xl text-text-primary-light dark:text-white font-bold mb-2">Select a conversation</h3>
+                                <p className="text-text-primary-light dark:text-white text-xs sm:text-sm">
                                     Choose a conversation from the list to start messaging
                                 </p>
                             </div>

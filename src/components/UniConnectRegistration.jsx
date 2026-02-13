@@ -9,6 +9,8 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
+import { createNotification } from '../services/notificationService';
+import CompleteProfileForm from './CompleteProfileForm';
 // --- Data for select options (grouped by category) ---
 const universityData = {
 	federal: [
@@ -348,6 +350,8 @@ gender: '', // NEW: gender field (male or female)
 const [showPassword, setShowPassword] = useState(false);
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState(null);
+const [showCompleteProfile, setShowCompleteProfile] = useState(false);
+const [googleUser, setGoogleUser] = useState(null);
 // --- Event Handlers ---
 const handleInputChange = (e) => {
   const { id, value, type, files } = e.target;
@@ -526,7 +530,61 @@ const generateUsername = async (displayName, email, userId) => {
 };
 
 const handleGoogleSignUp = async () => {
-  toast('Coming soon — please use email to sign up', { icon: '⏳' });
+	setError(null);
+	setLoading(true);
+
+	try {
+		const provider = new GoogleAuthProvider();
+		provider.setCustomParameters({ prompt: 'select_account' });
+
+		const result = await signInWithPopup(auth, provider);
+		const user = result.user;
+
+		console.log('Google Sign-Up successful:', user.uid);
+		setGoogleUser(user);
+
+		// Check if user already exists in Firestore
+		const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+		if (userDoc.exists()) {
+			// User exists, check if profile is complete
+			const userData = userDoc.data();
+			if (userData.gender && userData.institution) {
+				// Profile complete, go to dashboard
+				toast.success('Welcome back!');
+				navigate('/dashboard');
+			} else {
+				// Profile incomplete, show form
+				setShowCompleteProfile(true);
+			}
+		} else {
+			// New user, show profile completion form
+			setShowCompleteProfile(true);
+		}
+	} catch (err) {
+		console.error('Google Sign-Up error:', err);
+		const code = err?.code;
+		const message = err?.message || 'Failed to sign up with Google';
+		// Surface helpful messages to the user for debugging
+		if (code === 'auth/popup-closed-by-user') {
+			setError('Sign-up cancelled.');
+			toast.error('Sign-up cancelled.');
+		} else if (code === 'auth/popup-blocked') {
+			setError('Pop-up was blocked. Please allow pop-ups and try again.');
+			toast.error('Pop-up was blocked. Please allow pop-ups and try again.');
+		} else if (code === 'auth/unauthorized-domain') {
+			setError('Unauthorized domain. Please add this app origin to Firebase Auth authorized domains.');
+			toast.error(`Unauthorized domain: ${message}`);
+		} else if (code === 'auth/operation-not-allowed') {
+			setError('Google sign-in is not enabled in Firebase Auth settings.');
+			toast.error(`Sign-in not allowed: ${message}`);
+		} else {
+			setError(message);
+			toast.error(`${code || 'Error'}: ${message}`);
+		}
+	} finally {
+		setLoading(false);
+	}
 };
 
 const handleSubmit = async (e) => {
@@ -597,6 +655,22 @@ const handleSubmit = async (e) => {
 		await setDoc(userDocRef, userData);
 		console.log('User data saved successfully to Firestore');
 
+		// Create welcome notification for new user
+		try {
+			await createNotification(
+				user.uid,
+				'system_announcement',
+				'Welcome to UniConnect! 🎉',
+				'You\'re now part of a vibrant community of students and peers. Explore the marketplace, connect with classmates, and join StudyHub to ace your exams!',
+				{
+					type: 'welcome',
+				}
+			);
+			console.log('Welcome notification created for new user');
+		} catch (notifErr) {
+			console.warn('Failed to create welcome notification:', notifErr);
+		}
+
 		// Redirect to verification-pending page for students
 		if (formData.registerAs === 'student') {
 			navigate('/verification-pending');
@@ -621,9 +695,36 @@ const handleSubmit = async (e) => {
 		setLoading(false);
 	}
 };
+
+const handleProfileComplete = async (profileData) => {
+	// After profile is completed, create welcome notification
+	if (googleUser) {
+		try {
+			await createNotification(
+				googleUser.uid,
+				'system_announcement',
+				'Welcome to UniConnect! 🎉',
+				'You\'re now part of a vibrant community of students and peers. Explore the marketplace, connect with classmates, and join StudyHub to ace your exams!',
+				{ type: 'welcome' }
+			);
+		} catch (notifErr) {
+			console.warn('Failed to create welcome notification:', notifErr);
+		}
+		// Navigate based on registerAs value
+		const destination = profileData?.registerAs === 'student' ? '/verification-pending' : '/dashboard';
+		navigate(destination);
+	}
+};
+
 // --- Progress Bar Logic ---
 const progressPercentage = step === 1 ? 50 : 100;
 const stepText = step === 1 ? 'Step 1 of 2' : 'Step 2 of 2';
+
+// Show profile completion form if needed
+if (showCompleteProfile && googleUser) {
+	return <CompleteProfileForm userId={googleUser.uid} onComplete={handleProfileComplete} />;
+}
+
 return (
 	<div>
 	<div className="w-full h-screen flex flex-col">
@@ -681,7 +782,7 @@ duration-300" style={{ width: `${progressPercentage}%` }}></div>
 dark:text-white">Create your UniSpace account</h1>
 </div>
 <form onSubmit={handleNext} className="space-y-6">
-<button type="button" className="flex w-full cursor-pointer
+<button type="button" onClick={handleGoogleSignUp} className="flex w-full cursor-pointer
 items-center justify-center gap-3 rounded-lg border border-slate-300
 bg-white px-5 py-3 text-base font-medium text-slate-700
 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800

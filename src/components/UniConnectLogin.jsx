@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
+import CompleteProfileForm from './CompleteProfileForm';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
 email: '',
@@ -19,6 +20,8 @@ const { darkMode, toggleTheme } = useTheme();
 const [loading, setLoading] = useState(false);
 const [errorMessage, setErrorMessage] = useState('');
 const navigate = useNavigate();
+const [showCompleteProfile, setShowCompleteProfile] = useState(false);
+const [googleUser, setGoogleUser] = useState(null);
 // logo target: landing for anonymous, dashboard for logged-in
 const logoTarget = auth && auth.currentUser ? '/dashboard' : '/';
     // If user is already authenticated, redirect to appropriate dashboard
@@ -47,7 +50,107 @@ setShowPassword(!showPassword);
 };
 
 const handleGoogleSignIn = async () => {
-  toast('Coming soon — please use email to sign in', { icon: '⏳' });
+  try {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    // Always show account picker, even if user is already logged in
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    
+    // Check if user document exists (i.e., they already registered)
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    
+    if (!userDoc.exists()) {
+      // User registered via Gmail but didn't complete profile - redirect to complete profile
+      setGoogleUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || null
+      });
+      setShowCompleteProfile(true);
+      setLoading(false);
+      return;
+    }
+    
+    // User already has full profile from previous registration, just login
+    const registerAs = userDoc.data().registerAs;
+    toast.success('Login successful!');
+    navigate(registerAs === 'Guest' ? '/dashboard' : '/dashboard');
+  } catch (error) {
+    setLoading(false);
+    const code = error?.code;
+    const message = error?.message || 'Google sign-in failed.';
+    if (code === 'auth/popup-closed-by-user') {
+      console.log('Google sign-in popup closed by user');
+      toast.error('Google sign-in cancelled.');
+      setErrorMessage('Google sign-in cancelled by user.');
+    } else if (code === 'auth/unauthorized-domain') {
+      console.error('Google sign-in unauthorized domain:', error);
+      toast.error(`Unauthorized domain: ${message}`);
+      setErrorMessage('Unauthorized domain. Add this origin to Firebase Auth authorized domains.');
+    } else if (code === 'auth/operation-not-allowed') {
+      console.error('Google sign-in not enabled:', error);
+      toast.error(`Sign-in not allowed: ${message}`);
+      setErrorMessage('Google sign-in is not enabled in Firebase Auth settings.');
+    } else {
+      console.error('Google sign-in error:', error);
+      toast.error(`${code || 'Error'}: ${message}`);
+      setErrorMessage(`${code || 'Error'}: ${message}`);
+    }
+  }
+};
+
+const handleProfileComplete = async (profileData) => {
+  try {
+    setLoading(true);
+    if (!googleUser) {
+      throw new Error('No Google user data');
+    }
+
+    // Create user document with profile data
+    const userData = {
+      email: googleUser.email,
+      displayName: googleUser.displayName,
+      avatarUrl: googleUser.photoURL,
+      gender: profileData.gender,
+      institution: profileData.institution,
+      bio: profileData.bio || '',
+      interests: profileData.interests || [],
+      registerAs: profileData.registerAs || 'student',
+      verified: false,
+      referralCode: googleUser.uid ? String(googleUser.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10),
+      createdAt: new Date(),
+    };
+
+    await setDoc(doc(db, 'users', googleUser.uid), userData);
+
+    // Create welcome notification
+    try {
+      const { createNotification } = await import('../services/notificationService');
+      await createNotification(
+        googleUser.uid,
+        'system_announcement',
+        'Welcome to UniConnect! 🎉',
+        'You\'re now part of a vibrant community of students and peers. Explore the marketplace, connect with classmates, and join StudyHub to ace your exams!',
+        { type: 'welcome' }
+      );
+    } catch (notifErr) {
+      console.warn('Failed to create welcome notification:', notifErr);
+    }
+
+    setShowCompleteProfile(false);
+    toast.success('Profile completed! Welcome to UniConnect!');
+    navigate(profileData.registerAs === 'Guest' ? '/dashboard' : '/dashboard');
+  } catch (error) {
+    console.error('Error completing profile:', error);
+    toast.error('Failed to complete profile. Please try again.');
+    setLoading(false);
+  }
 };
 
 const handleSubmit = async (e) => {
@@ -85,6 +188,12 @@ const handleSubmit = async (e) => {
         console.error('Login error code:', error?.code || error?.message || error);
     }
 }
+
+// Show complete profile form if user just registered via Gmail
+if (showCompleteProfile && googleUser) {
+  return <CompleteProfileForm userId={googleUser.uid} onComplete={handleProfileComplete} />;
+}
+
 return (
     <div>
     <div className="w-full h-screen flex flex-col">
