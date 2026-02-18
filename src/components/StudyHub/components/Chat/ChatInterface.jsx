@@ -116,14 +116,13 @@ const ChatInterface = ({
     
     try {
       setError(null);
-      const response = await session.sendMessage({
-        text: input,
-      });
+      const response = await session.sendMessage(input);
       
+      const responseText = response.response?.text ? response.response.text() : '';
       const aiMessage = {
         id: Date.now() + 1,
         sender: 'ai',
-        text: response.response.text(),
+        text: responseText,
         timestamp: new Date(),
         citations: response.citations || [],
       };
@@ -134,6 +133,7 @@ const ChatInterface = ({
       const updatedMessages = [...messages, userMessage, aiMessage];
       localStorage.setItem(`chat-${currentSessionId}`, JSON.stringify(updatedMessages));
     } catch (err) {
+      console.error('Error sending message:', err);
       setError(err.message || 'Failed to send message');
     } finally {
       setIsLoading(false);

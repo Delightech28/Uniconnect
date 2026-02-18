@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
 import useVerified from '../hooks/useVerified';
 import toast from 'react-hot-toast';
 import { Bell, Mail, User, Settings, LogOut, Moon, Sun } from 'lucide-react';

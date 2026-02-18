@@ -1,18 +1,97 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Model constants
+const MODEL_FLASH = 'gemini-2.0-flash';
+const MODEL_PRO = 'gemini-2.0-pro';
+
 // Initialize Gemini API
 const getAI = () => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
+  // Try multiple sources for the API key
+  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
+                 process.env?.VITE_GEMINI_API_KEY ||
+                 window.__VITE_GEMINI_API_KEY;
+  
   if (!apiKey) {
-    throw new Error('Gemini API key not configured');
+    console.error('VITE_GEMINI_API_KEY not found in:');
+    console.error('  import.meta.env:', import.meta.env);
+    console.error('  process.env:', process.env);
+    throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env and restart dev server.');
   }
-  return new GoogleGenerativeAI({ apiKey });
+  
+  // Trim whitespace and validate
+  const trimmedKey = apiKey.trim();
+  if (trimmedKey.length < 20) {
+    console.error('API key appears invalid (too short):', trimmedKey);
+    throw new Error(`Invalid API key format. Length: ${trimmedKey.length}`);
+  }
+  
+  console.log('Using Gemini API key:', trimmedKey.substring(0, 10) + '...');
+  return new GoogleGenerativeAI({ apiKey: trimmedKey });
+};
+
+// Rate limit callback
+let onRateLimitReached = () => {};
+export const setRateLimitCallback = (cb) => {
+  onRateLimitReached = cb;
+};
+
+// Retry logic with rate limiting
+async function executeWithRetry(fn, signal, maxRetries = 3, initialDelay = 8000) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    if (signal?.aborted) throw new Error('Abort');
+    try {
+      return await fn(signal);
+    } catch (error) {
+      lastError = error;
+      if (error.message?.includes('429') || error.status === 429) {
+        onRateLimitReached(60);
+        throw error;
+      }
+      if (i < maxRetries - 1) {
+        const delay = initialDelay * Math.pow(2, i);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// System constraints
+const SYSTEM_CONSTRAINTS = `
+STRICT SYSTEM RULES FOR STUDYHUB:
+1. DOCUMENT GROUNDING: Your knowledge is strictly and exclusively limited to the provided document. Answer ONLY using the uploaded document. Do not use external knowledge, internet data, or general context.
+2. TOPIC EXTRACTION: List only the topics explicitly found in the document. Do not add, infer, or invent additional topics. Topics must reflect clear structural elements (headings, key sections) within the text.
+3. QUIZ GENERATION: Questions must reflect core ideas and subject matter from the document only. Do not ask about authorship, publishing history, or background unrelated to the learning content.
+4. NO MARKDOWN: Never use symbols like #, *, _, -, or bullet points with symbols.
+5. NO HTML: NEVER use <b>, <i>, <strong>, or any other HTML tags.
+6. NO ASTERISKS: Never use asterisks for bolding, lists, or emphasis.
+7. CLEAN TEXT: Output must be clean, professional plain text with short, well-spaced paragraphs.
+8. CITATIONS: All answers must include page references (e.g., [Page X]) when applicable.
+9. PODCAST RULES: Hosts must explain only selected topics from the document. Do not discuss authorship or background. Use "Host 1" and "Host 2" for names.
+`;
+
+const cleanJsonResponse = (text) => {
+  if (!text) return "";
+  const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  return jsonMatch ? jsonMatch[0] : text.replace(/```json\n?|```/g, "").trim();
+};
+
+// Helpers copied/adapted from TypeScript studyhub service
+const cleanBase64 = (data) => {
+  if (!data) return '';
+  const parts = data.split(',');
+  return parts.length > 1 ? parts[1] : parts[0];
+};
+
+const getMimeType = (file) => {
+  if (!file) return 'text/plain';
+  return file.type === 'application/pdf' ? 'application/pdf' : 'text/plain';
 };
 
 const parseJsonResponse = (text) => {
-  if (!text) throw new Error("Empty response from AI");
-  
-  let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  if (!text) return null;
+  let cleaned = String(text).replace(/```json/gi, '').replace(/```/g, '').trim();
   try {
     return JSON.parse(cleaned);
   } catch (e) {
@@ -20,25 +99,87 @@ const parseJsonResponse = (text) => {
     const startBrace = cleaned.indexOf('{');
     const end = Math.max(cleaned.lastIndexOf(']'), cleaned.lastIndexOf('}'));
     const startIndex = (start !== -1 && (startBrace === -1 || start < startBrace)) ? start : startBrace;
-    
     if (startIndex !== -1 && end !== -1 && end > startIndex) {
       try {
         return JSON.parse(cleaned.substring(startIndex, end + 1));
       } catch (inner) {}
     }
-    throw new Error("Invalid AI JSON format.");
+  }
+  return null;
+};
+
+const getAccentInstruction = (accent) => {
+  switch (accent) {
+    case 'NG': return "using a natural Nigerian English style, with clear Nigerian rhythm and local nuances.";
+    case 'UK': return "using a natural British English (UK) style with appropriate British vocabulary.";
+    case 'US': return "using a standard American English (US) style.";
+    default: return "using a clear neutral English style.";
   }
 };
 
 const getToneInstruction = (tone) => {
-  switch (tone) {
+  switch ((tone || '').toUpperCase()) {
     case 'FUNNY': return "Be highly entertaining and witty. Use educational jokes and keep the energy high.";
     case 'PROFESSIONAL': return "Be formal, objective, and precise. Use professional academic terminology.";
     case 'TEACHER': return "Be encouraging and pedagogical. Explain complex ideas with simple analogies.";
     case 'FRIEND': return "Be casual and supportive. Talk like a friendly study buddy.";
-    default: return "Be encouraging and pedagogical. Explain complex ideas with simple analogies.";
+    default: return "Be clear and helpful.";
   }
 };
+
+// Return trimmed API key string
+const getApiKey = () => {
+  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error('VITE_GEMINI_API_KEY not configured');
+  return apiKey.trim();
+};
+
+const extractTextFromResponse = (json) => {
+  if (!json) return '';
+  // Try several common shapes
+  try {
+    if (json.candidates && json.candidates.length) {
+      const c = json.candidates[0];
+      if (c.output && c.output.length) {
+        // new-style
+        return c.output.map(o => (o.content || []).map(p => p.text || '').join('')).join('\n');
+      }
+      if (c.content && c.content.parts) {
+        return c.content.parts.map(p => p.text || '').join('\n');
+      }
+    }
+    if (json.response && typeof json.response === 'object') {
+      if (json.response.outputText) return json.response.outputText;
+      if (json.response?.text) return json.response.text;
+    }
+    // fallback: join any text fields
+    const asString = JSON.stringify(json);
+    return asString;
+  } catch (e) {
+    return JSON.stringify(json);
+  }
+};
+
+const callGenerate = async (modelName, body, signal) => {
+  const apiKey = getApiKey();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    const err = new Error(text || `Request failed: ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  const json = await res.json();
+  return json;
+};
+
+
 
 /**
  * Generate topics from document text
@@ -52,27 +193,18 @@ export const generateTopics = async (text, signal) => {
   }
   
   try {
-    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
-    
-    const response = await model.generateContent({
+    const body = {
       contents: [{
         parts: [{
-          text: `Extract 5-7 distinct, specific study topics from this document. Return ONLY a JSON array of strings with short topic names (2-4 words each).
-          
-          Text (first 2000 chars):
-          ${text.substring(0, 2000)}...
-          
-          Format: ["Topic 1", "Topic 2", "Topic 3", ...]`
+          text: `Extract 5-7 distinct, specific study topics from this document. Return ONLY a JSON array of strings with short topic names (2-4 words each).\n\nText (first 2000 chars):\n${text.substring(0,2000)}...\n\nFormat: ["Topic 1", "Topic 2", "Topic 3", ...]`
         }]
       }]
-    });
+    };
 
-    const responseText = response.response.text();
-    const topics = parseJsonResponse(responseText);
-    
-    if (Array.isArray(topics)) {
-      return topics.slice(0, 7);
-    }
+    const json = await callGenerate(MODEL_PRO, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const topics = parseJsonResponse(textOut) || parseJsonResponse(json?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
+    if (Array.isArray(topics)) return topics.slice(0,7);
     return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
   } catch (error) {
     console.error('Error generating topics:', error);
@@ -89,40 +221,31 @@ export const generateTopics = async (text, signal) => {
  */
 export const initializeChatWithContext = async (docText, topics, tone = 'TEACHER') => {
   try {
-    const model = getAI().getGenerativeModel({
-      model: 'gemini-pro',
-      systemInstruction: `You are the UniConnect AI Study Tutor. You help students learn from their documents.
-      
+    // Return a lightweight chat-like object that uses REST calls under the hood
+    const systemInstruction = `${SYSTEM_CONSTRAINTS}
 DOCUMENT CONTEXT: The student has provided a study document about: ${Array.isArray(topics) ? topics.join(', ') : topics}
+Behavior rules: 1) Answer only from document 2) If unknown, state it cannot be answered.
+TONE: ${getToneInstruction(tone)}
+DOCUMENT TEXT (reference): ${docText.substring(0, 4000)}`;
 
-BEHAVIOR RULES:
-1. ONLY answer questions based on the provided document content
-2. If something isn't in the document, say "I don't have information about that in your document"
-3. Be ${getToneInstruction(tone).toLowerCase()}
-4. Explain complex concepts with examples from the document
-5. Ask follow-up questions to deepen understanding
-6. End responses by asking if they need clarification
-
-FORMATTING:
-- Use clear, readable text
-- Use bullet points (-) for lists
-- Use bold for emphasis
-- Keep responses concise but thorough`
-    });
-
-    // Start chat with context
-    const chat = model.startChat({
-      history: [
-        {
-          role: 'user',
-          parts: [{ text: `Please help me study this document about: ${Array.isArray(topics) ? topics.join(', ') : topics}. Here's the content:\n\n${docText.substring(0, 3000)}...` }]
-        },
-        {
-          role: 'model',
-          parts: [{ text: `Hello! I've reviewed your study material on ${Array.isArray(topics) ? topics.join(', ') : topics}. I'm ready to help you learn! What would you like to explore first?` }]
+    const chat = {
+      sendMessage: async ({ message } = {}) => {
+        // message is an array of parts; map to contents
+        const parts = [];
+        if (Array.isArray(message)) {
+          for (const m of message) {
+            if (m.inlineData) {
+              parts.push({ inlineData: m.inlineData });
+            }
+            if (m.text) parts.push({ text: m.text });
+          }
         }
-      ]
-    });
+        const body = { contents: [{ parts }] };
+        const json = await callGenerate(MODEL_PRO, body);
+        const textOut = extractTextFromResponse(json);
+        return { text: textOut, raw: json };
+      }
+    };
 
     return chat;
   } catch (error) {
@@ -178,39 +301,15 @@ export const generateQuiz = async (docText, topic, count = 5, signal) => {
   if (!docText) return [];
   
   try {
-    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
-    
-    const response = await model.generateContent({
+    const body = {
       contents: [{
-        parts: [{
-          text: `Generate ${count} multiple choice quiz questions about "${topic}".
-
-IMPORTANT - Return ONLY valid JSON array with this exact format:
-[
-  {
-    "id": "1",
-    "text": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswerIndex": 0,
-    "explanation": "Why option A is correct based on the document"
-  }
-]
-
-Document text to base questions on:
-${docText.substring(0, 3000)}...
-
-RULES:
-- Questions must be answerable from the document
-- Options should be plausible distractors
-- Include clear explanations
-- Return ONLY the JSON array, no other text`
-        }]
+        parts: [{ text: `Generate ${count} multiple choice quiz questions about "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[ { \"id\": \"1\", \"text\": \"Question text here?\", \"options\": [\"A\",\"B\",\"C\",\"D\"], \"correctAnswerIndex\": 0, \"explanation\": \"Why\" } ]\n\nDocument text to base questions on:\n${docText.substring(0,3000)}...\n\nRules: Questions must be answerable from the document. Return ONLY the JSON array.` }]
       }]
-    });
+    };
 
-    const responseText = response.response.text();
-    const questions = parseJsonResponse(responseText);
-    
+    const json = await callGenerate(MODEL_PRO, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const questions = parseJsonResponse(textOut) || parseJsonResponse(json?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
     return Array.isArray(questions) ? questions : [];
   } catch (error) {
     console.error('Error generating quiz:', error);
@@ -229,58 +328,30 @@ RULES:
 export const getQuizFeedback = async (docText, questions, results, signal) => {
   if (!docText || !results) {
     return {
-      strengths: [],
-      weaknesses: [],
-      focusArea: 'Keep practicing',
-      summary: 'Keep up the good work!'
+      performanceSummary: 'Assessment complete.',
+      strengths: 'Keep practicing.',
+      weaknesses: 'Review fundamentals.',
+      nextSteps: 'Try again for better results.'
     };
   }
   
   try {
-    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
-    
-    const resultsData = results.map((r, idx) => ({
-      question: questions[idx]?.text,
-      correct: r.isCorrect
-    }));
-
-    const response = await model.generateContent({
-      contents: [{
-        parts: [{
-          text: `Analyze these quiz results and provide constructive feedback.
-
-Quiz Results:
-${JSON.stringify(resultsData, null, 2)}
-
-Return ONLY valid JSON in this format:
-{
-  "strengths": ["strength1", "strength2"],
-  "weaknesses": ["weakness1", "weakness2"],
-  "focusArea": "Main area to improve",
-  "summary": "Overall feedback (2-3 sentences)"
-}
-
-Be encouraging and specific.`
-        }]
-      }]
-    });
-
-    const responseText = response.response.text();
-    const feedback = parseJsonResponse(responseText);
-    
-    return feedback || {
-      strengths: ['Engagement'],
-      weaknesses: ['Review basics'],
-      focusArea: 'Core concepts',
-      summary: 'Great effort! Review the fundamentals.'
+    const resultsData = results.map((r, idx) => ({ question: questions[idx]?.text, correct: r.isCorrect }));
+    const body = {
+      contents: [{ parts: [{ text: `Analyze these quiz results and provide constructive feedback in exactly this JSON format:\n\nQuiz Results:\n${JSON.stringify(resultsData, null, 2)}\n\nReturn ONLY this valid JSON:{ \"performanceSummary\": \"...\", \"strengths\": \"...\", \"weaknesses\": \"...\", \"nextSteps\": \"...\" }` }] }]
     };
+
+    const json = await callGenerate(MODEL_PRO, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const feedback = parseJsonResponse(textOut);
+    return feedback || { performanceSummary: 'Assessment complete.', strengths: 'Good effort on the quiz.', weaknesses: 'Review challenging concepts.', nextSteps: 'Try another quiz to reinforce learning.' };
   } catch (error) {
     console.error('Error getting feedback:', error);
     return {
-      strengths: [],
-      weaknesses: [],
-      focusArea: 'Keep practicing',
-      summary: 'Keep up the good work!'
+      performanceSummary: 'Quiz assessment complete.',
+      strengths: 'You engaged with the material.',
+      weaknesses: 'Some areas need reinforcement.',
+      nextSteps: 'Review the material and try again.'
     };
   }
 };
@@ -296,50 +367,16 @@ export const generatePodcastContent = async (docText, settings = {}, signal) => 
   if (!docText) return { audio: '', segments: [] };
   
   try {
-    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
     const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [] } = settings;
-    
-    const topicContext = selectedTopics.length > 0 
-      ? `Focus on these topics: ${selectedTopics.join(', ')}.`
-      : 'Cover the main points from the document.';
-
-    const response = await model.generateContent({
-      contents: [{
-        parts: [{
-          text: `Create a podcast script from this document.
-
-${topicContext}
-Tone: ${getToneInstruction(tone)}
-Target duration: ${durationMinutes} minutes (${durationMinutes * 150} words approximately)
-
-Return ONLY valid JSON:
-{
-  "title": "Podcast Title",
-  "segments": [
-    {
-      "startTime": 0,
-      "duration": 30,
-      "topic": "Topic name",
-      "speaker": "Narrator",
-      "text": "Segment text..."
-    }
-  ]
-}
-
-Document:
-${docText.substring(0, 3000)}...`
-        }]
-      }]
-    });
-
-    const responseText = response.response.text();
-    const podcastData = parseJsonResponse(responseText);
-    
-    return {
-      audio: '',
-      segments: podcastData.segments || [],
-      title: podcastData.title || 'Study Podcast'
+    const topicContext = selectedTopics.length > 0 ? `Focus on these topics: ${selectedTopics.join(', ')}.` : 'Cover the main points from the document.';
+    const body = {
+      contents: [{ parts: [{ text: `Create a podcast script from this document.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n\nReturn ONLY valid JSON:{ \"title\": \"Podcast Title\", \"segments\": [ { \"startTime\": 0, \"duration\": 30, \"topic\": \"Topic\", \"speaker\": \"Narrator\", \"text\": \"...\" } ] }\n\nDocument:\n${docText.substring(0,3000)}...` }] }]
     };
+
+    const json = await callGenerate(MODEL_PRO, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const podcastData = parseJsonResponse(textOut) || {};
+    return { audio: '', segments: podcastData.segments || [], title: podcastData.title || 'Study Podcast' };
   } catch (error) {
     console.error('Error generating podcast:', error);
     return { audio: '', segments: [], title: 'Study Podcast' };
@@ -358,37 +395,13 @@ export const analyzeDocument = async (docText, signal) => {
   }
   
   try {
-    const model = getAI().getGenerativeModel({ model: 'gemini-pro' });
-    
-    const response = await model.generateContent({
-      contents: [{
-        parts: [{
-          text: `Analyze this document and provide:
-1. A concise 2-3 sentence summary
-2. 5 key points
-3. 5-7 study topics
-
-Return ONLY valid JSON:
-{
-  "summary": "...",
-  "keyPoints": ["point1", "point2", ...],
-  "topics": ["topic1", "topic2", ...]
-}
-
-Document (first 3000 characters):
-${docText.substring(0, 3000)}...`
-        }]
-      }]
-    });
-
-    const responseText = response.response.text();
-    const analysis = parseJsonResponse(responseText);
-    
-    return analysis || {
-      summary: 'Document analysis in progress...',
-      keyPoints: [],
-      topics: []
+    const body = {
+      contents: [{ parts: [{ text: `Analyze this document and provide:\n1. A concise 2-3 sentence summary\n2. 5 key points\n3. 5-7 study topics\n\nReturn ONLY valid JSON:{ \"summary\": \"...\", \"keyPoints\": [\"p1\"], \"topics\": [\"t1\"] }\n\nDocument (first 3000 chars):\n${docText.substring(0,3000)}...` }] }]
     };
+    const json = await callGenerate(MODEL_PRO, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const analysis = parseJsonResponse(textOut);
+    return analysis || { summary: 'Document analysis in progress...', keyPoints: [], topics: [] };
   } catch (error) {
     console.error('Error analyzing document:', error);
     return {
@@ -398,3 +411,66 @@ ${docText.substring(0, 3000)}...`
     };
   }
 };
+
+export const askTutor = async (docText, chatHistory, question, tone = 'Teacher', signal) => {
+  return executeWithRetry(async () => {
+    try {
+      console.log('[askTutor] Preparing request...');
+      const system = `${SYSTEM_CONSTRAINTS}\nYou are the UniSpace AI Tutor. Mode: ${tone}. Answer ONLY using the provided document. If a question cannot be answered using the document, state: \"This question cannot be answered using the document you uploaded. Please ask a question based on the document.\" Document Content: ${docText.substring(0,25000)}`;
+
+      // Build contents from history
+      const contents = [];
+      for (const m of chatHistory || []) {
+        contents.push({ parts: [{ text: m.text }] });
+      }
+      // Add the user question
+      contents.push({ parts: [{ text: question }] });
+
+      const body = { model: MODEL_FLASH, systemInstruction: system, contents };
+      console.log('[askTutor] Sending REST request...');
+      const json = await callGenerate(MODEL_FLASH, { contents }, signal);
+      const textOut = extractTextFromResponse(json);
+      console.log('[askTutor] Response received');
+      return textOut;
+    } catch (error) {
+      console.error('[askTutor] Error details:', { message: error.message, status: error.status, errorCode: error.code, fullError: error });
+      throw error;
+    }
+  }, signal);
+};
+
+/**
+ * Analyze quiz performance (TypeScript version compatibility)
+ */
+export const analyzeQuizPerformance = async (topicTitle, questions, userAnswers, signal) => {
+  return executeWithRetry(async () => {
+    const results = questions.map((q, i) => ({ question: q.question, correct: q.correctAnswer === userAnswers[i], userAnswer: q.options[userAnswers[i]] || 'None', correctAnswer: q.options[q.correctAnswer] }));
+    const body = { contents: [{ parts: [{ text: `Analyze these quiz results on "${topicTitle}" and provide constructive feedback.\n\nQuiz Results:\n${JSON.stringify(results, null, 2)}\n\nReturn ONLY valid JSON in this exact format:{ \"performanceSummary\": \"...\", \"strengths\": \"...\", \"weaknesses\": \"...\", \"nextSteps\": \"...\" }` }] }] };
+    const json = await callGenerate(MODEL_FLASH, body, signal);
+    const textOut = extractTextFromResponse(json);
+    const parsed = parseJsonResponse(textOut) || {};
+    return { performanceSummary: parsed.performanceSummary || 'Quiz completed.', strengths: parsed.strengths || 'Good effort.', weaknesses: parsed.weaknesses || 'Review content.', nextSteps: parsed.nextSteps || 'Keep practicing.' };
+  }, signal);
+};
+
+// Debug helper: verify API key by calling list models endpoint
+export const verifyApiKey = async () => {
+  try {
+    const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    console.log('[verifyApiKey] Fetching models list from:', url.substring(0, 80) + '...');
+    const res = await fetch(url, { method: 'GET' });
+    const text = await res.text();
+    console.log('[verifyApiKey] status:', res.status, 'body:', text.substring(0, 1000));
+    return { status: res.status, body: text };
+  } catch (error) {
+    console.error('[verifyApiKey] Error verifying API key:', error);
+    throw error;
+  }
+};
+
+// Expose helper in browser for quick diagnostics
+if (typeof window !== 'undefined') {
+  window.__verifyGeminiApiKey = verifyApiKey;
+}
+

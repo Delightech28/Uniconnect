@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Volume2, VolumeX, Plus, ChevronDown, FileText } from 'lucide-react';
-import { initializeChatWithContext, speakText } from '../services/geminiService';
+import { askTutor } from '../services/geminiService';
 
 /**
  * FormattedText component for rendering rich text with markdown support
@@ -85,14 +85,15 @@ const TutorSection = ({
       if (setLoadingMessage) setLoadingMessage('Initializing tutor session...');
       if (setLoading) setLoading(true);
 
-      const chatSession = await initializeChatWithContext(docText, topics, tone);
-      setSession(chatSession);
+      // Initialize with empty session - we'll use askTutor directly
+      setSession({ initialized: true });
       
       const initialMsg = {
         id: Date.now(),
         sender: 'ai',
         text: `Hello! I'm your AI tutor. I've reviewed the material on ${topics.join(', ')}. Ask me anything about these topics!`,
         timestamp: new Date(),
+        role: 'assistant'
       };
       setMessages([initialMsg]);
       
@@ -121,6 +122,7 @@ const TutorSection = ({
       sender: 'user',
       text: input,
       timestamp: new Date(),
+      role: 'user'
     };
     
     setMessages(prev => [...prev, userMessage]);
@@ -129,22 +131,31 @@ const TutorSection = ({
     
     try {
       setError(null);
-      const response = await session.sendMessage({
-        text: input,
-      });
+      
+      // Build chat history in format expected by askTutor: {role, text}
+      const chatHistory = messages.map(m => ({
+        role: m.role || (m.sender === 'ai' ? 'assistant' : 'user'),
+        text: m.text
+      }));
+      
+      // Call askTutor with the document, chat history, and user question
+      const responseText = await askTutor(docText, chatHistory, input, tone);
       
       const aiMessage = {
         id: Date.now() + 1,
         sender: 'ai',
-        text: response.response.text(),
+        text: responseText,
         timestamp: new Date(),
+        role: 'assistant'
       };
       
       setMessages(prev => [...prev, aiMessage]);
       
+      // Save to localStorage
       const updatedMessages = [...messages, userMessage, aiMessage];
       localStorage.setItem(`tutor-${currentSessionId}`, JSON.stringify(updatedMessages));
     } catch (err) {
+      console.error('Error sending message:', err);
       setError(err.message || 'Failed to send message');
     } finally {
       setIsLoading(false);

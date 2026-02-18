@@ -17,7 +17,7 @@ const UNIDOC_API_KEY = import.meta.env.VITE_UNIDOC_API_KEY;
 export const callUnidocAPI = async (prompt) => {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${UNIDOC_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent?key=${UNIDOC_API_KEY}`,
       {
         method: 'POST',
         headers: {

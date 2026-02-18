@@ -23,6 +23,8 @@ const App = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMsg, setStatusMsg] = useState('Initializing AI...');
+  const [msgIndex, setMsgIndex] = useState(0);
+  const [msgVisible, setMsgVisible] = useState(true);
   
   const loadingMessages = [
     "Scanning documents for key terms...",
@@ -73,15 +75,36 @@ const App = () => {
   }, [isDark]);
 
   useEffect(() => {
-    let interval;
-    if (processingState.isLoading && progress < 90) {
-      interval = setInterval(() => {
-        const randomMsg = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
-        setStatusMsg(randomMsg);
-      }, 3000);
+    let cycle;
+    let fadeTimeout;
+    const activeLoading = processingState.isLoading || isStreaming;
+    if (activeLoading) {
+      // initialize
+      setMsgIndex(0);
+      setStatusMsg(loadingMessages[0]);
+      setMsgVisible(true);
+
+      cycle = setInterval(() => {
+        // fade out
+        setMsgVisible(false);
+        // after fade, update message and fade back in
+        fadeTimeout = setTimeout(() => {
+          setMsgIndex(prev => {
+            const n = (prev + 1) % loadingMessages.length;
+            setStatusMsg(loadingMessages[n]);
+            setMsgVisible(true);
+            return n;
+          });
+        }, 300);
+      }, 2500);
+    } else {
+      // reset when not loading
+      setMsgIndex(0);
+      setMsgVisible(true);
     }
-    return () => clearInterval(interval);
-  }, [processingState.isLoading, progress]);
+
+    return () => { clearInterval(cycle); clearTimeout(fadeTimeout); };
+  }, [processingState.isLoading, isStreaming]);
 
   const handleCancel = () => {
     if (abortControllerRef.current) {
@@ -225,16 +248,18 @@ const App = () => {
 
         {processingState.isLoading && (
           <div className="fixed inset-0 bg-white/95 dark:bg-[#0b0f1a]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
-            <div className="relative w-32 h-32 md:w-56 md:h-56 flex items-center justify-center mb-6">
+              <div className="relative w-32 h-32 md:w-56 md:h-56 flex items-center justify-center mb-6">
               <div className="absolute z-10 bg-primary/10 p-3 md:p-5 rounded-full animate-pulse-glow">
                 <Brain className="w-8 h-8 md:w-14 md:h-14 text-primary" />
               </div>
               <svg className="absolute inset-0 w-full h-full -rotate-90">
                 <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="4" className="text-gray-100 dark:text-gray-800" />
-                <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="4" strokeDasharray="301.59" strokeDashoffset={301.59 * (1 - progress / 100)} className="text-primary transition-all duration-500" />
+                <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="4" strokeDasharray="301.59" strokeDashoffset={301.59 * (1 - progress / 100)} className="text-primary transition-all duration-500 ease-linear" />
+                {/* decorative spinning ring */}
+                <circle cx="50%" cy="50%" r="48%" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="15 185" strokeLinecap="round" className="text-primary/40 opacity-80 animate-spin-slow" />
               </svg>
             </div>
-            <h3 className="text-sm md:text-xl font-bold mb-1 text-gray-900 dark:text-white text-center px-4">{statusMsg}</h3>
+            <h3 className={`text-sm md:text-xl font-bold mb-1 text-gray-900 dark:text-white text-center px-4 transition-opacity duration-300 ${msgVisible ? 'opacity-100' : 'opacity-0'}`}>{statusMsg}</h3>
             <div className="w-40 md:w-72 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mt-2">
                <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }}></div>
             </div>
@@ -266,7 +291,7 @@ const App = () => {
                   <Loader2 className="w-4 h-4 text-primary animate-spin flex-shrink-0" />
                   <span className="text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 truncate tracking-tight">{statusMsg}</span>
                   <div className="hidden md:block h-4 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1" />
-                  <span className="hidden md:inline text-xs text-primary font-bold">{progress}%</span>
+                  <span className="text-xs md:text-sm text-primary font-bold">{progress}% Complete</span>
                 </div>
                 <button 
                   onClick={handleCancel}
@@ -304,7 +329,7 @@ const App = () => {
                     className="w-full group flex items-center justify-center py-4 md:py-5 text-sm md:text-lg font-bold rounded-2xl text-white bg-primary hover:bg-primary-dark transition-all active:scale-[0.98] shadow-lg shadow-primary/20 animate-unfold-up"
                   >
                     <FileText className="w-5 h-5 mr-3" />
-                    Generate Detailed Summary
+                    Generate Summary
                     <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 )}

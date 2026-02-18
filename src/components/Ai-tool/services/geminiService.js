@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ResultMode } from "../types";
 
 const fileToPart = (file) => {
@@ -17,8 +17,10 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
   }
 
   const apiKey = import.meta.env.VITE_UNIDOC_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-  const ai = new GoogleGenAI({ apiKey: apiKey });
-  const model = mode === ResultMode.SOLVE ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  console.log('[Ai-tool] Using API key:', apiKey?.substring(0, 10) + '...');
+  
+  const ai = new GoogleGenerativeAI({ apiKey });
+  const model = mode === ResultMode.SOLVE ? 'gemini-2.0-pro' : 'gemini-2.0-flash';
 
   const partsA = filesA.map(fileToPart);
   const partsB = filesB.map(fileToPart);
@@ -68,19 +70,20 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
   }
 
   try {
-    const responseStream = await ai.models.generateContentStream({
+    const modelInstance = ai.getGenerativeModel({ 
       model: model,
-      contents: { parts: contentsParts },
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.1,
-      }
-    }, { signal });
+      systemInstruction: systemInstruction
+    });
+    
+    const response = await modelInstance.generateContentStream({
+      contents: [{ parts: contentsParts }]
+    });
 
-    for await (const chunk of responseStream) {
+    for await (const chunk of response.stream) {
       if (signal?.aborted) break;
-      const text = chunk.text;
-      if (text) yield text;
+      if (chunk.text?.()) {
+        yield chunk.text();
+      }
     }
   } catch (error) {
     console.error("Gemini API Error:", error);
