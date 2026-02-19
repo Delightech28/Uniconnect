@@ -44,7 +44,7 @@ const TermsOfServicePage = () => {
             {/* Title Block */}
             <div className="flex flex-col items-center gap-4 text-center py-10">
               <h1 className="text-slate-900 dark:text-slate-50 text-4xl sm:text-5xl font-black leading-tight tracking-[-0.033em]">Terms of Service</h1>
-              <p className="text-slate-600 dark:text-slate-400 max-w-xl">Last Updated: October 26, 2023</p>
+              <p className="text-slate-600 dark:text-slate-400 max-w-xl">Last Updated: December 10, 2025</p>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
