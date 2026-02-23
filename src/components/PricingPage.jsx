@@ -56,6 +56,54 @@ const PricingPage = () => {
     }
   ];
 
+  const payAsYouGoOptions = [
+    {
+      name: 'Quiz Credits',
+      description: 'Pay per quiz assessment',
+      price: '₦500',
+      period: '/quiz',
+      buttonText: 'Get Credits',
+      badge: 'Flexible',
+      badgeColor: 'bg-blue-500',
+      features: [
+        'Pay only for quizzes you take',
+        'No expiration on credits',
+        'Bulk discounts available',
+        'Cancel anytime'
+      ]
+    },
+    {
+      name: 'AI Chat Bundle',
+      description: 'Credits for AI interactions',
+      price: '₦1,000',
+      period: '/month',
+      buttonText: 'Buy Bundle',
+      badge: 'Most Popular',
+      badgeColor: 'bg-primary',
+      features: [
+        'Unlimited AI chat for 30 days',
+        'Access to all AI features',
+        'Document analysis included',
+        'Expert tutor support'
+      ]
+    },
+    {
+      name: 'Resource Access',
+      description: 'One-time document access',
+      price: '₦2,000',
+      period: '/access',
+      buttonText: 'Purchase Access',
+      badge: 'Premium Content',
+      badgeColor: 'bg-purple-600',
+      features: [
+        'Full UniDoc library access',
+        'All study materials unlocked',
+        '60-day access period',
+        'Downloadable resources'
+      ]
+    }
+  ];
+
   // Get the 3 cards to display (left, center, right)
   const getDisplayedCards = () => {
     const left = allPlans[(cardIndex - 1 + allPlans.length) % allPlans.length];
@@ -134,216 +182,81 @@ const PricingPage = () => {
             </div>
 
             {/* Pricing Cards Carousel */}
-            <div className="relative flex items-center justify-center mt-8 lg:mt-12">
-              {/* Left Arrow */}
-              <button
-                onClick={handlePrevious}
-                className="absolute left-0 lg:left-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
-                aria-label="Previous plan"
-              >
-                <ChevronLeft className="w-5 lg:w-6 h-5 lg:h-6 text-secondary dark:text-gray-400" />
-              </button>
-
-              {/* Mobile/Tablet View - Layered Cards (hidden on lg) */}
-              <div className="lg:hidden relative w-full h-96 sm:h-[450px] flex items-center justify-center px-2 sm:px-4 overflow-visible">
-                {/* Left Card */}
-                <div 
-                  onClick={handlePrevious} 
-                  className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
-                  style={{
-                    width: '140px',
-                    height: '280px',
-                    left: 'calc(50% - 120px)',
-                    transform: 'translateX(-80px) scale(0.85)',
-                    zIndex: 1
-                  }}
+            {billingCycle === 'monthly' ? (
+              // Monthly Plans Carousel
+              <div className="relative flex items-center justify-center mt-8 lg:mt-12">
+                {/* Left Arrow */}
+                <button
+                  onClick={handlePrevious}
+                  className="absolute left-0 lg:left-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
+                  aria-label="Previous plan"
                 >
-                  <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-3 py-0.5 rounded-full text-xs font-semibold`}>
-                    {left.badge}
-                  </div>
-                  <div className="mb-3">
-                    <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
-                      {left.name}
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {left.description}
-                    </p>
-                  </div>
-                  <div className="mb-4">
-                    <div className="text-lg font-black text-secondary dark:text-white">
-                      {left.price}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate('/signup')}
-                    className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
-                  >
-                    Try Free
-                  </button>
-                </div>
+                  <ChevronLeft className="w-5 lg:w-6 h-5 lg:h-6 text-secondary dark:text-gray-400" />
+                </button>
 
-                {/* Center Card */}
-                <div 
-                  className="absolute rounded-3xl p-4 sm:p-6 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl cursor-pointer transition-all duration-500 ease-out"
-                  style={{
-                    width: '200px',
-                    height: '320px',
-                    zIndex: 10
-                  }}
-                >
-                  <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs font-semibold`}>
-                    {center.badge}
-                  </div>
-                  <div className="mb-4">
-                    <h3 className="text-lg font-bold text-secondary dark:text-white mb-2">
-                      {center.name}
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {center.description}
-                    </p>
-                  </div>
-
-                  <div className="mb-5">
-                    <div className="text-2xl font-black text-secondary dark:text-white">
-                      {center.price}
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {center.period}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate('/signup')}
-                    className="w-full py-2 rounded-full font-bold mb-3 transition-all text-sm bg-primary text-white hover:bg-primary/90"
-                  >
-                    {center.buttonText}
-                  </button>
-
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-3">
-                    No credit card required
-                  </p>
-
-                  <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3 max-h-24 overflow-y-auto">
-                    {center.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <div className="flex-shrink-0 mt-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-2 h-2 text-white" strokeWidth={3} />
-                        </div>
-                        <span className="text-xs text-secondary dark:text-gray-300 line-clamp-2">
-                          {feature}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right Card */}
-                <div 
-                  onClick={handleNext} 
-                  className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
-                  style={{
-                    width: '140px',
-                    height: '280px',
-                    right: 'calc(50% - 120px)',
-                    transform: 'translateX(80px) scale(0.85)',
-                    zIndex: 1
-                  }}
-                >
-                  <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-3 py-0.5 rounded-full text-xs font-semibold`}>
-                    {right.badge}
-                  </div>
-                  <div className="mb-3">
-                    <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
-                      {right.name}
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {right.description}
-                    </p>
-                  </div>
-                  <div className="mb-4">
-                    <div className="text-lg font-black text-secondary dark:text-white">
-                      {right.price}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate('/signup')}
-                    className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
-                  >
-                    Try Free
-                  </button>
-                </div>
-              </div>
-
-              {/* Desktop View - Grid Layout (hidden on mobile/tablet) */}
-              <div className="hidden lg:flex justify-center w-full px-4 lg:px-16">
-                <div className="grid grid-cols-3 gap-6 lg:gap-8">
+                {/* Mobile/Tablet View - Layered Cards (hidden on lg) */}
+                <div className="lg:hidden relative w-full h-96 sm:h-[450px] flex items-center justify-center px-2 sm:px-4 overflow-visible">
                   {/* Left Card */}
-                  <div onClick={handlePrevious} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
-                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                  <div 
+                    onClick={handlePrevious} 
+                    className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                    style={{
+                      width: '140px',
+                      height: '280px',
+                      left: 'calc(50% - 120px)',
+                      transform: 'translateX(-80px) scale(0.85)',
+                      zIndex: 1
+                    }}
+                  >
+                    <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-3 py-0.5 rounded-full text-xs font-semibold`}>
                       {left.badge}
                     </div>
-                    <div className="mb-6">
-                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
                         {left.name}
                       </h3>
-                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                         {left.description}
                       </p>
                     </div>
-
-                    <div className="mb-8">
-                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                    <div className="mb-4">
+                      <div className="text-lg font-black text-secondary dark:text-white">
                         {left.price}
-                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
-                          {left.period}
-                        </span>
                       </div>
                     </div>
-
                     <button
                       onClick={() => navigate('/signup')}
-                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
+                      className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
                     >
-                      {left.buttonText}
+                      Try Free
                     </button>
-
-                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
-                      No credit card required
-                    </p>
-
-                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
-                      {left.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
-                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
-                          </div>
-                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
-                            {feature}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Center Card */}
-                  <div className="rounded-3xl p-6 lg:p-8 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl lg:transform lg:scale-105 relative transition-all duration-500 ease-out">
-                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                  <div 
+                    className="absolute rounded-3xl p-4 sm:p-6 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl cursor-pointer transition-all duration-500 ease-out"
+                    style={{
+                      width: '200px',
+                      height: '320px',
+                      zIndex: 10
+                    }}
+                  >
+                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs font-semibold`}>
                       {center.badge}
                     </div>
-
-                    <div className="mb-6">
-                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-secondary dark:text-white mb-2">
                         {center.name}
                       </h3>
-                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
                         {center.description}
                       </p>
                     </div>
 
-                    <div className="mb-8">
-                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                    <div className="mb-5">
+                      <div className="text-2xl font-black text-secondary dark:text-white">
                         {center.price}
-                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
                           {center.period}
                         </span>
                       </div>
@@ -351,22 +264,22 @@ const PricingPage = () => {
 
                     <button
                       onClick={() => navigate('/signup')}
-                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-primary text-white hover:bg-primary/90"
+                      className="w-full py-2 rounded-full font-bold mb-3 transition-all text-sm bg-primary text-white hover:bg-primary/90"
                     >
                       {center.buttonText}
                     </button>
 
-                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-3">
                       No credit card required
                     </p>
 
-                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                    <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3 max-h-24 overflow-y-auto">
                       {center.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
-                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                        <div key={idx} className="flex items-start gap-2">
+                          <div className="flex-shrink-0 mt-0.5 w-3 h-3 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-2 h-2 text-white" strokeWidth={3} />
                           </div>
-                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                          <span className="text-xs text-secondary dark:text-gray-300 line-clamp-2">
                             {feature}
                           </span>
                         </div>
@@ -375,64 +288,323 @@ const PricingPage = () => {
                   </div>
 
                   {/* Right Card */}
-                  <div onClick={handleNext} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
-                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                  <div 
+                    onClick={handleNext} 
+                    className="absolute rounded-3xl p-3 sm:p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                    style={{
+                      width: '140px',
+                      height: '280px',
+                      right: 'calc(50% - 120px)',
+                      transform: 'translateX(80px) scale(0.85)',
+                      zIndex: 1
+                    }}
+                  >
+                    <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-3 py-0.5 rounded-full text-xs font-semibold`}>
                       {right.badge}
                     </div>
-                    <div className="mb-6">
-                      <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-bold text-secondary dark:text-white mb-1">
                         {right.name}
                       </h3>
-                      <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                         {right.description}
                       </p>
                     </div>
-
-                    <div className="mb-8">
-                      <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                    <div className="mb-4">
+                      <div className="text-lg font-black text-secondary dark:text-white">
                         {right.price}
-                        <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
-                          {right.period}
-                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate('/signup')}
+                      className="w-full py-1.5 rounded-full font-bold text-xs transition-all bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90"
+                    >
+                      Try Free
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop View - Grid Layout (hidden on mobile/tablet) */}
+                <div className="hidden lg:flex justify-center w-full px-4 lg:px-16">
+                  <div className="grid grid-cols-3 gap-6 lg:gap-8">
+                    {/* Left Card */}
+                    <div onClick={handlePrevious} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
+                      <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                        {left.badge}
+                      </div>
+                      <div className="mb-6">
+                        <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                          {left.name}
+                        </h3>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                          {left.description}
+                        </p>
+                      </div>
+
+                      <div className="mb-8">
+                        <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                          {left.price}
+                          <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                            {left.period}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/signup')}
+                        className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
+                      >
+                        {left.buttonText}
+                      </button>
+
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                        No credit card required
+                      </p>
+
+                      <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                        {left.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                            </div>
+                            <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => navigate('/signup')}
-                      className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
-                    >
-                      {right.buttonText}
-                    </button>
+                    {/* Center Card */}
+                    <div className="rounded-3xl p-6 lg:p-8 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl lg:transform lg:scale-105 relative transition-all duration-500 ease-out">
+                      <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                        {center.badge}
+                      </div>
 
-                    <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
-                      No credit card required
-                    </p>
+                      <div className="mb-6">
+                        <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                          {center.name}
+                        </h3>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                          {center.description}
+                        </p>
+                      </div>
 
-                    <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
-                      {right.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
-                            <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
-                          </div>
-                          <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
-                            {feature}
+                      <div className="mb-8">
+                        <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                          {center.price}
+                          <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                            {center.period}
                           </span>
                         </div>
-                      ))}
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/signup')}
+                        className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-primary text-white hover:bg-primary/90"
+                      >
+                        {center.buttonText}
+                      </button>
+
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                        No credit card required
+                      </p>
+
+                      <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                        {center.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                            </div>
+                            <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Right Card */}
+                    <div onClick={handleNext} className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative">
+                      <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}>
+                        {right.badge}
+                      </div>
+                      <div className="mb-6">
+                        <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                          {right.name}
+                        </h3>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                          {right.description}
+                        </p>
+                      </div>
+
+                      <div className="mb-8">
+                        <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                          {right.price}
+                          <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                            {right.period}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/signup')}
+                        className="w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600"
+                      >
+                        {right.buttonText}
+                      </button>
+
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-6 lg:mb-8">
+                        No credit card required
+                      </p>
+
+                      <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                        {right.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                            </div>
+                            <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Arrow */}
-              <button
-                onClick={handleNext}
-                className="absolute right-0 lg:right-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
-                aria-label="Next plan"
-              >
-                <ChevronRight className="w-6 h-6 text-secondary dark:text-gray-400" />
-              </button>
-            </div>
+                {/* Right Arrow */}
+                <button
+                  onClick={handleNext}
+                  className="absolute right-0 lg:right-2 z-20 p-2 rounded-full opacity-40 hover:opacity-70 transition-opacity"
+                  aria-label="Next plan"
+                >
+                  <ChevronRight className="w-6 h-6 text-secondary dark:text-gray-400" />
+                </button>
+              </div>
+            ) : (
+              // Pay as You Go - Grid Layout
+              <div className="mt-8 lg:mt-12 w-full px-4 lg:px-0">
+                {/* Mobile/Tablet: Stacked cards */}
+                <div className="lg:hidden space-y-4 sm:space-y-6">
+                  {payAsYouGoOptions.map((option, idx) => (
+                    <div
+                      key={idx}
+                      className={`rounded-3xl p-4 sm:p-6 bg-white dark:bg-gray-900 border-2 transition-all duration-300 ${
+                        idx === 1
+                          ? 'border-primary shadow-lg'
+                          : 'border-gray-200 dark:border-gray-700 shadow-md'
+                      }`}
+                    >
+                      <div className={`inline-block ${option.badgeColor} text-white px-3 py-1 rounded-full text-xs font-semibold mb-4`}>
+                        {option.badge}
+                      </div>
+                      <div className="mb-4">
+                        <h3 className="text-lg sm:text-xl font-bold text-secondary dark:text-white mb-2">
+                          {option.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          {option.description}
+                        </p>
+                      </div>
+
+                      <div className="mb-6">
+                        <div className="text-2xl sm:text-3xl font-black text-secondary dark:text-white">
+                          {option.price}
+                          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            {option.period}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/signup')}
+                        className={`w-full py-2 sm:py-2.5 rounded-full font-bold mb-4 sm:mb-6 transition-all text-sm ${
+                          idx === 1
+                            ? 'bg-primary text-white hover:bg-primary/90'
+                            : 'bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {option.buttonText}
+                      </button>
+
+                      <div className="space-y-2 sm:space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+                        {option.features.map((feature, featureIdx) => (
+                          <div key={featureIdx} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5 w-3 sm:w-4 h-3 sm:h-4 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                            </div>
+                            <span className="text-xs sm:text-sm text-secondary dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: Grid Layout */}
+                <div className="hidden lg:grid grid-cols-3 gap-8">
+                  {payAsYouGoOptions.map((option, idx) => (
+                    <div
+                      key={idx}
+                      className={`rounded-3xl p-8 bg-white dark:bg-gray-900 border-2 transition-all duration-300 ${
+                        idx === 1
+                          ? 'border-primary shadow-2xl lg:transform lg:scale-105'
+                          : 'border-gray-200 dark:border-gray-700 shadow-lg opacity-85 hover:opacity-100 hover:scale-100'
+                      }`}
+                    >
+                      <div className={`inline-block ${option.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold mb-6`}>
+                        {option.badge}
+                      </div>
+                      <div className="mb-8">
+                        <h3 className="text-lg lg:text-2xl font-bold text-secondary dark:text-white mb-2">
+                          {option.name}
+                        </h3>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                          {option.description}
+                        </p>
+                      </div>
+
+                      <div className="mb-8">
+                        <div className="text-2xl lg:text-4xl font-black text-secondary dark:text-white">
+                          {option.price}
+                          <span className="text-xs lg:text-base text-gray-600 dark:text-gray-400">
+                            {option.period}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => navigate('/signup')}
+                        className={`w-full py-2 lg:py-3 rounded-full font-bold mb-6 lg:mb-8 transition-all text-sm ${
+                          idx === 1
+                            ? 'bg-primary text-white hover:bg-primary/90'
+                            : 'bg-secondary dark:bg-gray-700 text-white hover:bg-secondary/90 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {option.buttonText}
+                      </button>
+
+                      <div className="space-y-3 lg:space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6 lg:pt-8">
+                        {option.features.map((feature, featureIdx) => (
+                          <div key={featureIdx} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5 w-4 lg:w-5 h-4 lg:h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2 lg:w-3 h-2 lg:h-3 text-white" strokeWidth={3} />
+                            </div>
+                            <span className="text-xs lg:text-sm text-secondary dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Policy Section */}
             <section className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
