@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Footer from './Footer';
 // --- Data Layer (No Backend) ---
 // This array holds all the quiz questions and answers.
 const quizData = [
@@ -188,7 +187,6 @@ className="material-symbols-outlined">refresh</span>
 </div>
 </main>
 </div>
-    <Footer darkMode={darkMode} />
 	</div>
 );
 }
@@ -317,7 +315,6 @@ className="material-symbols-outlined">arrow_forward</span>
 </div>
 </main>
 </div>
-    <Footer darkMode={darkMode} />
 </div>
 );
 }

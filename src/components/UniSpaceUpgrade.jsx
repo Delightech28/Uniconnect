@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 const UniSpaceUpgrade = () => {
   const navigate = useNavigate();
@@ -322,7 +321,6 @@ const UniSpaceUpgrade = () => {
         </section>
       </main>
       </div>
-      <Footer darkMode={darkMode} />
     </div>
   );
 };

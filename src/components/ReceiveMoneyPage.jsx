@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import {
@@ -328,7 +327,6 @@ const ReceiveMoneyPage = () => {
           </div>
         </div>
       </main>
-      <Footer darkMode={darkMode} />
     </div>
   );
 };

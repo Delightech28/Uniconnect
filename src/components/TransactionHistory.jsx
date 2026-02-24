@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 // This data would typically come from an API, but for this example, it's hardcoded.
 const transactions = [ 
@@ -28,8 +27,6 @@ const transactions = [
     title: 'Wallet Top-up', 
     description: 'From Bank Account', 
     date: 'Apr 5, 2024', 
- 
-
     status: 'Completed', 
     amount: 20000.00, 
   }, 
@@ -76,8 +73,6 @@ const TransactionRow = ({ transaction }) => {
   const styles = getTransactionStyles(transaction.type); 
    
   const formattedAmount = new Intl.NumberFormat('en-NG', { 
- 
-
     style: 'currency', 
     currency: 'NGN', 
     signDisplay: 'always', // always show + or - 
@@ -115,8 +110,6 @@ ${styles.amountText}`}>{formattedAmount}</td>
   ); 
 }; 
  
- 
-
 const TransactionHistory = () => ( 
   <div className="bg-white dark:bg-dark-card rounded-xl shadow-md"> 
     <div className="p-6 border-b border-slate-200 
@@ -146,10 +139,9 @@ transaction={tx} />)}
         </tbody> 
       </table> 
     </div>
-  <Footer darkMode={darkMode} />
   </div> 
 ); 
  
-export default TransactionHistory; 
+export default TransactionHistory;
 
 

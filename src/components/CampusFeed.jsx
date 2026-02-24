@@ -7,7 +7,6 @@ import { db, auth } from '../firebase';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Footer from './Footer';
 import { notifyPostLiked, notifyPostCommented } from '../services/notificationService';
 import { getDefaultAvatar } from '../services/avatarService';
 
@@ -175,7 +174,6 @@ export default function CampusFeed() {
             </div>
           </main>
           </div>
-          <Footer darkMode={darkMode} />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 // --- Data for the "What's Next?" section (cleaner than hardcoding) ---
 const whatsNextFeatures = [
@@ -164,7 +163,6 @@ Visit our Support Center
 </a>
 </p>
 </footer>
-<Footer darkMode={darkMode} />
 </div>
 );
 };

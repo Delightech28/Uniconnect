@@ -4,7 +4,6 @@ import { useTheme } from '../hooks/useTheme';
 import { auth, db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 // ComingSoonOverlay removed
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
 const navLinks = [
@@ -179,7 +178,6 @@ dark:text-white\">No items found</p>
 </div>
 </main>
 </div>
-<Footer darkMode={darkMode} />
 </div>
 );
 };

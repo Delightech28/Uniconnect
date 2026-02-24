@@ -8,7 +8,6 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, Google
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import CompleteProfileForm from './CompleteProfileForm';
 const UniConnectLogin = () => {
 const [formData, setFormData] = useState({
@@ -330,7 +329,6 @@ Sign Up
             </div>
         </div>
         </div>
-        <Footer darkMode={darkMode} />
     </div>
 );
 };

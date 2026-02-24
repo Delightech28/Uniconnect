@@ -1,31 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import StudyHubApp from './App';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * StudyHub Index - Entry point for StudyHub module
- * Manages dark mode state and renders the main application
+ * Uses global dark mode state
  */
 const StudyHub = () => {
-  const [darkMode, setDarkMode] = useState(() => {
-    // Check localStorage for saved preference
-    const saved = localStorage.getItem('studyhub-darkmode');
-    if (saved !== null) return JSON.parse(saved);
-    // Check system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const newValue = !prev;
-      localStorage.setItem('studyhub-darkmode', JSON.stringify(newValue));
-      return newValue;
-    });
-  };
+  const { darkMode, toggleTheme } = useTheme();
 
   return (
     <StudyHubApp 
       darkMode={darkMode} 
-      toggleDarkMode={toggleDarkMode} 
+      toggleDarkMode={toggleTheme} 
     />
   );
 };

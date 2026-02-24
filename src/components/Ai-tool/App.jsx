@@ -3,7 +3,6 @@ import AppHeader from '../AppHeader';
 import Header from './components/Header';
 import FileUpload from './components/FileUpload';
 import ResultDisplay from './components/ResultDisplay';
-import Footer from '../Footer';
 import { generateContentStream } from './services/geminiService';
 import { ResultMode } from './types';
 import { useTheme } from '../../hooks/useTheme';
@@ -385,7 +384,6 @@ const App = () => {
           </div>
         )}
       </main>
-      <Footer darkMode={isDark} />
     </div>
   );
 };

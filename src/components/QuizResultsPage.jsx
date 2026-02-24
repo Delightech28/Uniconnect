@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react'; 
  
 // --- Data for UI elements --- 
 const analysisData = { 
@@ -82,7 +82,6 @@ text-sm">{description}</p>
  
 // --- Main Page Component --- 
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 const QuizResultsPage = () => { 
     const { darkMode, toggleTheme } = useTheme(); 

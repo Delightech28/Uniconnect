@@ -5,7 +5,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
 import { notifyItemSold } from '../services/notificationService';
@@ -388,11 +387,10 @@ max-w-none text-slate-600 dark:text-slate-300">
           </div> 
         </main> 
       </div> 
-      <Footer darkMode={darkMode} />
     </div> 
   );
 } 
  
-export default ProductDetailsPage; 
+export default ProductDetailsPage;
 
 

@@ -81,33 +81,6 @@ aria-label="Toggle dark mode"
 </button>
 </header>
 );
-const Footer = () => (
-<footer className="flex flex-col gap-8 px-5 py-10 text-center">
-<div className="flex flex-wrap items-center justify-center gap-x-8
-gap-y-4">
-{footerLinks.map((link) => (
-<a key={link.name} href={link.href}
-className="text-text-secondary-light dark:text-text-secondary-dark
-hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary text-base">
-{link.name}
-</a>
-))}
-</div>
-<div className="flex flex-wrap justify-center gap-6">
-{socialIcons.map((social) => (
-<a key={social.name} href={social.href}
-className="text-text-secondary-light dark:text-text-secondary-dark
-hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary">
-{social.icon}
-</a>
-))}
-</div>
-<p className="text-text-secondary-light
-dark:text-text-secondary-dark text-sm">
-© 2025 UniSpace. All rights reserved.
-</p>
-</footer>
-);
 // --- Main Page Component ---
 const VerificationPendingPage = () => {
 	const navigate = useNavigate();
@@ -209,7 +182,6 @@ Go to Dashboard
 </div>
 </div>
 </main>
-<Footer />
 </div>
 </div>
 </div>

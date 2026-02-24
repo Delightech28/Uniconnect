@@ -5,7 +5,6 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import GenderBadge from './GenderBadge';
 import { getDefaultAvatar } from '../services/avatarService';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
@@ -384,7 +383,6 @@ font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </main>
-<Footer darkMode={darkMode} />
 </div>
 );
 };

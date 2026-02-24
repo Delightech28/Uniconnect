@@ -1,7 +1,6 @@
 import React from 'react';
 import AppHeader from './AppHeader';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 const TermsOfServicePage = () => {
   // Navigation links data to keep the sidebar clean
@@ -114,7 +113,6 @@ const TermsOfServicePage = () => {
             <p>© 2025 UniSpace. All rights reserved.</p>
           </div>
         </footer>
-      <Footer darkMode={darkMode} />
       </div>
     </div>
   );

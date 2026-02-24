@@ -7,8 +7,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useVerified from '../hooks/useVerified';
-import Footer from './Footer';
-import { notifyItemListed } from '../services/notificationService';
 // --- Data for UI elements ---
 const navLinks = [
 { name: 'Dashboard', href: '#', active: false },
@@ -524,7 +522,6 @@ Listing</span>
 </div>
 </div>
 </main>
-<Footer darkMode={darkMode} />
 </div>
 );
 }

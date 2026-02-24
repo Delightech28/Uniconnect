@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import { auth, db } from '../firebase';
 import { doc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
@@ -216,7 +215,6 @@ const UniWalletPage = () => {
         </div>
       </main>
 
-      <Footer darkMode={darkMode} />
     </div>
   );
 };

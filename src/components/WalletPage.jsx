@@ -1,10 +1,8 @@
 import React, { useState } from 'react'; 
 import { useTheme } from '../hooks/useTheme';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import toast from 'react-hot-toast';
-import { auth, db } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
 import { notifyWalletTransaction, notifyPaymentReceived } from '../services/notificationService';
 // --- Static Data (No Backend) --- 
 const USER_WALLET_ID = "@adekunle123"; 
@@ -292,12 +290,11 @@ leading-tight">
           </div> 
         </main> 
       </div> 
-      <Footer darkMode={darkMode} />
     </div> 
   ); 
  
  
 }
-export default WalletPage; 
+export default WalletPage;
 
 

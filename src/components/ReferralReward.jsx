@@ -1,6 +1,5 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 import { 
   Menu, 
   X, 
@@ -139,7 +138,6 @@ const ReferralReward = () => {
 
         </div>
       </main>
-    <Footer darkMode={darkMode} />
     </div>
   );
 };

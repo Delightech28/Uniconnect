@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
 import AppHeader from '../AppHeader';
-import Footer from '../Footer';
 import Sidebar from './components/Sidebar';
 import LoadingOverlay from './components/LoadingOverlay';
 import FileUpload from './components/FileUpload';
@@ -236,8 +235,6 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
           {renderView()}
         </main>
       </div>
-      
-      <Footer darkMode={darkMode} />
     </div>
   );
 };

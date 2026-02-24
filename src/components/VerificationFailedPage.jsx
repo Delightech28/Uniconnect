@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 // --- Data for the failure reasons list (cleaner than hardcoding) ---
 const failureReasons = [
 {
@@ -111,7 +110,6 @@ Get Help
 </div>
 </div>
 </main>
-<Footer darkMode={darkMode} />
 </div>
 );
 };

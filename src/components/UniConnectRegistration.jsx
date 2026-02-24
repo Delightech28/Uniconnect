@@ -8,7 +8,6 @@ import { doc, setDoc, serverTimestamp, getDoc, collection, query, where, getDocs
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import { createNotification } from '../services/notificationService';
 import CompleteProfileForm from './CompleteProfileForm';
 // --- Data for select options (grouped by category) ---
@@ -1085,7 +1084,7 @@ font-bold tracking-wide text-white hover:bg-primary/90 mt-6">
 		</div>
 		</div>
 		</div>
-		<Footer darkMode={darkMode} />
+		{/* Footer component removed */}
 	</div>
 	);
 };

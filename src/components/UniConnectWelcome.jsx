@@ -1,7 +1,6 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Menu, X, ArrowRight, ExternalLink } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import Footer from './Footer';
 
 const UniConnectWelcome = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -156,7 +155,6 @@ const UniConnectWelcome = () => {
             </div>
           </div>
         </main>
-      <Footer darkMode={darkMode} />
       </div>
     </div>
   );
