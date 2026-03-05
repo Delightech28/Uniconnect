@@ -222,7 +222,7 @@ transform hover:scale-105">
 items-center justify-center rounded-full h-12 px-6 bg-secondary
 text-white text-base font-bold shadow-lg hover:bg-secondary/90
 transition-transform transform hover:scale-105">
-Learn More
+<Link to="/login">Learn More</Link>
 </button>
 </div>
 </div>

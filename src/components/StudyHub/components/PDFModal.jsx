@@ -100,7 +100,7 @@ const PDFModal = ({ file, pageNumber, isOpen, onClose, isDarkMode }) => {
           {!isLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
               <Loader2 className="w-8 h-8 text-[#07bc0c] animate-spin mb-4" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Preparing Document...</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Preparing Document...</p>
             </div>
           )}
           
@@ -120,7 +120,7 @@ const PDFModal = ({ file, pageNumber, isOpen, onClose, isDarkMode }) => {
             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-slate-900">
               <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
               <h4 className="text-xl font-black text-white mb-2">Browser Blocking Preview</h4>
-              <p className="text-slate-400 text-sm max-w-sm mb-6">Chrome often restricts blob previews for security. Please use the button below to view the reference.</p>
+              <p className="text-slate-300 text-sm max-w-sm mb-6">Chrome often restricts blob previews for security. Please use the button below to view the reference.</p>
               <a 
                 href={pdfUrl} 
                 target="_blank" 

@@ -12,19 +12,25 @@ const FileUpload = ({ onFileUpload, isDarkMode, progress = 0, stage }) => {
   const [error, setError] = useState(null);
 
   const processFile = (file) => {
+    console.log('[FileUpload] processFile', { fileName: file?.name, fileSize: file?.size, fileType: file?.type });
     setError(null);
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError(`File size exceeds limit of ${MAX_FILE_SIZE_MB}MB.`);
+      const errorMsg = `File size exceeds limit of ${MAX_FILE_SIZE_MB}MB.`;
+      console.error('[FileUpload]', errorMsg);
+      setError(errorMsg);
       return;
     }
 
     if (file.type !== 'application/pdf') {
-      setError("Only PDF files are supported.");
+      const errorMsg = "Only PDF files are supported.";
+      console.error('[FileUpload]', errorMsg);
+      setError(errorMsg);
       return;
     }
 
+    console.log('[FileUpload] processFile success, calling onFileUpload');
     setIsReading(true);
     // Pass the File object directly to the parent
     onFileUpload(file);
@@ -142,10 +148,10 @@ const FileUpload = ({ onFileUpload, isDarkMode, progress = 0, stage }) => {
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 pt-4 opacity-50">
-             <div className="flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-500">
+             <div className="flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest text-gray-600 dark:text-gray-300">
                 <Zap className="w-4 h-4 text-[#07bc0c]" /> Advanced Processing
              </div>
-             <div className="flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest text-slate-500">
+             <div className="flex items-center gap-2 font-black text-[10px] md:text-xs uppercase tracking-widest text-gray-600 dark:text-gray-300">
                 <Brain className="w-4 h-4 text-[#07bc0c]" /> Content Analysis
              </div>
           </div>

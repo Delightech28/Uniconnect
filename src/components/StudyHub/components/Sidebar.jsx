@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen, MessageSquare, Radio, FileText, History, Upload } from 'lucide-react';
 
 const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadClick, isDarkMode }) => {
+  console.log('[Sidebar] render', { currentView, hasDocument, disabled });
   const menuItems = [
     { id: 'upload', label: 'Hub', icon: FileText, requiresDoc: false },
     { id: 'analysis', label: 'Summary', icon: BookOpen, requiresDoc: true },
@@ -24,18 +25,21 @@ const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadCli
             return (
               <button
                 key={item.id}
-                onClick={() => !isDisabled && !disabled && onViewChange(item.id)}
+                onClick={() => {
+                  console.log('[Sidebar] mobile menu item clicked', item.id);
+                  !isDisabled && !disabled && onViewChange(item.id);
+                }}
                 disabled={isDisabled || disabled}
                 className={`flex-1 py-3 px-2 flex flex-col items-center gap-1 transition-all ${
                   isActive
                     ? 'text-[#07bc0c]'
                     : isDisabled || disabled
-                    ? `${isDarkMode ? 'text-slate-600' : 'text-slate-400'} cursor-not-allowed opacity-50`
-                    : isDarkMode ? 'text-slate-400 hover:text-[#07bc0c]' : 'text-slate-600 hover:text-[#07bc0c]'
+                    ? `${isDarkMode ? 'text-slate-600 dark:text-slate-600' : 'text-slate-400'} cursor-not-allowed opacity-50`
+                    : isDarkMode ? 'text-slate-400 dark:text-slate-400 hover:text-[#07bc0c]' : 'text-slate-600 hover:text-[#07bc0c]'
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-900 dark:text-white">{item.label}</span>
               </button>
             );
           })}
@@ -53,15 +57,18 @@ const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadCli
             return (
               <button
                 key={item.id}
-                onClick={() => !isDisabled && !disabled && onViewChange(item.id)}
+                onClick={() => {
+                  console.log('[Sidebar] desktop menu item clicked', item.id);
+                  !isDisabled && !disabled && onViewChange(item.id);
+                }}
                 disabled={isDisabled || disabled}
                 title={item.label}
                 className={`p-3 rounded-xl transition-all ${
                   isActive
                     ? 'bg-[#07bc0c]/10 text-[#07bc0c]'
                     : isDisabled || disabled
-                    ? `${isDarkMode ? 'text-slate-600' : 'text-slate-400'} cursor-not-allowed opacity-50`
-                    : isDarkMode ? 'text-slate-400 hover:bg-slate-900 hover:text-[#07bc0c]' : 'text-slate-600 hover:bg-slate-100 hover:text-[#07bc0c]'
+                    ? `${isDarkMode ? 'text-slate-600 dark:text-slate-600' : 'text-slate-400'} cursor-not-allowed opacity-50`
+                    : isDarkMode ? 'text-slate-400 dark:text-slate-400 hover:bg-slate-900 hover:text-[#07bc0c]' : 'text-slate-600 hover:bg-slate-100 hover:text-[#07bc0c]'
                 }`}
               >
                 <Icon className="w-6 h-6" />
@@ -71,7 +78,10 @@ const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadCli
         </div>
 
         <button
-          onClick={onUploadClick}
+          onClick={() => {
+            console.log('[Sidebar] upload button clicked');
+            onUploadClick();
+          }}
           className={`p-3 rounded-xl transition-all ${isDarkMode ? 'bg-[#07bc0c] text-slate-900 hover:bg-[#07bc0c]/90' : 'bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90'}`}
           title="Upload Document"
         >

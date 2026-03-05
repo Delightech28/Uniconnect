@@ -20,7 +20,7 @@ const FileQuickView = ({ file, isOpen, onClose, isDarkMode }) => {
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-600'}`}
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-200 text-slate-600'}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -28,13 +28,13 @@ const FileQuickView = ({ file, isOpen, onClose, isDarkMode }) => {
 
         {/* Content */}
         <div className={`flex-1 overflow-y-auto p-6 space-y-3 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="font-bold">Size:</span> {(file.size / 1024 / 1024).toFixed(2)} MB
           </p>
-          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="font-bold">Type:</span> {file.type}
           </p>
-          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="font-bold">Uploaded:</span> {new Date().toLocaleString()}
           </p>
         </div>

@@ -201,7 +201,7 @@ export const generateTopics = async (text, signal) => {
       }]
     };
 
-    const json = await callGenerate(MODEL_PRO, body, signal);
+    const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const topics = parseJsonResponse(textOut) || parseJsonResponse(json?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
     if (Array.isArray(topics)) return topics.slice(0,7);
@@ -240,8 +240,8 @@ DOCUMENT TEXT (reference): ${docText.substring(0, 4000)}`;
             if (m.text) parts.push({ text: m.text });
           }
         }
-        const body = { contents: [{ parts }] };
-        const json = await callGenerate(MODEL_PRO, body);
+        const body = { contents: [{ role: 'user', parts }] };
+        const json = await callGenerate(MODEL_FLASH, body);
         const textOut = extractTextFromResponse(json);
         return { text: textOut, raw: json };
       }
@@ -307,7 +307,7 @@ export const generateQuiz = async (docText, topic, count = 5, signal) => {
       }]
     };
 
-    const json = await callGenerate(MODEL_PRO, body, signal);
+    const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const questions = parseJsonResponse(textOut) || parseJsonResponse(json?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
     return Array.isArray(questions) ? questions : [];
@@ -341,7 +341,7 @@ export const getQuizFeedback = async (docText, questions, results, signal) => {
       contents: [{ parts: [{ text: `Analyze these quiz results and provide constructive feedback in exactly this JSON format:\n\nQuiz Results:\n${JSON.stringify(resultsData, null, 2)}\n\nReturn ONLY this valid JSON:{ \"performanceSummary\": \"...\", \"strengths\": \"...\", \"weaknesses\": \"...\", \"nextSteps\": \"...\" }` }] }]
     };
 
-    const json = await callGenerate(MODEL_PRO, body, signal);
+    const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const feedback = parseJsonResponse(textOut);
     return feedback || { performanceSummary: 'Assessment complete.', strengths: 'Good effort on the quiz.', weaknesses: 'Review challenging concepts.', nextSteps: 'Try another quiz to reinforce learning.' };
@@ -373,7 +373,7 @@ export const generatePodcastContent = async (docText, settings = {}, signal) => 
       contents: [{ parts: [{ text: `Create a podcast script from this document.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n\nReturn ONLY valid JSON:{ \"title\": \"Podcast Title\", \"segments\": [ { \"startTime\": 0, \"duration\": 30, \"topic\": \"Topic\", \"speaker\": \"Narrator\", \"text\": \"...\" } ] }\n\nDocument:\n${docText.substring(0,3000)}...` }] }]
     };
 
-    const json = await callGenerate(MODEL_PRO, body, signal);
+    const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const podcastData = parseJsonResponse(textOut) || {};
     return { audio: '', segments: podcastData.segments || [], title: podcastData.title || 'Study Podcast' };
@@ -398,7 +398,7 @@ export const analyzeDocument = async (docText, signal) => {
     const body = {
       contents: [{ parts: [{ text: `Analyze this document and provide:\n1. A concise 2-3 sentence summary\n2. 5 key points\n3. 5-7 study topics\n\nReturn ONLY valid JSON:{ \"summary\": \"...\", \"keyPoints\": [\"p1\"], \"topics\": [\"t1\"] }\n\nDocument (first 3000 chars):\n${docText.substring(0,3000)}...` }] }]
     };
-    const json = await callGenerate(MODEL_PRO, body, signal);
+    const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const analysis = parseJsonResponse(textOut);
     return analysis || { summary: 'Document analysis in progress...', keyPoints: [], topics: [] };
@@ -418,17 +418,18 @@ export const askTutor = async (docText, chatHistory, question, tone = 'Teacher',
       console.log('[askTutor] Preparing request...');
       const system = `${SYSTEM_CONSTRAINTS}\nYou are the UniSpace AI Tutor. Mode: ${tone}. Answer ONLY using the provided document. If a question cannot be answered using the document, state: \"This question cannot be answered using the document you uploaded. Please ask a question based on the document.\" Document Content: ${docText.substring(0,25000)}`;
 
-      // Build contents from history
+      // Build contents from history with proper roles
       const contents = [];
       for (const m of chatHistory || []) {
-        contents.push({ parts: [{ text: m.text }] });
+        contents.push({ role: m.role || 'user', parts: [{ text: m.text }] });
       }
       // Add the user question
-      contents.push({ parts: [{ text: question }] });
+      contents.push({ role: 'user', parts: [{ text: question }] });
 
-      const body = { model: MODEL_FLASH, systemInstruction: system, contents };
+      // systemInstruction must be a Content object with parts
+      const body = { systemInstruction: { parts: [{ text: system }] }, contents };
       console.log('[askTutor] Sending REST request...');
-      const json = await callGenerate(MODEL_FLASH, { contents }, signal);
+      const json = await callGenerate(MODEL_FLASH, body, signal);
       const textOut = extractTextFromResponse(json);
       console.log('[askTutor] Response received');
       return textOut;

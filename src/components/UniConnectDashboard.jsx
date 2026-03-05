@@ -277,10 +277,10 @@ text-xs sm:text-sm">Available Balance</p>
 font-bold">₦0.00</p>
 </div>
 <div className="flex justify-center gap-2 sm:gap-3 mt-2 sm:mt-3">
-<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all">Add Funds</button>
-<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-background-light dark:bg-slate-700 text-secondary dark:text-white text-xs sm:text-sm font-bold hover:bg-background-light/80 dark:hover:bg-slate-600 active:scale-95 transition-all">Send Money</button>
+<button onClick={() => navigate('/fund-wallet')} className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all">Add Funds</button>
+<button onClick={() => navigate('/send-money')} className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-background-light dark:bg-slate-700 text-secondary dark:text-white text-xs sm:text-sm font-bold hover:bg-background-light/80 dark:hover:bg-slate-600 active:scale-95 transition-all">Send Money</button>
 </div>
-<a className="text-center text-primary text-xs sm:text-sm font-medium mt-2 sm:mt-3 hover:underline" href="#">View full transaction history</a>
+<button onClick={() => navigate('/transaction-history')} className="text-center text-primary text-xs sm:text-sm font-medium mt-2 sm:mt-3 hover:underline">View full transaction history</button>
 </div>
 </div>
 {/* --- Right Column --- */}

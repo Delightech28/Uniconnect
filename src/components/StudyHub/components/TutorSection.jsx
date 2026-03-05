@@ -68,6 +68,7 @@ const TutorSection = ({
   const textareaRef = useRef(null);
 
   useEffect(() => {
+    console.log('[TutorSection] mounting, initializing chat');
     initChat();
   }, []);
 
@@ -80,6 +81,7 @@ const TutorSection = ({
   }, [messages]);
 
   const initChat = async () => {
+    console.log('[TutorSection] initChat');
     try {
       setError(null);
       if (setLoadingMessage) setLoadingMessage('Initializing tutor session...');
@@ -115,6 +117,7 @@ const TutorSection = ({
   };
 
   const handleSend = async () => {
+    console.log('[TutorSection] handleSend', { input, session, isLoading });
     if (!input.trim() || !session || isLoading) return;
     
     const userMessage = {
@@ -133,12 +136,14 @@ const TutorSection = ({
       setError(null);
       
       // Build chat history in format expected by askTutor: {role, text}
+      // Convert 'assistant' role to 'model' for Gemini API compatibility
       const chatHistory = messages.map(m => ({
-        role: m.role || (m.sender === 'ai' ? 'assistant' : 'user'),
+        role: m.role === 'assistant' ? 'model' : (m.role || (m.sender === 'ai' ? 'model' : 'user')),
         text: m.text
       }));
       
       // Call askTutor with the document, chat history, and user question
+      console.log('[TutorSection] calling askTutor', { tone, chatHistoryLength: chatHistory.length });
       const responseText = await askTutor(docText, chatHistory, input, tone);
       
       const aiMessage = {
@@ -163,6 +168,7 @@ const TutorSection = ({
   };
 
   const handleSpeak = async (text) => {
+    console.log('[TutorSection] handleSpeak', { accent, textSnippet: text.slice(0,50) });
     try {
       setIsSpeaking(true);
       setError(null);
@@ -202,7 +208,7 @@ const TutorSection = ({
             <h2 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               AI Tutor
             </h2>
-            <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               {topics.join(', ') || 'Chat Session'}
             </p>
           </div>
@@ -273,8 +279,8 @@ const TutorSection = ({
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <MessageCircle className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} />
-              <p className={isDarkMode ? 'text-slate-400' : 'text-slate-500'}>
+              <MessageCircle className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`} />
+              <p className={isDarkMode ? 'text-slate-300' : 'text-slate-600'}>
                 No messages yet. Start chatting!
               </p>
             </div>

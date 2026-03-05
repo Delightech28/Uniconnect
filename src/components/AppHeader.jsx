@@ -142,9 +142,15 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
             const total = snap.docs.reduce((acc, d) => acc + ((d.data().unreadCount) || 0), 0);
             // expose for legacy use and set local state so header shows message badge
             window.inboxUnreadCount = total;
-          }, (err) => console.warn('Per-user convo mirrors listen error', err));
+          }, (err) => {
+            // Silent fail for permission errors - this is a non-critical feature
+            if (!err.message?.includes('permission')) {
+              console.warn('Per-user convo mirrors listen error', err);
+            }
+          });
         } catch (err) {
-          console.warn('Failed to subscribe to per-user conversations for header unread count', err);
+          // Silently ignore - conversations subcollection may not exist yet
+          console.debug('Could not subscribe to per-user conversations for header unread count');
         }
 
         return () => {

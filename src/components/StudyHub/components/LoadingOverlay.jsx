@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import '../studyhub.css';
 
 const LoadingOverlay = ({ progress = 0, stage = 'Processing...', onCancel = null, isDarkMode = false }) => {
+  console.log('[LoadingOverlay] render', { progress, stage });
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center ${isDarkMode ? 'bg-black/50' : 'bg-black/30'} backdrop-blur-sm`}>
       <div className={`rounded-3xl p-12 max-w-sm w-full mx-4 flex flex-col items-center gap-8 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
@@ -16,7 +17,7 @@ const LoadingOverlay = ({ progress = 0, stage = 'Processing...', onCancel = null
         </div>
 
         <div className="text-center space-y-2">
-          <p className={`text-sm font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={`text-sm font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             {stage}
           </p>
           <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -34,7 +35,7 @@ const LoadingOverlay = ({ progress = 0, stage = 'Processing...', onCancel = null
         {onCancel && (
           <button
             onClick={onCancel}
-            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
+            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'}`}
           >
             <X className="w-5 h-5" />
           </button>

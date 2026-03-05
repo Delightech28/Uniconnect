@@ -5,6 +5,14 @@ import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
   // State for quiz setup
   const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
+
+  // update selectedTopic if topics prop changes
+  useEffect(() => {
+    if (topics && topics.length && !selectedTopic) {
+      console.log('[QuizSection] topics updated, setting default topic', topics[0]);
+      setSelectedTopic(topics[0]);
+    }
+  }, [topics]);
   const [numQuestions, setNumQuestions] = useState(5);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
 
@@ -20,6 +28,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   const [validationRef, setValidationRef] = useState(null);
 
   const startQuiz = async () => {
+    console.log('[QuizSection] startQuiz called', { selectedTopic, numQuestions });
     if (!selectedTopic) return;
     setLoading(true);
     setLoadingMessage(`Constructing ${numQuestions} questions...`);
@@ -65,6 +74,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   };
 
   const fetchAiFeedback = async () => {
+    console.log('[QuizSection] fetchAiFeedback called');
     if (!selectedTopic || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
@@ -80,6 +90,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   };
 
   const finishQuiz = () => {
+    console.log('[QuizSection] finishQuiz');
     setIsShowingResults(true);
     const correctCount = userAnswers.reduce((acc, ans, idx) => 
       ans === (questions[idx]?.correctAnswerIndex ?? -1) ? acc + 1 : acc
@@ -103,7 +114,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             <div className="text-center space-y-3">
                <div className={`text-6xl sm:text-7xl font-black ${score >= 70 ? 'text-unispace' : 'text-red-500'}`}>{score}%</div>
                <h2 className="text-2xl sm:text-3xl font-bold dark:text-white">Assessment Complete</h2>
-               <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Status: {score >= 70 ? 'MASTERED' : 'GAP DETECTED'}</p>
+                    <p className="text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest text-xs">Status: {score >= 70 ? 'MASTERED' : 'GAP DETECTED'}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -137,7 +148,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                     {userAnswers[idx] === q.correctAnswerIndex ? <CheckCircle2 className="text-unispace shrink-0" size={24}/> : <XCircle className="text-red-500 shrink-0" size={24}/>}
                   </div>
                   <div className="text-xs sm:text-sm space-y-1">
-                    <p className="text-gray-400">Chosen: <span className={userAnswers[idx] === q.correctAnswerIndex ? 'text-unispace' : 'text-red-500'}>{q.options[userAnswers[idx]] || 'Timed Out'}</span></p>
+                    <p className="text-gray-400 dark:text-gray-400">Chosen: <span className={userAnswers[idx] === q.correctAnswerIndex ? 'text-unispace' : 'text-red-500'}>{q.options[userAnswers[idx]] || 'Timed Out'}</span></p>
                     <p className="text-gray-900 dark:text-zinc-100 font-bold">Correct: {q.options[q.correctAnswerIndex]}</p>
                   </div>
                   <div className="p-4 sm:p-6 bg-white dark:bg-zinc-900 rounded-xl border dark:border-zinc-700 text-xs sm:text-sm leading-relaxed">
@@ -145,7 +156,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                     <div className="dark:text-zinc-400">{q.explanation}</div>
                     <button 
                       onClick={() => setValidationRef(q.pageReference)}
-                      className="mt-4 flex items-center gap-2 text-[9px] font-black text-gray-400 hover:text-unispace uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-transparent active:border-unispace/20 transition-all"
+                      className="mt-4 flex items-center gap-2 text-[9px] font-black text-gray-500 dark:text-gray-300 hover:text-unispace uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-transparent active:border-unispace/20 transition-all"
                     >
                       <MapPin size={10}/> {q.pageReference} 
                       <span className="flex items-center gap-1 border-l pl-2 ml-1 text-unispace"><ExternalLink size={10}/> Validate</span>
@@ -205,7 +216,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
         <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl space-y-8 sm:space-y-12">
           <div className="flex items-center justify-between">
             <div className="space-y-1 flex-1">
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{currentIdx + 1} / {questions.length}</span>
+              <span className="text-[9px] font-black text-gray-500 dark:text-gray-300 uppercase tracking-widest">{currentIdx + 1} / {questions.length}</span>
               <div className="w-full sm:w-40 h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div className="h-full bg-unispace transition-all duration-300" style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }} />
               </div>
@@ -237,7 +248,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
           </div>
 
           <div className="flex justify-between gap-4 pt-4 sm:pt-6">
-            <button onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)} disabled={currentIdx === 0} className={`flex items-center gap-1 sm:gap-2 font-black text-gray-400 uppercase tracking-widest text-[9px] sm:text-xs ${currentIdx === 0 ? 'opacity-0' : 'hover:text-unispace'}`}>
+            <button onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)} disabled={currentIdx === 0} className={`flex items-center gap-1 sm:gap-2 font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest text-[9px] sm:text-xs ${currentIdx === 0 ? 'opacity-0' : 'hover:text-unispace'}`}>
               <ChevronLeft size={16} /> Back
             </button>
             <button
@@ -259,7 +270,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     <div className="p-4 sm:p-12 max-w-7xl mx-auto space-y-8 sm:space-y-12 mb-24">
       <div className="space-y-2 px-2">
         <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">Quiz Yourself</h2>
-        <p className={`font-bold text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Test your knowledge with AI-generated questions.</p>
+        <p className={`font-bold text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ${isDarkMode ? 'dark:text-gray-400' : ''}`}>Test your knowledge with AI-generated questions.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -274,13 +285,13 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             }`}
           >
             <div className="flex justify-between items-start">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} dark:text-gray-400 group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
             </div>
             <div className="space-y-1 sm:space-y-2">
               <h3 className={`text-lg sm:text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{topic}</h3>
             </div>
             <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
-              <div className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Ready</div>
+              <div className="text-[9px] font-black uppercase text-gray-400 dark:text-gray-400 tracking-widest">Ready</div>
               <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
@@ -297,14 +308,14 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
           <div className="flex flex-col gap-6 sm:gap-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
               <div className="space-y-2 sm:space-y-3">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block px-1">Questions</label>
+                <label className="text-[9px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest block px-1">Questions</label>
                 <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
                   {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n} Items</option>)}
                 </select>
               </div>
               
               <div className="space-y-2 sm:space-y-3">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block px-1">Time Per Question</label>
+                <label className="text-[9px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest block px-1">Time Per Question</label>
                 <select value={timePerQuestion} onChange={e => setTimePerQuestion(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
                   {[15, 30, 45, 60].map(n => <option key={n} value={n}>{n} Seconds</option>)}
                 </select>

@@ -15,6 +15,7 @@ const Dashboard = ({
   const [selectedTopics, setSelectedTopics] = useState(new Set(topics.slice(0, 1)));
 
   const toggleTopic = (topic) => {
+    console.log('[Dashboard] toggleTopic called', topic);
     const newSelected = new Set(selectedTopics);
     if (newSelected.has(topic)) {
       newSelected.delete(topic);
@@ -31,7 +32,10 @@ const Dashboard = ({
       description: 'Test your knowledge with AI-generated quizzes',
       icon: BookOpen,
       color: 'from-blue-600 to-blue-500',
-      onClick: () => onStartQuiz(),
+      onClick: () => {
+        console.log('[Dashboard] onClick quiz');
+        onStartQuiz();
+      },
     },
     {
       id: 'chat',
@@ -39,7 +43,10 @@ const Dashboard = ({
       description: 'Ask questions about any topic',
       icon: MessageSquare,
       color: 'from-purple-600 to-purple-500',
-      onClick: () => onStartChat(),
+      onClick: () => {
+        console.log('[Dashboard] onClick chat');
+        onStartChat();
+      },
     },
     {
       id: 'podcast',
@@ -47,7 +54,10 @@ const Dashboard = ({
       description: 'Listen to an audio summary',
       icon: Radio,
       color: 'from-[#07bc0c] to-green-500',
-      onClick: onStartPodcast,
+      onClick: () => {
+        console.log('[Dashboard] onClick podcast');
+        onStartPodcast();
+      },
     },
   ];
 
@@ -110,7 +120,7 @@ const Dashboard = ({
                 <h3 className={`text-xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                   {mode.title}
                 </h3>
-                <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <p className={`text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                   {mode.description}
                 </p>
               </button>

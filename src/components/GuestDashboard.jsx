@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,6 +9,7 @@ import Footer from './Footer';
 
 // --- Main Dashboard Component ---
 const GuestDashboard = () => {
+const navigate = useNavigate();
 const [marketplaceTab, setMarketplaceTab] = useState('listings');
 const { darkMode, toggleTheme } = useTheme();
 const [userName, setUserName] = useState('Guest');
@@ -141,14 +142,14 @@ text-sm">Available Balance</p>
 font-semibold">₦15,000.00</p>
 </div>
 <div className="flex justify-center gap-2 sm:gap-3 mt-2 sm:mt-3">
-<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-primary
+<button onClick={() => navigate('/fund-wallet')} className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-primary
 text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all">Add Funds</button>
-<button className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4
+<button onClick={() => navigate('/send-money')} className="flex-1 rounded-lg h-10 sm:h-11 px-3 sm:px-4
 bg-background-light dark:bg-slate-700 text-secondary
 dark:text-white text-xs sm:text-sm font-bold hover:bg-background-light/80 dark:hover:bg-slate-600 active:scale-95 transition-all">Send Money</button>
 </div>
-<a className="text-center text-primary text-xs sm:text-sm font-medium
-mt-2 sm:mt-3 inline-block w-full" href="#">View full transaction history</a>
+<button onClick={() => navigate('/transaction-history')} className="text-center text-primary text-xs sm:text-sm font-medium
+mt-2 sm:mt-3 inline-block w-full hover:underline">View full transaction history</button>
 </div>
 </div>
 {/* --- Right Column --- */}

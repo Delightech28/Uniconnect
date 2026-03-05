@@ -35,6 +35,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   }, [cooldown]);
 
   const handleFileUpload = async (file) => {
+    console.log('[StudyHubApp] handleFileUpload called', { file, cooldown });
     if (cooldown > 0) {
       alert(`Please wait ${cooldown} seconds before uploading another document.`);
       return;
@@ -101,10 +102,12 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   };
 
   const handleUploadClick = () => {
+    console.log('[StudyHubApp] handleUploadClick');
     setCurrentView('upload');
   };
 
   const handleQuizComplete = (topicId, score) => {
+    console.log('[StudyHubApp] Quiz complete', { topicId, score });
     const updatedTopics = topics.map(t => 
       t.id === topicId ? { ...t, score, passed: score >= 70 } : t
     );
@@ -112,6 +115,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   };
 
   const renderView = () => {
+    console.log('[StudyHubApp] renderView', { currentView, studyDoc });
     if (!studyDoc && currentView !== 'upload' && currentView !== 'history') {
       return <FileUpload onFileUpload={handleFileUpload} isDarkMode={darkMode} />;
     }
@@ -174,7 +178,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
           <div className={`max-w-4xl mx-auto p-8 ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
             <h2 className="text-3xl font-black mb-8">Document History</h2>
             {history.length === 0 ? (
-              <p className="text-center text-gray-500">No documents uploaded yet</p>
+              <p className="text-center text-gray-500 dark:text-gray-400">No documents uploaded yet</p>
             ) : (
               <div className="space-y-4">
                 {history.map(doc => (
@@ -193,9 +197,9 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-bold text-lg">{doc.name}</h3>
-                        <p className="text-sm text-gray-500">{new Date(doc.uploadedAt).toLocaleString()}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(doc.uploadedAt).toLocaleString()}</p>
                       </div>
-                      <MoreVertical className="w-5 h-5 text-gray-400" />
+                      <MoreVertical className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                   </div>
                 ))}
