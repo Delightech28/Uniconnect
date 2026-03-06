@@ -1,15 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Model constants
-const MODEL_FLASH = 'gemini-2.0-flash';
-const MODEL_PRO = 'gemini-2.0-pro';
+// updated to 2.5 series - 2.0 models are deprecated and will trigger API_KEY_INVALID
+const MODEL_FLASH = 'gemini-2.5-flash';
+const MODEL_PRO = 'gemini-2.5-pro';
 
 // Initialize Gemini API
 const getAI = () => {
+  console.log('[StudyHub] getAI() called');
   // Try multiple sources for the API key
   const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
                  process.env?.VITE_GEMINI_API_KEY ||
                  window.__VITE_GEMINI_API_KEY;
+  
+  console.log('[StudyHub] API key sources checked:');
+  console.log('  import.meta.env.VITE_GEMINI_API_KEY:', !!import.meta.env?.VITE_GEMINI_API_KEY);
+  console.log('  process.env.VITE_GEMINI_API_KEY:', !!process.env?.VITE_GEMINI_API_KEY);
+  console.log('  window.__VITE_GEMINI_API_KEY:', !!window.__VITE_GEMINI_API_KEY);
   
   if (!apiKey) {
     console.error('VITE_GEMINI_API_KEY not found in:');
@@ -25,7 +32,8 @@ const getAI = () => {
     throw new Error(`Invalid API key format. Length: ${trimmedKey.length}`);
   }
   
-  console.log('Using Gemini API key:', trimmedKey.substring(0, 10) + '...');
+  console.log('[StudyHub] Using Gemini API key:', trimmedKey.substring(0, 10) + '...');
+  console.log('[StudyHub] Initializing GoogleGenerativeAI');
   return new GoogleGenerativeAI({ apiKey: trimmedKey });
 };
 
@@ -161,21 +169,26 @@ const extractTextFromResponse = (json) => {
 };
 
 const callGenerate = async (modelName, body, signal) => {
+  console.log('[StudyHub] callGenerate called with model:', modelName);
   const apiKey = getApiKey();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
+  console.log('[StudyHub] callGenerate got API key, making request to:', `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`);
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal
   });
+  console.log('[StudyHub] callGenerate fetch completed with status:', res.status);
   if (!res.ok) {
     const text = await res.text();
+    console.error('[StudyHub] callGenerate failed with status:', res.status, 'response:', text);
     const err = new Error(text || `Request failed: ${res.status}`);
     err.status = res.status;
     throw err;
   }
+  console.log('[StudyHub] callGenerate successful, parsing JSON');
   const json = await res.json();
+  console.log('[StudyHub] callGenerate returning JSON response');
   return json;
 };
 
@@ -188,11 +201,17 @@ const callGenerate = async (modelName, body, signal) => {
  * @returns {Promise<string[]>} Array of topics
  */
 export const generateTopics = async (text, signal) => {
+  console.log('[StudyHub] generateTopics called with text length:', text?.length);
   if (!text || text.trim().length === 0) {
+    console.log('[StudyHub] Empty text, returning default topics');
     return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
   }
   
   try {
+    console.log('[StudyHub] Calling getAI() for topic generation');
+    const ai = getAI();
+    const model = ai.getGenerativeModel({ model: MODEL_FLASH });
+    
     const body = {
       contents: [{
         parts: [{
@@ -201,13 +220,22 @@ export const generateTopics = async (text, signal) => {
       }]
     };
 
-    const json = await callGenerate(MODEL_FLASH, body, signal);
-    const textOut = extractTextFromResponse(json);
-    const topics = parseJsonResponse(textOut) || parseJsonResponse(json?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
-    if (Array.isArray(topics)) return topics.slice(0,7);
+    console.log('[StudyHub] Making generateContent call for topics');
+    const result = await model.generateContent(body);
+    console.log('[StudyHub] generateContent returned for topics');
+    const response = await result.response;
+    const textOut = response.text();
+    console.log('[StudyHub] Topic generation response received, length:', textOut?.length);
+    
+    const topics = parseJsonResponse(textOut) || parseJsonResponse(result?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
+    if (Array.isArray(topics)) {
+      console.log('[StudyHub] Parsed topics:', topics.slice(0,7));
+      return topics.slice(0,7);
+    }
+    console.log('[StudyHub] Failed to parse topics, returning defaults');
     return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
   } catch (error) {
-    console.error('Error generating topics:', error);
+    console.error('[StudyHub] Error generating topics:', error);
     return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
   }
 };

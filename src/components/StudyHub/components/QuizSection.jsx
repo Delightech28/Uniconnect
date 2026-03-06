@@ -119,7 +119,9 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {!aiFeedback ? (
-                  <button onClick={fetchAiFeedback} disabled={isAnalyzing} className="md:col-span-2 flex items-center justify-center gap-3 px-6 py-4 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl shadow-unispace/20 active:scale-95 transition-all">
+                  <button onClick={fetchAiFeedback} disabled={isAnalyzing} className={`md:col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg transition-all ${
+                    isAnalyzing ? 'bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-unispace hover:bg-unispace/90 text-gray-900 dark:text-white shadow-xl shadow-unispace/30 active:scale-95 hover:shadow-2xl'
+                  }`}>
                     {isAnalyzing ? "Analyzing..." : "Get AI Report"}
                   </button>
                 ) : (
@@ -156,7 +158,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                     <div className="dark:text-zinc-400">{q.explanation}</div>
                     <button 
                       onClick={() => setValidationRef(q.pageReference)}
-                      className="mt-4 flex items-center gap-2 text-[9px] font-black text-gray-500 dark:text-gray-300 hover:text-unispace uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-transparent active:border-unispace/20 transition-all"
+                      className="mt-4 flex items-center gap-2 text-[9px] font-black text-gray-900 dark:text-gray-300 hover:text-unispace uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-transparent active:border-unispace/20 transition-all"
                     >
                       <MapPin size={10}/> {q.pageReference} 
                       <span className="flex items-center gap-1 border-l pl-2 ml-1 text-unispace"><ExternalLink size={10}/> Validate</span>
@@ -166,7 +168,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               ))}
             </div>
 
-            <button onClick={() => {setIsQuizRunning(false); setIsShowingResults(false); setSelectedTopic(null);}} className="w-full py-4 sm:py-5 bg-gray-900 text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl shadow-gray-200 active:scale-95 transition-all">Exit Assessment</button>
+            <button onClick={() => {setIsQuizRunning(false); setIsShowingResults(false); setSelectedTopic(null);}} className="w-full py-4 sm:py-5 bg-gray-900 hover:bg-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl active:scale-95 transition-all">Exit Assessment</button>
           </div>
 
           {validationRef && (
@@ -176,8 +178,8 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                   <h4 className="text-lg font-bold flex items-center gap-2"><BookOpen className="text-unispace" /> Validation</h4>
                   <button onClick={() => setValidationRef(null)} className="p-2"><X size={18}/></button>
                 </div>
-                <div className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed italic border dark:border-zinc-700">{docText.substring(0, 5000)}...</div>
-                <button onClick={() => setValidationRef(null)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold">Return to Review</button>
+                <div className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed italic text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700">{docText.substring(0, 5000)}...</div>
+                <button onClick={() => setValidationRef(null)} className="w-full py-4 bg-gray-900 hover:bg-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-2xl font-bold transition-all active:scale-95">Return to Review</button>
               </div>
             </div>
           )}
@@ -236,10 +238,14 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                 className={`p-4 sm:p-6 text-left rounded-2xl sm:rounded-[28px] border-2 transition-all font-semibold text-sm sm:text-lg flex items-center gap-4 sm:gap-6 ${
                   userAnswers[currentIdx] === idx 
                     ? 'border-unispace bg-unispace/5 text-unispace shadow-md' 
-                    : 'border-gray-50 dark:border-zinc-800 dark:text-zinc-300'
+                    : 'border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-zinc-300 hover:border-unispace/30 dark:hover:border-unispace/30'
                 }`}
               >
-                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border-2 shrink-0 ${userAnswers[currentIdx] === idx ? 'bg-unispace text-white border-unispace' : 'border-gray-50 dark:border-zinc-700 text-gray-300'}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border-2 shrink-0 font-bold ${
+                  userAnswers[currentIdx] === idx 
+                    ? 'bg-unispace text-white border-unispace' 
+                    : 'border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-gray-400'
+                }`}>
                   {String.fromCharCode(65 + idx)}
                 </div>
                 <span>{opt}</span>
@@ -248,14 +254,14 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
           </div>
 
           <div className="flex justify-between gap-4 pt-4 sm:pt-6">
-            <button onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)} disabled={currentIdx === 0} className={`flex items-center gap-1 sm:gap-2 font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest text-[9px] sm:text-xs ${currentIdx === 0 ? 'opacity-0' : 'hover:text-unispace'}`}>
+            <button onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)} disabled={currentIdx === 0} className={`flex items-center gap-1 sm:gap-2 font-black uppercase tracking-widest text-[9px] sm:text-xs transition-all ${currentIdx === 0 ? 'opacity-0' : 'text-gray-600 dark:text-gray-300 hover:text-unispace'}`}>
               <ChevronLeft size={16} /> Back
             </button>
             <button
               onClick={handleNext}
               disabled={userAnswers[currentIdx] === -1}
               className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 py-4 sm:py-5 rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg transition-all ${
-                userAnswers[currentIdx] === -1 ? 'bg-gray-100 text-gray-300' : 'bg-unispace text-white shadow-xl shadow-unispace/20 active:scale-95'
+                userAnswers[currentIdx] === -1 ? 'bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-unispace text-gray-900 dark:text-white shadow-xl shadow-unispace/20 active:scale-95 hover:scale-105'
               }`}
             >
               {currentIdx === questions.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={18} />
@@ -267,31 +273,35 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   }
 
   return (
-    <div className="p-4 sm:p-12 max-w-7xl mx-auto space-y-8 sm:space-y-12 mb-24">
+    <div className="p-4 sm:p-12 max-w-7xl mx-auto space-y-8 sm:space-y-12 mb-24 w-full">
       <div className="space-y-2 px-2">
         <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">Quiz Yourself</h2>
-        <p className={`font-bold text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ${isDarkMode ? 'dark:text-gray-400' : ''}`}>Test your knowledge with AI-generated questions.</p>
+        <p className="font-bold text-base sm:text-lg text-gray-600 dark:text-gray-400">Test your knowledge with AI-generated questions.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
         {topics && topics.map((topic, index) => (
           <button
             key={topic || index}
             onClick={() => setSelectedTopic(topic)}
-            className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
+            className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group cursor-pointer ${
               selectedTopic === topic 
-                ? 'border-unispace bg-unispace/5' 
-                : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? 'dark:border-zinc-800' : ''}`
+                ? 'border-unispace bg-unispace/10 shadow-lg shadow-unispace/20' 
+                : `border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-unispace/50 dark:hover:border-unispace/50 hover:shadow-md`
             }`}
           >
             <div className="flex justify-between items-start">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} dark:text-gray-400 group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-colors ${
+                selectedTopic === topic
+                  ? 'bg-unispace text-white'
+                  : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 group-hover:bg-unispace group-hover:text-white'
+              }`}>{index + 1}</div>
             </div>
             <div className="space-y-1 sm:space-y-2">
-              <h3 className={`text-lg sm:text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{topic}</h3>
+              <h3 className="text-lg sm:text-xl font-bold leading-tight text-gray-900 dark:text-white">{topic}</h3>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
-              <div className="text-[9px] font-black uppercase text-gray-400 dark:text-gray-400 tracking-widest">Ready</div>
+            <div className="flex items-center justify-between pt-2 border-t border-gray-300 dark:border-zinc-700">
+              <div className="text-[9px] font-black uppercase text-gray-600 dark:text-gray-400 tracking-widest">Ready</div>
               <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
@@ -299,30 +309,32 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
       </div>
 
       {selectedTopic && (
-        <div className={`${isDarkMode ? 'bg-zinc-900' : 'bg-white'} p-6 sm:p-12 rounded-[32px] sm:rounded-[50px] shadow-2xl ${isDarkMode ? 'border border-zinc-800' : 'border border-gray-100'} animate-in slide-in-from-bottom-4 duration-500`}>
-          <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-10">
+        <div className="bg-white dark:bg-zinc-900 p-6 sm:p-12 rounded-[32px] sm:rounded-[50px] shadow-2xl border border-gray-200 dark:border-zinc-800 animate-in slide-in-from-bottom-4 duration-500 mt-8 sm:mt-12 w-full">
+          <div className="flex items-center gap-3 sm:gap-4 mb-8 sm:mb-12">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-unispace/10 text-unispace rounded-xl flex items-center justify-center shadow-inner"><Zap size={20} /></div>
-            <h3 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : ''}`}>Quiz Settings</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Quiz Settings</h3>
           </div>
           
-          <div className="flex flex-col gap-6 sm:gap-10">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
-              <div className="space-y-2 sm:space-y-3">
-                <label className="text-[9px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest block px-1">Questions</label>
-                <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
-                  {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n} Items</option>)}
+          <div className="flex flex-col gap-6 sm:gap-10 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 w-full">
+              <div className="space-y-2 sm:space-y-3 w-full">
+                <label className="text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest block px-1">Questions</label>
+                <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} className="w-full p-3 sm:p-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base bg-white dark:bg-zinc-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-zinc-600 outline-none appearance-none cursor-pointer hover:border-unispace/50 dark:hover:border-unispace/50 transition-all focus:border-unispace dark:focus:border-unispace">
+                  {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               
-              <div className="space-y-2 sm:space-y-3">
-                <label className="text-[9px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest block px-1">Time Per Question</label>
-                <select value={timePerQuestion} onChange={e => setTimePerQuestion(Number(e.target.value))} className={`w-full p-4 rounded-xl sm:rounded-2xl font-bold text-sm border-none outline-none appearance-none cursor-pointer ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-50'}`}>
+              <div className="space-y-2 sm:space-y-3 w-full">
+                <label className="text-[9px] font-black text-gray-600 dark:text-gray-300 uppercase tracking-widest block px-1">Time Per Question</label>
+                <select value={timePerQuestion} onChange={e => setTimePerQuestion(Number(e.target.value))} className="w-full p-3 sm:p-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base bg-white dark:bg-zinc-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-zinc-600 outline-none appearance-none cursor-pointer hover:border-unispace/50 dark:hover:border-unispace/50 transition-all focus:border-unispace dark:focus:border-unispace">
                   {[15, 30, 45, 60].map(n => <option key={n} value={n}>{n} Seconds</option>)}
                 </select>
               </div>
             </div>
 
-            <button onClick={startQuiz} className="w-full py-4 sm:py-5 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-unispace/20">Begin Quiz</button>
+            <button onClick={startQuiz} className="w-full py-4 sm:py-6 bg-unispace hover:bg-unispace/90 active:bg-unispace/80 text-gray-900 dark:text-white font-bold text-base sm:text-lg rounded-2xl sm:rounded-[24px] shadow-xl shadow-unispace/40 hover:shadow-2xl hover:shadow-unispace/50 active:scale-95 transition-all mt-4 sm:mt-6">
+              Begin Quiz
+            </button>
           </div>
         </div>
       )}

@@ -21,11 +21,28 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [studyDoc, setStudyDoc] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(() => {
+    try {
+      const savedHistory = localStorage.getItem('studyHubHistory');
+      return savedHistory ? JSON.parse(savedHistory) : [];
+    } catch (error) {
+      console.log('[StudyHubApp] Error loading history from localStorage:', error);
+      return [];
+    }
+  });
   const [cooldown, setCooldown] = useState(0);
   const [topics, setTopics] = useState([]);
   const [summaryData, setSummaryData] = useState(null);
   const abortRef = useRef(null);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('studyHubHistory', JSON.stringify(history));
+    } catch (error) {
+      console.log('[StudyHubApp] Error saving history to localStorage:', error);
+    }
+  }, [history]);
 
   useEffect(() => {
     if (cooldown > 0) {
