@@ -310,7 +310,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                   ? 'border-unispace bg-unispace/10 shadow-lg shadow-unispace/20' 
                   : switchBlocked
                     ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900'
-                    : `border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-unispace/50 dark:hover:border-unispace/50 hover:shadow-md`
+                    : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-unispace/50 dark:hover:border-unispace/50 hover:shadow-md'
               }`}
             >
             <div className="flex justify-between items-start">
@@ -327,8 +327,9 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               <div className="text-[9px] font-black uppercase text-gray-600 dark:text-gray-400 tracking-widest">Ready</div>
               <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
             </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {selectedTopic && (
