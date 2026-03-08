@@ -215,7 +215,7 @@ export const generateTopics = async (text, signal) => {
     const body = {
       contents: [{
         parts: [{
-          text: `Extract 5-7 distinct, specific study topics from this document. Return ONLY a JSON array of strings with short topic names (2-4 words each).\n\nText (first 2000 chars):\n${text.substring(0,2000)}...\n\nFormat: ["Topic 1", "Topic 2", "Topic 3", ...]`
+          text: `Extract 7-10 distinct, specific study topics from this document. Include chapters, modules, section titles, subtitles, or any headings when they represent meaningful sections. Return ONLY a JSON array of strings with concise topic names (2-4 words each).\n\nText (first 2000 chars):\n${text.substring(0,2000)}...\n\nFormat: ["Topic 1", "Topic 2", "Topic 3", ...]`
         }]
       }]
     };

@@ -5,6 +5,8 @@ import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
   // State for quiz setup
   const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
+  const [lockedTopic, setLockedTopic] = useState(null);
+  const [topicScores, setTopicScores] = useState({});
 
   // update selectedTopic if topics prop changes
   useEffect(() => {
@@ -30,6 +32,8 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   const startQuiz = async () => {
     console.log('[QuizSection] startQuiz called', { selectedTopic, numQuestions });
     if (!selectedTopic) return;
+    // lock the current topic so user can't switch mid-session
+    setLockedTopic(selectedTopic);
     setLoading(true);
     setLoadingMessage(`Constructing ${numQuestions} questions...`);
     try {
@@ -98,6 +102,14 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     const score = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
     if (selectedTopic) {
       onQuizComplete(selectedTopic, score);
+      // update local score and maybe unlock
+      setTopicScores(prev => ({
+        ...prev,
+        [selectedTopic]: Math.max(prev[selectedTopic] || 0, score)
+      }));
+      if (score >= 70) {
+        setLockedTopic(null);
+      }
     }
   };
 
@@ -280,16 +292,27 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-        {topics && topics.map((topic, index) => (
-          <button
-            key={topic || index}
-            onClick={() => setSelectedTopic(topic)}
-            className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group cursor-pointer ${
-              selectedTopic === topic 
-                ? 'border-unispace bg-unispace/10 shadow-lg shadow-unispace/20' 
-                : `border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-unispace/50 dark:hover:border-unispace/50 hover:shadow-md`
-            }`}
-          >
+        {topics && topics.map((topic, index) => {
+          const switchBlocked = lockedTopic && lockedTopic !== topic && (topicScores[lockedTopic] || 0) < 70;
+          return (
+            <button
+              key={topic || index}
+              onClick={() => {
+                if (switchBlocked) {
+                  alert(`You must score at least 70% on "${lockedTopic}" before switching topics.`);
+                  return;
+                }
+                setSelectedTopic(topic);
+              }}
+              disabled={switchBlocked}
+              className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group cursor-pointer ${
+                selectedTopic === topic 
+                  ? 'border-unispace bg-unispace/10 shadow-lg shadow-unispace/20' 
+                  : switchBlocked
+                    ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900'
+                    : `border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-unispace/50 dark:hover:border-unispace/50 hover:shadow-md`
+              }`}
+            >
             <div className="flex justify-between items-start">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-colors ${
                 selectedTopic === topic
