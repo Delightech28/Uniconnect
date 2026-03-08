@@ -191,7 +191,7 @@ export const trackConversationView = (conversationId, userId) => {
     activeConversationViews.set(conversationId, new Set());
   }
   activeConversationViews.get(conversationId).add(userId);
-  console.log(`User ${userId} now viewing conversation ${conversationId}`);
+  console.log(`User ${userId} now viewing conversation ${conversationId}. Active viewers:`, Array.from(activeConversationViews.get(conversationId)));
 };
 
 /**

@@ -192,7 +192,9 @@ function InboxPage() {
         (async () => {
             try {
                 const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid), orderBy('lastTimestamp', 'desc'));
+                console.log('Setting up conversations listener for user:', user.uid);
                 const unsub = onSnapshot(q, async (snap) => {
+                    console.log('Conversations snapshot received, count:', snap.size);
                     const promises = snap.docs.map(async (d) => {
                         const data = d.data();
                         const otherParticipantId = data.participants?.find(p => p !== user.uid);
@@ -251,12 +253,13 @@ function InboxPage() {
     // Listen to per-user mirrored conversations (users/{uid}/conversations)
     useEffect(() => {
         if (!user) return;
+        console.log('Setting up per-user conversations listener for user:', user.uid);
         const col = collection(db, 'users', user.uid, 'conversations');
         const unsub = onSnapshot(col, (snap) => {
             console.log('Per-user conversations snapshot received, count:', snap.size);
             const items = snap.docs.map(d => {
                 const data = d.data();
-                console.log('Per-user convo doc:', d.id, data);
+                console.log('Processing per-user convo doc:', d.id, 'participants:', data.participants, 'lastMessage:', data.lastMessage);
                 return {
                     id: d.id,
                     ...data,

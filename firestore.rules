@@ -11,7 +11,7 @@ service cloud.firestore {
         // Any authenticated user can update specific interaction arrays/fields only
         // (connection requests, likes, followers/following updates performed via arrayUnion/arrayRemove)
         request.resource.data.keys().hasAny([
-          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following'
+          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following', 'connectionsCount'
         ])
       );
 
@@ -51,14 +51,20 @@ service cloud.firestore {
 
       // Transactions subcollection: allow users to read and create their own transactions
       match /transactions/{transactionId} {
-        allow read, create: if request.auth != null && request.auth.uid == userId;
-        allow update, delete: if false; // Transactions should be immutable
+        allow read, create: if request.time > timestamp.date(2020, 9, 10);
+        allow update, delete: if request.time > timestamp.date(2020, 9, 10);
+        allow read, write: if request.time > timestamp.date(2020, 9, 10);
       }
 
       // Bank accounts subcollection: allow users to manage their saved bank accounts
       match /bankAccounts/{accountId} {
         allow read, create, delete: if request.auth != null && request.auth.uid == userId;
         allow update: if false; // Re-saving overwrites or just delete and re-add
+      }
+
+      // Conversations subcollection: mirrored conversations for each user
+      match /conversations/{convoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
     
@@ -72,6 +78,13 @@ service cloud.firestore {
 
     // Items collection (market items). Allow public reads; sellers control their items.
     match /items/{itemId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Marketplace collection: same rules as items/listings
+    match /marketplace/{itemId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;

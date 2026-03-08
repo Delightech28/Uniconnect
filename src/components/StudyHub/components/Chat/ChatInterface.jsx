@@ -35,14 +35,16 @@ const FormattedText = ({ text, isDarkMode }) => {
 /**
  * ChatInterface component
  */
-const ChatInterface = ({ 
-  file, 
-  topics, 
-  tone = 'FRIENDLY', 
-  accent = 'en-US', 
+const ChatInterface = ({
+  file,
+  topics,
+  tone = 'FRIENDLY',
+  accent = 'en-US',
   isDarkMode,
   onExit
 }) => {
+  console.log('[ChatInterface] COMPONENT MOUNTED/UPDATED');
+  console.log('[ChatInterface] Props received:', { file: !!file, topics, tone, accent, isDarkMode, onExit: !!onExit });
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -62,6 +64,7 @@ const ChatInterface = ({
 
   // Initialize chat on component mount
   useEffect(() => {
+    console.log('[ChatInterface] useEffect - initializing chat');
     initChat();
   }, []);
 
@@ -70,13 +73,17 @@ const ChatInterface = ({
   };
 
   useEffect(() => {
+    console.log('[ChatInterface] useEffect - messages changed, scrolling to bottom', { messageCount: messages.length });
     scrollToBottom();
   }, [messages]);
 
   const initChat = async () => {
+    console.log('[ChatInterface] initChat called', { file: !!file, topics, tone });
     try {
       setError(null);
+      console.log('[ChatInterface] Initializing chat with context...');
       const chatSession = await initializeChatWithContext(file, topics, tone);
+      console.log('[ChatInterface] Chat session initialized successfully:', !!chatSession);
       setSession(chatSession);
       
       // Load initial welcome message
@@ -95,30 +102,41 @@ const ChatInterface = ({
       setSessions(newSessions);
       localStorage.setItem('chat-sessions', JSON.stringify(newSessions));
       localStorage.setItem(`chat-${newSessionId}`, JSON.stringify([initialMsg]));
+      console.log('[ChatInterface] initChat completed successfully');
     } catch (err) {
+      console.error('[ChatInterface] initChat failed:', err);
       setError(err.message || 'Failed to initialize chat');
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !session || isLoading) return;
-    
+    console.log('[ChatInterface] handleSend called', { input: input.trim(), session: !!session, isLoading });
+    if (!input.trim() || !session || isLoading) {
+      console.log('[ChatInterface] handleSend blocked - conditions not met', { hasInput: !!input.trim(), hasSession: !!session, isLoading });
+      return;
+    }
+
     const userMessage = {
       id: Date.now(),
       sender: 'user',
       text: input,
       timestamp: new Date(),
     };
-    
+
+    console.log('[ChatInterface] Adding user message to state');
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    
+
     try {
       setError(null);
+      console.log('[ChatInterface] Sending message to AI...');
       const response = await session.sendMessage(input);
-      
+      console.log('[ChatInterface] Received response:', !!response);
+
       const responseText = response.response?.text ? response.response.text() : '';
+      console.log('[ChatInterface] Response text length:', responseText.length);
+
       const aiMessage = {
         id: Date.now() + 1,
         sender: 'ai',
@@ -126,51 +144,67 @@ const ChatInterface = ({
         timestamp: new Date(),
         citations: response.citations || [],
       };
-      
+
+      console.log('[ChatInterface] Adding AI message to state', { hasCitations: !!response.citations?.length });
       setMessages(prev => [...prev, aiMessage]);
-      
+
       // Save to localStorage
       const updatedMessages = [...messages, userMessage, aiMessage];
       localStorage.setItem(`chat-${currentSessionId}`, JSON.stringify(updatedMessages));
+      console.log('[ChatInterface] Message saved to localStorage');
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error('[ChatInterface] Error sending message:', err);
       setError(err.message || 'Failed to send message');
     } finally {
       setIsLoading(false);
+      console.log('[ChatInterface] handleSend completed');
     }
   };
 
   const handleSpeak = async (text) => {
+    console.log('[ChatInterface] handleSpeak called', { textLength: text.length, accent });
     try {
       setIsSpeaking(true);
       setError(null);
+      console.log('[ChatInterface] Starting text-to-speech...');
       await speakText(text, accent);
+      console.log('[ChatInterface] Text-to-speech completed successfully');
     } catch (err) {
+      console.error('[ChatInterface] Text-to-speech failed:', err);
       setError('Failed to speak message');
     } finally {
       setIsSpeaking(false);
+      console.log('[ChatInterface] handleSpeak completed');
     }
   };
 
   const copyToClipboard = (text, id) => {
+    console.log('[ChatInterface] copyToClipboard called', { textLength: text.length, id });
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
   };
 
   const loadSession = (sessionId) => {
+    console.log('[ChatInterface] loadSession called', { sessionId });
     const saved = localStorage.getItem(`chat-${sessionId}`);
     if (saved) {
-      setMessages(JSON.parse(saved));
+      const parsedMessages = JSON.parse(saved);
+      console.log('[ChatInterface] Loaded session messages:', parsedMessages.length);
+      setMessages(parsedMessages);
       setCurrentSessionId(sessionId);
+    } else {
+      console.log('[ChatInterface] No saved session found for:', sessionId);
     }
   };
 
   const startNewSession = () => {
+    console.log('[ChatInterface] startNewSession called');
     initChat();
   };
 
   const openReference = (page) => {
+    console.log('[ChatInterface] openReference called', { page });
     setSelectedRefPage(page);
     setIsViewerOpen(true);
   };
@@ -210,6 +244,7 @@ const ChatInterface = ({
             ← Back
           </button>
         </div>
+      </div>
 
       {/* Settings Panel */}
       {showSettings && (
@@ -222,7 +257,6 @@ const ChatInterface = ({
           </button>
         </div>
       )}
-      </div>
 
       {/* Messages */}
       <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
@@ -233,56 +267,59 @@ const ChatInterface = ({
           </div>
         )}
 
-        {messages.map((msg, idx) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {messages.map((msg, idx) => {
+          console.log('[ChatInterface] Rendering message:', { idx, sender: msg.sender, textLength: msg.text.length, hasCitations: !!msg.citations?.length });
+          return (
             <div
-              className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl p-4 ${
-                msg.sender === 'user'
-                  ? isDarkMode ? 'bg-[#07bc0c]/20 text-white' : 'bg-[#07bc0c]/20 text-slate-900'
-                  : isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-900 border border-slate-100'
-              }`}
+              key={msg.id}
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="mb-2">
-                <FormattedText text={msg.text} isDarkMode={isDarkMode} />
-              </div>
-
-              {msg.citations && msg.citations.length > 0 && (
-                <div className={`mt-3 pt-3 border-t space-y-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  {msg.citations.map((cite, i) => (
-                    <button
-                      key={i}
-                      onClick={() => openReference(cite.page)}
-                      className={`flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
-                    >
-                      <FileText className="w-3 h-3" /> Source: Page {cite.page}
-                    </button>
-                  ))}
+              <div
+                className={`max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl rounded-2xl p-4 ${
+                  msg.sender === 'user'
+                    ? isDarkMode ? 'bg-[#07bc0c]/20 text-white' : 'bg-[#07bc0c]/20 text-slate-900'
+                    : isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-900 border border-slate-100'
+                }`}
+              >
+                <div className="mb-2">
+                  <FormattedText text={msg.text} isDarkMode={isDarkMode} />
                 </div>
-              )}
 
-              <div className="flex items-center gap-2 mt-3">
-                <button
-                  onClick={() => copyToClipboard(msg.text, msg.id)}
-                  className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
-                >
-                  {copied === msg.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </button>
-                {msg.sender === 'ai' && (
-                  <button
-                    onClick={() => handleSpeak(msg.text)}
-                    disabled={isSpeaking}
-                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700 disabled:opacity-50' : 'hover:bg-slate-100 disabled:opacity-50'}`}
-                  >
-                    {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </button>
+                {msg.citations && msg.citations.length > 0 && (
+                  <div className={`mt-3 pt-3 border-t space-y-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                    {msg.citations.map((cite, i) => (
+                      <button
+                        key={i}
+                        onClick={() => openReference(cite.page)}
+                        className={`flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
+                      >
+                        <FileText className="w-3 h-3" /> Source: Page {cite.page}
+                      </button>
+                    ))}
+                  </div>
                 )}
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => copyToClipboard(msg.text, msg.id)}
+                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+                  >
+                    {copied === msg.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  {msg.sender === 'ai' && (
+                    <button
+                      onClick={() => handleSpeak(msg.text)}
+                      disabled={isSpeaking}
+                      className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-slate-700 disabled:opacity-50' : 'hover:bg-slate-100 disabled:opacity-50'}`}
+                    >
+                      {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && (
           <div className="flex justify-start">
@@ -301,7 +338,10 @@ const ChatInterface = ({
         <textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            console.log('[ChatInterface] Input changed', { newLength: e.target.value.length });
+            setInput(e.target.value);
+          }}
           onKeyPress={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -314,7 +354,7 @@ const ChatInterface = ({
               ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-[#07bc0c]'
               : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#07bc0c]'
           }`}
-          rows="3"
+          rows={3}
         />
         <button
           onClick={handleSend}
