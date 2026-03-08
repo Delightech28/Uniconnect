@@ -17,7 +17,7 @@ const Sidebar = ({ currentView, onViewChange, hasDocument, disabled, onUploadCli
       {/* Mobile Bottom Navigation */}
       <div className={`fixed bottom-0 left-0 right-0 md:hidden z-40 border-t ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="flex justify-between">
-          {menuItems.slice(0, 4).map((item) => {
+          {menuItems.filter(item => ['upload', 'analysis', 'quiz', 'tutor', 'history'].includes(item.id)).map((item) => {
             const Icon = item.icon;
             const isDisabled = item.requiresDoc && !hasDocument;
             const isActive = currentView === item.id;

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, Clock, MapPin, Target, Zap, Rocket, Activity, Lock, ArrowLeft, BookOpen, ExternalLink, X } from 'lucide-react';
 import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
+  console.log('[QuizSection] QUIZSECTION COMPONENT MOUNTED/UPDATED');
+  console.log('[QuizSection] Props received:', { docText: !!docText, topicsLength: topics?.length, topics, onQuizComplete: !!onQuizComplete, setLoading: !!setLoading, setLoadingMessage: !!setLoadingMessage, isDarkMode });
   // State for quiz setup
   const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
   const [lockedTopic, setLockedTopic] = useState(null);
@@ -28,6 +30,22 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   const [aiFeedback, setAiFeedback] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [validationRef, setValidationRef] = useState(null);
+  const validationScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (validationRef && validationScrollRef.current) {
+      const text = docText;
+      const marker = `--- ${validationRef} ---`;
+      const index = text.indexOf(marker);
+      if (index !== -1) {
+        // Scroll to the position
+        const element = validationScrollRef.current;
+        const charHeight = 16; // approximate
+        const scrollTop = (index / text.length) * element.scrollHeight;
+        element.scrollTop = scrollTop;
+      }
+    }
+  }, [validationRef, docText]);
 
   const startQuiz = async () => {
     console.log('[QuizSection] startQuiz called', { selectedTopic, numQuestions });
@@ -38,6 +56,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     setLoadingMessage(`Constructing ${numQuestions} questions...`);
     try {
       const qs = await generateQuiz(docText, selectedTopic, numQuestions);
+      console.log('[QuizSection] Generated questions:', qs);
       setQuestions(qs);
       setUserAnswers(new Array(qs.length).fill(-1));
       setCurrentIdx(0);
@@ -190,7 +209,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                   <h4 className="text-lg font-bold flex items-center gap-2"><BookOpen className="text-unispace" /> Validation</h4>
                   <button onClick={() => setValidationRef(null)} className="p-2"><X size={18}/></button>
                 </div>
-                <div className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed italic text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700">{docText.substring(0, 5000)}...</div>
+                <div ref={validationScrollRef} className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed italic text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700">{docText}</div>
                 <button onClick={() => setValidationRef(null)} className="w-full py-4 bg-gray-900 hover:bg-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-2xl font-bold transition-all active:scale-95">Return to Review</button>
               </div>
             </div>
@@ -202,6 +221,11 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     const currentQ = questions[currentIdx];
     
     if (!currentQ || questions.length === 0) {
+      console.log('[QuizSection] No current question or questions empty', { currentQ, questionsLength: questions.length });
+      // added fallback: the quiz may have arrived but on display property mismatch
+      if (currentQ && currentQ.text) {
+        console.log('[QuizSection] currentQ has text but something else wrong', currentQ);
+      }
       return (
         <div className="max-w-3xl mx-auto py-6 sm:py-12 px-4 sm:px-6 mb-24">
           <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl flex flex-col items-center justify-center gap-8 min-h-96">
@@ -240,7 +264,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             </div>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{currentQ.question}</h3>
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{(() => { console.log('[QuizSection] displaying question', currentQ); return currentQ.text || currentQ.question; })()}</h3>
 
           <div className="grid gap-3 sm:gap-4">
             {currentQ.options.map((opt, idx) => (
@@ -284,6 +308,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
     );
   }
 
+  console.log('[QuizSection] Rendering main quiz selection view');
   return (
     <div className="p-4 sm:p-12 max-w-7xl mx-auto space-y-8 sm:space-y-12 mb-24 w-full">
       <div className="space-y-2 px-2">
@@ -292,7 +317,8 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-        {topics && topics.map((topic, index) => {
+        {topics && topics.length > 0 ? (
+          topics.map((topic, index) => {
           const switchBlocked = lockedTopic && lockedTopic !== topic && (topicScores[lockedTopic] || 0) < 70;
           return (
             <button
@@ -329,7 +355,27 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             </div>
             </button>
           );
-        })}
+        })
+        ) : (
+          <div className="col-span-full max-w-3xl mx-auto py-6 sm:py-12 px-4 sm:px-6 mb-24">
+            <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl flex flex-col items-center justify-center gap-8 min-h-96">
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 bg-gradient-to-r from-unispace to-[#07bc0c] rounded-full blur-lg opacity-50 animate-pulse"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 border-4 border-gray-200 dark:border-zinc-700 border-t-unispace border-r-[#07bc0c] rounded-full animate-spin"></div>
+                </div>
+              </div>
+              <div className="text-center space-y-3">
+                <p className="text-lg font-bold dark:text-white">Loading topics...</p>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedTopic && (

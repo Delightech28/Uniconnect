@@ -79,7 +79,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        text += textContent.items.map((item) => item.str).join(' ') + '\n';
+        text += `--- Page ${i} ---\n` + textContent.items.map((item) => item.str).join(' ') + '\n\n';
       }
 
       if (!text.trim()) {
@@ -93,7 +93,8 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         name: file.name,
         text: text,
         uploadedAt: new Date().toISOString(),
-        id: Date.now().toString()
+        id: Date.now().toString(),
+        topics: extractedTopics
       };
 
       setStudyDoc(docData);
@@ -155,6 +156,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         );
       
       case 'quiz':
+        console.log('[App] Rendering QuizSection with topics:', topics);
         return studyDoc ? (
           <QuizSection 
             docText={studyDoc.text}
@@ -201,8 +203,24 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
                 {history.map(doc => (
                   <div
                     key={doc.id}
-                    onClick={() => {
+                    onClick={async () => {
                       setStudyDoc(doc);
+                      if (doc.topics) {
+                        setTopics(doc.topics);
+                      } else {
+                        // Regenerate topics for old documents
+                        setLoading(true);
+                        setLoadingMessage('Loading topics...');
+                        try {
+                          const extractedTopics = await generateTopics(doc.text);
+                          setTopics(extractedTopics);
+                        } catch (error) {
+                          console.error('Error regenerating topics:', error);
+                          setTopics([]);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
                       setCurrentView('analysis');
                     }}
                     className={`p-6 rounded-2xl cursor-pointer transition-all ${

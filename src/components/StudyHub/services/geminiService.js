@@ -9,19 +9,16 @@ const MODEL_PRO = 'gemini-2.5-pro';
 const getAI = () => {
   console.log('[StudyHub] getAI() called');
   // Try multiple sources for the API key
-  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
-                 process.env?.VITE_GEMINI_API_KEY ||
+  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY ||
                  window.__VITE_GEMINI_API_KEY;
   
   console.log('[StudyHub] API key sources checked:');
   console.log('  import.meta.env.VITE_GEMINI_API_KEY:', !!import.meta.env?.VITE_GEMINI_API_KEY);
-  console.log('  process.env.VITE_GEMINI_API_KEY:', !!process.env?.VITE_GEMINI_API_KEY);
   console.log('  window.__VITE_GEMINI_API_KEY:', !!window.__VITE_GEMINI_API_KEY);
   
   if (!apiKey) {
     console.error('VITE_GEMINI_API_KEY not found in:');
     console.error('  import.meta.env:', import.meta.env);
-    console.error('  process.env:', process.env);
     throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env and restart dev server.');
   }
   
@@ -137,7 +134,7 @@ const getToneInstruction = (tone) => {
 
 // Return trimmed API key string
 const getApiKey = () => {
-  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
   if (!apiKey) throw new Error('VITE_GEMINI_API_KEY not configured');
   return apiKey.trim();
 };
@@ -170,7 +167,7 @@ const extractTextFromResponse = (json) => {
 
 const callGenerate = async (modelName, body, signal) => {
   console.log('[StudyHub] callGenerate called with model:', modelName);
-  const apiKey = getApiKey();
+  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
   console.log('[StudyHub] callGenerate got API key, making request to:', `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`);
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
     method: 'POST',
@@ -331,7 +328,7 @@ export const generateQuiz = async (docText, topic, count = 5, signal) => {
   try {
     const body = {
       contents: [{
-        parts: [{ text: `Generate ${count} multiple choice quiz questions about "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[ { \"id\": \"1\", \"text\": \"Question text here?\", \"options\": [\"A\",\"B\",\"C\",\"D\"], \"correctAnswerIndex\": 0, \"explanation\": \"Why\" } ]\n\nDocument text to base questions on:\n${docText.substring(0,3000)}...\n\nRules: Questions must be answerable from the document. Return ONLY the JSON array.` }]
+        parts: [{ text: `Generate ${count} multiple choice quiz questions about "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[ { \"id\": \"1\", \"text\": \"Question text here?\", \"options\": [\"A\",\"B\",\"C\",\"D\"], \"correctAnswerIndex\": 0, \"explanation\": \"Why\", \"pageReference\": \"Page 1\" } ]\n\nDocument text to base questions on:\n${docText.substring(0,3000)}...\n\nRules: Questions must be answerable from the document. Include pageReference as the page number where the information is found. Return ONLY the JSON array.` }]
       }]
     };
 
@@ -485,7 +482,7 @@ export const analyzeQuizPerformance = async (topicTitle, questions, userAnswers,
 // Debug helper: verify API key by calling list models endpoint
 export const verifyApiKey = async () => {
   try {
-    const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY;
+    const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
     console.log('[verifyApiKey] Fetching models list from:', url.substring(0, 80) + '...');
     const res = await fetch(url, { method: 'GET' });

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Volume2, VolumeX, Plus, ChevronDown, FileText } from 'lucide-react';
-import { askTutor } from '../services/geminiService';
+import { askTutor, speakText } from '../services/geminiService';
 
 /**
  * FormattedText component for rendering rich text with markdown support
