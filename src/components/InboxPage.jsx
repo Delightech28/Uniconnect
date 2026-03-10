@@ -16,7 +16,18 @@ import { searchGifs } from '../services/giphyService';
 const MY_AVATAR_URL = null;
 
 // --- Conversation Item Component ---
-const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
+const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => {
+    console.log('[ConversationItem] Rendering conversation:', {
+        id: convo.id,
+        name: convo.name,
+        hasAvatarUrl: !!convo.avatarUrl,
+        avatarUrlLength: convo.avatarUrl?.length,
+        avatarUrl: convo.avatarUrl?.substring(0, 100),
+        isOnline: convo.isOnline,
+        unreadCount: convo.unreadCount
+    });
+    
+    return (
     <div
         onClick={onSelect}
         className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-all duration-300 relative group animate-fade-in border-l-4 ${
@@ -62,7 +73,8 @@ const ConversationItem = ({ convo, isActive, onSelect, onAvatarClick }) => (
             )}
         </div>
     </div>
-);
+    );
+};
 
 // --- Message Bubble Component ---
 const MessageBubble = ({ message, senderAvatar, isMe, onAvatarClick, senderName }) => {
@@ -166,6 +178,7 @@ function InboxPage() {
     const [filterType, setFilterType] = useState('all'); // 'all', 'unread', 'archived'
     const [isChatVisible, setIsChatVisible] = useState(false);
     const [showConvoInfo, setShowConvoInfo] = useState(false);
+    const [deletingConvoId, setDeletingConvoId] = useState(null);
     const [newMessage, setNewMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -202,6 +215,12 @@ function InboxPage() {
                         let avatarUrl = null;
                         let gender = null;
 
+                        console.log('[ConvoFetch] Processing conversation:', {
+                            convoId: d.id,
+                            otherParticipantId,
+                            hasParticipants: !!data.participants
+                        });
+
                         if (otherParticipantId) {
                             try {
                                 const otherUserDoc = await getDoc(doc(db, 'users', otherParticipantId));
@@ -212,19 +231,28 @@ function InboxPage() {
                                         avatarUrl = userData.avatarUrl;
                                     }
                                     gender = userData.gender || null;
-                                    console.log('Fetched missing seller info for conversation:', name); // Debug
+                                    console.log('[ConvoFetch] Fetched user data for conversation:', {
+                                        name,
+                                        hasAvatarUrl: !!avatarUrl,
+                                        gender,
+                                        avatarUrlLength: avatarUrl?.length
+                                    });
                                 }
                             } catch (err) {
-                                console.warn('Failed to fetch other participant info:', err);
+                                console.warn('[ConvoFetch] Failed to fetch other participant info:', err);
                             }
                         }
 
                         // Use gender-based default if no avatar URL
                         if (!avatarUrl) {
                             avatarUrl = getDefaultAvatar(gender || 'male');
+                            console.log('[ConvoFetch] Using default avatar for gender:', {
+                                gender,
+                                defaultAvatarLength: avatarUrl?.length
+                            });
                         }
 
-                        return {
+                        const convoResult = {
                             id: d.id,
                             ...data,
                             name,
@@ -234,6 +262,15 @@ function InboxPage() {
                             timestamp: data.lastTimestamp ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
                             unreadCount: data.unreadCount || 0,
                         };
+                        
+                        console.log('[ConvoFetch] Final conversation object:', {
+                            id: convoResult.id,
+                            name: convoResult.name,
+                            hasAvatarUrl: !!convoResult.avatarUrl,
+                            avatarUrlStart: convoResult.avatarUrl?.substring(0, 50)
+                        });
+
+                        return convoResult;
                     });
 
                     Promise.all(promises).then((items) => {
@@ -253,26 +290,59 @@ function InboxPage() {
     // Listen to per-user mirrored conversations (users/{uid}/conversations)
     useEffect(() => {
         if (!user) return;
-        console.log('Setting up per-user conversations listener for user:', user.uid);
+        console.log('[PerUserConvos] Setting up per-user conversations listener for user:', user.uid);
         const col = collection(db, 'users', user.uid, 'conversations');
-        const unsub = onSnapshot(col, (snap) => {
-            console.log('Per-user conversations snapshot received, count:', snap.size);
-            const items = snap.docs.map(d => {
+        const unsub = onSnapshot(col, async (snap) => {
+            console.log('[PerUserConvos] Snapshot received, count:', snap.size);
+            const promises = snap.docs.map(async (d) => {
                 const data = d.data();
-                console.log('Processing per-user convo doc:', d.id, 'participants:', data.participants, 'lastMessage:', data.lastMessage);
+                const otherParticipantId = (data.participants || []).find(p => p !== user.uid);
+                console.log('[PerUserConvos] Processing doc:', d.id, 'otherId:', otherParticipantId, 'hasAvatar:', !!data.avatarUrl);
+                
+                let avatarUrl = data.avatarUrl || null;
+                let name = data.name || '';
+                let gender = data.gender || null;
+                
+                // If avatar is missing, fetch from other participant
+                if (!avatarUrl && otherParticipantId) {
+                    try {
+                        const otherUserDoc = await getDoc(doc(db, 'users', otherParticipantId));
+                        if (otherUserDoc.exists()) {
+                            const userData = otherUserDoc.data();
+                            if (!name) name = userData.displayName || (userData.email || '').split('@')[0] || 'User';
+                            if (userData.avatarUrl) {
+                                avatarUrl = userData.avatarUrl;
+                                console.log('[PerUserConvos] ✅ Fetched avatar for', otherParticipantId, ':', avatarUrl.substring(0, 50) + '...');
+                            }
+                            if (!gender) gender = userData.gender || null;
+                        }
+                    } catch (err) {
+                        console.warn('[PerUserConvos] Failed to fetch avatar for participant', otherParticipantId, err);
+                    }
+                }
+
+                // Use gender-based default if still no avatar
+                if (!avatarUrl) {
+                    avatarUrl = getDefaultAvatar(gender || 'male');
+                    console.log('[PerUserConvos] Using default avatar for', otherParticipantId, ':', avatarUrl.substring(0, 50) + '...');
+                }
+                
                 return {
                     id: d.id,
                     ...data,
-                    // ensure consistent shape with top-level conversations
-                    otherParticipantId: (data.participants || []).find(p => p !== user.uid) || null,
-                    name: data.name || '',
-                    avatarUrl: data.avatarUrl || null,
-                    gender: data.gender || null,
+                    otherParticipantId,
+                    name,
+                    avatarUrl,
+                    gender,
                     timestamp: data.lastTimestamp ? (data.lastTimestamp.toDate ? new Date(data.lastTimestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') : '',
                     unreadCount: data.unreadCount || 0,
                 };
             });
-            setPerUserConversations(items);
+            
+            Promise.all(promises).then((items) => {
+                console.log('[PerUserConvos] Setting state with', items.length, 'conversations, avatars:', items.map(i => ({ id: i.id, hasAvatar: !!i.avatarUrl, avatar: i.avatarUrl?.substring(0, 50) })));
+                setPerUserConversations(items);
+            }).catch(err => console.error('[PerUserConvos] Error processing conversations:', err));
         }, (err) => console.error('Per-user conversations subscription error', err));
 
         return () => unsub();
@@ -287,21 +357,26 @@ function InboxPage() {
                 const conns = await getConnections(user.uid);
                 if (!mounted) return;
                 // normalize connection entries
-                const normalized = conns.map(c => ({
-                    id: `conn:${c.id}`,
-                    userId: c.id,
-                    name: c.displayName || (c.email || '').split('@')[0] || 'User',
-                    avatarUrl: c.avatarUrl || getDefaultAvatar(c.gender || 'male'),
-                    gender: c.gender || null,
-                    lastMessage: '',
-                    lastTimestamp: null,
-                    unreadCount: 0,
-                    isConnectionOnly: true,
-                    isOnline: c.isOnline || false,
-                }));
+                const normalized = conns.map(c => {
+                    const avatar = c.avatarUrl || getDefaultAvatar(c.gender || 'male');
+                    console.log('[ConnList] Normalizing connection:', c.id, 'name:', c.displayName, 'avatar:', avatar?.substring(0, 50) + '...');
+                    return {
+                        id: c.id,
+                        userId: c.id,
+                        name: c.displayName || (c.email || '').split('@')[0] || 'User',
+                        avatarUrl: avatar,
+                        gender: c.gender || null,
+                        lastMessage: '',
+                        lastTimestamp: null,
+                        unreadCount: 0,
+                        isConnectionOnly: true,
+                        isOnline: c.isOnline || false,
+                    };
+                });
+                console.log('[ConnList] Set', normalized.length, 'connections:', normalized.map(n => ({ id: n.id, name: n.name })));
                 setConnectionsList(normalized);
             } catch (err) {
-                console.warn('Failed to load connections for inbox:', err);
+                console.warn('[ConnList] Failed to load connections for inbox:', err);
             }
         })();
         return () => { mounted = false; };
@@ -431,33 +506,88 @@ function InboxPage() {
     }, [activeConvoId, user]);
 
     const mergedConversations = useMemo(() => {
-        // Merge top-level conversations and per-user mirrored conversations only (no connection quick-start items)
         const top = conversations || [];
         const mirrors = perUserConversations || [];
 
-        // Index top-level by id for quick lookup
-        const byId = new Map();
+        // helper to get other participant id from conversation object
+        const getOther = (c) => {
+            if (c.otherParticipantId) return c.otherParticipantId;
+            if (c.participants) {
+                const other = c.participants.find(p => p !== user?.uid);
+                return other || null;
+            }
+            return null;
+        };
+
+        const byParticipant = new Map();
+
+        const mergeRecord = (rec) => {
+            const other = getOther(rec);
+            if (!other) return;
+            const existing = byParticipant.get(other);
+            if (existing) {
+                // choose whichever has the latest timestamp
+                const ts = (r) => r.lastTimestamp && r.lastTimestamp.toDate ? r.lastTimestamp.toDate().getTime() : (r.lastTimestamp || 0);
+                if (ts(rec) > ts(existing)) {
+                    console.log('[Merge] Replacing existing record for', other, 'with newer one, existing avatar:', existing.avatarUrl?.substring(0, 50), 'new avatar:', rec.avatarUrl?.substring(0, 50));
+                    // Preserve avatarUrl if the new record doesn't have one
+                    byParticipant.set(other, { ...existing, ...rec, avatarUrl: rec.avatarUrl || existing.avatarUrl });
+                } else {
+                    console.log('[Merge] Keeping existing record for', other, 'existing avatar:', existing.avatarUrl?.substring(0, 50), 'new avatar:', rec.avatarUrl?.substring(0, 50));
+                    byParticipant.set(other, { ...rec, ...existing, avatarUrl: rec.avatarUrl || existing.avatarUrl });
+                }
+            } else {
+                console.log('[Merge] Adding new record for participant', other, 'avatar:', rec.avatarUrl?.substring(0, 50));
+                byParticipant.set(other, rec);
+            }
+        };
+
         top.forEach(c => {
-            console.log('Adding top-level conversation:', c.id, { name: c.name, lastMessage: c.lastMessage });
-            byId.set(c.id, { ...c, source: 'top' });
+            const other = getOther(c);
+            console.log('[MergedConvo] Adding top-level conversation for participant', other, 'id:', c.id, 'avatar:', c.avatarUrl);
+            mergeRecord({ ...c, source: 'top' });
         });
 
-        // Add mirrors if not present; if present, merge missing fields
         mirrors.forEach(m => {
-            console.log('Adding mirrored conversation:', m.id, { name: m.name, lastMessage: m.lastMessage });
-            const existing = byId.get(m.id);
-            if (existing) {
-                byId.set(m.id, { ...m, ...existing });
+            const other = getOther(m);
+            console.log('[MergedConvo] Adding mirrored conversation for participant', other, 'id:', m.id, 'avatar:', m.avatarUrl);
+            mergeRecord({ ...m, source: 'mirror' });
+        });
+
+        connectionsList.forEach(conn => {
+            const actualUserId = conn.userId;
+            const hasConversation = byParticipant.has(actualUserId);
+            const existing = byParticipant.get(actualUserId);
+            console.log('[MergedConvo] Checking connection:', conn.id, 'userId:', actualUserId, 'hasConvo:', hasConversation, 'connAvatarLen:', conn.avatarUrl?.length, 'existingAvatar:', existing?.avatarUrl?.substring(0, 50));
+            
+            if (!hasConversation) {
+                console.log('[MergedConvo] ✅ Adding connection placeholder for', actualUserId, 'name:', conn.name, 'avatar:', conn.avatarUrl?.substring(0, 50) + '...');
+                byParticipant.set(actualUserId, {
+                    id: `conn:${actualUserId}`,
+                    name: conn.name,
+                    avatarUrl: conn.avatarUrl,
+                    gender: conn.gender,
+                    lastMessage: 'Start a conversation',
+                    timestamp: '',
+                    unreadCount: 0,
+                    isOnline: conn.isOnline,
+                    otherParticipantId: actualUserId,
+                    source: 'connection',
+                    participants: [user?.uid, actualUserId],
+                });
             } else {
-                byId.set(m.id, { ...m, source: 'mirror' });
+                // Update avatar if connection has a real avatar but existing doesn't
+                if (conn.avatarUrl && (!existing.avatarUrl || existing.avatarUrl.includes('default'))) {
+                    console.log('[MergedConvo] 🔄 Updating avatar for existing conversation', actualUserId, 'from connection');
+                    existing.avatarUrl = conn.avatarUrl;
+                }
+                console.log('[MergedConvo] ⏭️ Conversation exists for', actualUserId, 'source:', existing.source, 'lastMsg:', (existing.lastMessage || '').substring(0, 30), 'avatar:', existing.avatarUrl?.substring(0, 50));
             }
         });
 
-        // Convert map to array
-        let combined = Array.from(byId.values());
-        console.log('Merged conversations count:', combined.length, combined.map(c => ({ id: c.id, name: c.name })));
+        let combined = Array.from(byParticipant.values());
+        console.log('[MergedConvo] Final merged conversations count:', combined.length, combined.map(c => ({ id: c.id, otherId: c.otherParticipantId, name: c.name, source: c.source, lastMsg: c.lastMessage, avatarLen: c.avatarUrl?.length, hasAvatar: !!c.avatarUrl })));
 
-        // Sort by timestamp if available (fallback to unchanged order)
         combined.sort((a, b) => {
             const ta = a.lastTimestamp && a.lastTimestamp.toDate ? a.lastTimestamp.toDate().getTime() : (a.lastTimestamp ? a.lastTimestamp : 0);
             const tb = b.lastTimestamp && b.lastTimestamp.toDate ? b.lastTimestamp.toDate().getTime() : (b.lastTimestamp ? b.lastTimestamp : 0);
@@ -465,7 +595,7 @@ function InboxPage() {
         });
 
         return combined;
-    }, [conversations, perUserConversations]);
+    }, [conversations, perUserConversations, connectionsList, user]);
 
     const filteredConversations = useMemo(() => mergedConversations.filter(c => {
         const q = searchTerm.trim().toLowerCase();
@@ -480,12 +610,38 @@ function InboxPage() {
     }), [mergedConversations, searchTerm, filterType]);
 
     const handleSelectConvo = (id) => {
-        // If this is a connection-only entry (no conversation yet), create a conversation document first
+        // show chat panel immediately while we prepare the conversation
+        setIsChatVisible(true);
+
+        // Handle connection placeholder specially
         if (id && id.startsWith && id.startsWith('conn:')) {
             const otherId = id.split(':')[1];
+
+            // if a conversation already exists with this user, open it instead of creating a new one
+            const existing = [...(conversations || []), ...(perUserConversations || [])].find(c => {
+                if (c.otherParticipantId && c.otherParticipantId === otherId) return true;
+                if (c.participants && c.participants.includes(otherId)) return true;
+                return false;
+            });
+            if (existing) {
+                setActiveConvoId(existing.id);
+                return;
+            }
+
+            // create a new conversation document asynchronously
             (async () => {
                 try {
-                    // create conversation doc in both places
+                    // Double-check if a conversation already exists (in case of race conditions)
+                    const existingCheck = [...(conversations || []), ...(perUserConversations || [])].find(c => {
+                        if (c.otherParticipantId && c.otherParticipantId === otherId) return true;
+                        if (c.participants && c.participants.includes(otherId)) return true;
+                        return false;
+                    });
+                    if (existingCheck) {
+                        setActiveConvoId(existingCheck.id);
+                        return;
+                    }
+
                     const convoRef = await addDoc(collection(db, 'conversations'), {
                         participants: [user.uid, otherId],
                         lastMessage: '',
@@ -511,15 +667,15 @@ function InboxPage() {
                     }
 
                     setActiveConvoId(convoId);
-                    setIsChatVisible(true);
                 } catch (err) {
                     console.error('Failed to create conversation for connection:', err);
                 }
             })();
             return;
         }
+
+        // Normal conversation click
         setActiveConvoId(id);
-        setIsChatVisible(true);
         // Mark conversation as read (reset unreadCount to 0)
         try {
             updateDoc(doc(db, 'conversations', id), {
@@ -558,6 +714,7 @@ function InboxPage() {
                             };
 
                             await addDoc(collection(db, `conversations/${activeConvoId}/messages`), msg);
+                            console.log('[InboxPage] File message added to Firestore:', { fileName, fileType });
                             
                             // Get other participant to send notification
                             const convoDoc = await getDoc(doc(db, 'conversations', activeConvoId));
@@ -575,6 +732,7 @@ function InboxPage() {
                                 // Send notification to other participant
                                 if (recipientId) {
                                     try {
+                                        console.log('[InboxPage] Notifying recipient of file:', { recipientId, fileName });
                                         await notifyNewMessage(recipientId, {
                                             conversationId: activeConvoId,
                                             senderId: user.uid,
@@ -582,8 +740,9 @@ function InboxPage() {
                                             senderAvatar: null,
                                             messagePreview: newMessage.trim().substring(0, 50) || '📎 File sent',
                                         });
+                                        console.log('[InboxPage] File notification sent');
                                     } catch (notifErr) {
-                                        console.warn('Failed to send notification:', notifErr);
+                                        console.warn('[InboxPage] Failed to send file notification:', notifErr);
                                     }
                                 }
                             }
@@ -616,17 +775,44 @@ function InboxPage() {
                 createdAt: serverTimestamp()
             };
 
-            await addDoc(collection(db, `conversations/${activeConvoId}/messages`), msg);
+            console.log('[InboxPage] Sending text message:', { 
+                conversationId: activeConvoId,
+                messagePreview: newMessage.trim().substring(0, 50),
+                senderId: user.uid 
+            });
             
-            // Update conversation metadata
+            await addDoc(collection(db, `conversations/${activeConvoId}/messages`), msg);
+            console.log('[InboxPage] Text message added to Firestore');
+            
+            // Update conversation metadata and notify recipient
             try {
                 const convoDoc = await getDoc(doc(db, 'conversations', activeConvoId));
                 if (convoDoc.exists()) {
+                    const participants = convoDoc.data().participants || [];
+                    const recipientId = participants.find(p => p !== user.uid);
+                    
                     await updateDoc(doc(db, 'conversations', activeConvoId), {
                         lastMessage: newMessage.trim(),
                         lastTimestamp: serverTimestamp(),
                         lastSenderId: user.uid,
                     });
+
+                    // Send notification to other participant
+                    if (recipientId) {
+                        try {
+                            console.log('[InboxPage] Calling notifyNewMessage for:', recipientId);
+                            await notifyNewMessage(recipientId, {
+                                conversationId: activeConvoId,
+                                senderId: user.uid,
+                                senderName: user.displayName || user.email?.split('@')?.[0] || 'User',
+                                senderAvatar: null,
+                                messagePreview: newMessage.trim().substring(0, 50),
+                            });
+                            console.log('[InboxPage] notifyNewMessage call completed');
+                        } catch (notifErr) {
+                            console.warn('[InboxPage] Failed to send notification:', notifErr);
+                        }
+                    }
                 }
             } catch (metaErr) {
                 console.warn('Failed to update conversation metadata:', metaErr);
@@ -707,12 +893,14 @@ function InboxPage() {
         setSelectedFile(null);
         setIsUploading(true);
         try {
+            console.log('[InboxPage] Sending GIF message:', { conversationId: activeConvoId, gifUrl: url.substring(0, 50) });
             await addDoc(collection(db, `conversations/${activeConvoId}/messages`), {
                 text: '',
                 gifUrl: url,
                 senderId: user.uid,
                 createdAt: serverTimestamp()
             });
+            console.log('[InboxPage] GIF message added to Firestore');
 
             // Update conversation metadata and increment unread
             try {
@@ -729,6 +917,7 @@ function InboxPage() {
 
                     if (recipientId) {
                         try {
+                            console.log('[InboxPage] Notifying recipient of GIF:', recipientId);
                             await notifyNewMessage(recipientId, {
                                 conversationId: activeConvoId,
                                 senderId: user.uid,
@@ -736,8 +925,9 @@ function InboxPage() {
                                 senderAvatar: null,
                                 messagePreview: '📷 GIF',
                             });
+                            console.log('[InboxPage] GIF notification sent');
                         } catch (notifErr) {
-                            console.warn('Failed to send notification for GIF', notifErr);
+                            console.warn('[InboxPage] Failed to send GIF notification:', notifErr);
                         }
                     }
                 }
@@ -752,7 +942,60 @@ function InboxPage() {
     };
 
     // derive activeConversation object
-    const activeConversation = useMemo(() => conversations.find(c => c.id === activeConvoId) || null, [conversations, activeConvoId]);
+    const activeConversation = useMemo(() => {
+        // try to find the active convo among merged list (handles placeholders)
+        const found = mergedConversations.find(c => c.id === activeConvoId);
+        console.log('[ActiveConvo] Computing activeConversation:', {
+            activeConvoId,
+            foundInMerged: !!found,
+            foundName: found?.name,
+            mergedCount: mergedConversations.length
+        });
+        
+        if (found) {
+            console.log('[ActiveConvo] Found in merged conversations, using it:', {
+                id: found.id,
+                name: found.name,
+                source: found.source,
+                lastMessage: found.lastMessage
+            });
+            return found;
+        }
+        
+        // placeholder case: user clicked a connection but convo not created yet
+        if (activeConvoId && activeConvoId.startsWith('conn:')) {
+            const other = activeConvoId.split(':')[1];
+            const conn = connectionsList.find(c => c.id === other);
+            console.log('[ActiveConvo] Placeholder case - looking for connection:', { other, found: !!conn });
+            if (conn) {
+                console.log('[ActiveConvo] Returning placeholder conversation for connection:', {
+                    id: activeConvoId,
+                    name: conn.name,
+                    message: 'Start a conversation'
+                });
+                return {
+                    id: activeConvoId,
+                    name: conn.name,
+                    avatarUrl: conn.avatarUrl,
+                    gender: conn.gender,
+                    lastMessage: 'Start a conversation',
+                    timestamp: '',
+                    unreadCount: 0,
+                    isOnline: conn.isOnline,
+                    otherParticipantId: conn.id,
+                    source: 'connection'
+                };
+            }
+        }
+        // fallback: maybe id is real conversation not yet in merged list
+        const fallback = conversations.find(c => c.id === activeConvoId) || null;
+        console.log('[ActiveConvo] Fallback result:', {
+            found: !!fallback,
+            activeConvoId,
+            conversationsCount: conversations.length
+        });
+        return fallback;
+    }, [mergedConversations, conversations, activeConvoId, connectionsList]);
 
     // Calculate total unread count across all conversations (including mirrors and connections)
     const totalUnreadCount = useMemo(() => {
@@ -1049,9 +1292,9 @@ function InboxPage() {
                     )}
                 </section>
 
-                {/* Conversation Info Panel (Right Sidebar) */}
+                {/* Conversation Info Panel (Right Sidebar on Desktop, Full Screen on Mobile) */}
                 {showConvoInfo && activeConversation && (
-                    <div className="w-72 border-l border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 overflow-y-auto hidden md:block">
+                    <div className="fixed md:static inset-0 md:w-72 md:border-l border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark p-4 overflow-y-auto z-50">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-bold">Details</h3>
                             <button
@@ -1063,7 +1306,7 @@ function InboxPage() {
                         </div>
 
                         {/* User Card */}
-                        <div className="text-center mb-6 pb-6 border-b border-border-light dark:border-border-dark">
+                        <div className="text-center mb-6 pb-6 p-4 md:p-0 md:border-b border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark md:bg-transparent rounded-2xl md:rounded-none">
                             <div
                                 style={{ backgroundImage: `url(${activeConversation.avatarUrl})` }}
                                 className="bg-center bg-cover rounded-full size-20 mx-auto mb-3"
@@ -1084,6 +1327,34 @@ function InboxPage() {
                             <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark">
                                 <span className="material-symbols-outlined">notifications</span>
                                 <span className="text-sm font-medium">Mute</span>
+                            </button>
+                            <button 
+                                onClick={async () => {
+                                    if (window.confirm('Delete this conversation? This cannot be undone.')) {
+                                        try {
+                                            console.log('[InboxPage] Deleting conversation:', activeConvoId);
+                                            await deleteDoc(doc(db, 'conversations', activeConvoId));
+                                            // Also delete from per-user mirrors
+                                            try {
+                                                await deleteDoc(doc(db, 'users', user.uid, 'conversations', activeConvoId));
+                                                await deleteDoc(doc(db, 'users', activeConversation.otherParticipantId, 'conversations', activeConvoId));
+                                            } catch (e) {
+                                                console.warn('Failed to delete conversation mirrors:', e);
+                                            }
+                                            setActiveConvoId(null);
+                                            setShowConvoInfo(false);
+                                            setIsChatVisible(false);
+                                            alert('Conversation deleted successfully');
+                                        } catch (err) {
+                                            console.error('Failed to delete conversation:', err);
+                                            alert('Failed to delete conversation: ' + err.message);
+                                        }
+                                    }
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-red-500"
+                            >
+                                <span className="material-symbols-outlined">delete</span>
+                                <span className="text-sm font-medium">Delete Conversation</span>
                             </button>
                             <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-red-500">
                                 <span className="material-symbols-outlined">block</span>

@@ -15,6 +15,8 @@ import {
   serverTimestamp,
   runTransaction,
   increment,
+  addDoc,
+  setDoc,
 } from 'firebase/firestore';
 import {
   notifyNewFollower,
@@ -288,6 +290,43 @@ export const acceptConnectionRequest = async (currentUserId, requesterId) => {
       transaction.update(currentUserRef, { connectionsCount: increment(1) });
       transaction.update(requesterRef, { connectionsCount: increment(1) });
     });
+
+    // Create a conversation between the two users if one doesn't already exist
+    try {
+      // Check if a conversation already exists between these users
+      const existingConvos = await getDocs(query(collection(db, 'conversations'), where('participants', 'array-contains', currentUserId)));
+      let convoExists = false;
+      existingConvos.forEach(doc => {
+        const data = doc.data();
+        if (data.participants && data.participants.includes(requesterId)) {
+          convoExists = true;
+        }
+      });
+      
+      if (!convoExists) {
+        const convoRef = await addDoc(collection(db, 'conversations'), {
+          participants: [currentUserId, requesterId],
+          lastMessage: '',
+          lastTimestamp: serverTimestamp(),
+          unreadCount: 0,
+        });
+
+        const convoId = convoRef.id;
+        const convoPayload = {
+          convoId,
+          participants: [currentUserId, requesterId],
+          lastMessage: '',
+          lastTimestamp: serverTimestamp(),
+          unreadCount: 0,
+        };
+
+        // Mirror to both participants' users/{uid}/conversations
+        await setDoc(doc(db, 'users', currentUserId, 'conversations', convoId), convoPayload, { merge: true });
+        await setDoc(doc(db, 'users', requesterId, 'conversations', convoId), convoPayload, { merge: true });
+      }
+    } catch (convoErr) {
+      console.warn('Failed to create conversation on connection accept:', convoErr);
+    }
 
     // Send notification to requester
     if (typeof notifyConnectionAccepted === 'function') {

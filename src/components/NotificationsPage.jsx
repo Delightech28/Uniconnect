@@ -108,8 +108,32 @@ const NotificationsPage = () => {
 
       // Subscribe to real-time notifications
       const unsubNotifications = subscribeToNotifications(u.uid, (notifs) => {
-        setNotifications(notifs);
+        console.log('[NotificationsPage] Received notifications:', {
+          count: notifs.length,
+          unreadCount: notifs.filter(n => n.unread).length,
+          types: notifs.map(n => n.type)
+        });
+        
+        // Deduplicate notifications by id (in case of duplicates from multiple subscriptions)
+        const seen = new Set();
+        const deduplicated = notifs.filter(n => {
+          if (seen.has(n.id)) {
+            console.log('[NotificationsPage] Removing duplicate notification:', n.id);
+            return false;
+          }
+          seen.add(n.id);
+          return true;
+        });
+        
+        setNotifications(deduplicated);
         setLoading(false);
+        
+        // Auto-mark all as read when visiting notifications page
+        const unreadNotifs = deduplicated.filter(n => n.unread);
+        if (unreadNotifs.length > 0) {
+          console.log('[NotificationsPage] Auto-marking', unreadNotifs.length, 'notifications as read');
+          markAllAsRead(u.uid).catch(err => console.error('Auto-mark as read failed:', err));
+        }
       });
 
       setUnsubscribe(() => unsubNotifications);
@@ -123,6 +147,7 @@ const NotificationsPage = () => {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
+      console.log('[NotificationsPage] Marking notification as read:', notificationId);
       await markAsRead(user.uid, notificationId);
       toast.success('Marked as read', { duration: 2000 });
     } catch (error) {
@@ -133,6 +158,7 @@ const NotificationsPage = () => {
 
   const handleMarkAllAsRead = async () => {
     try {
+      console.log('[NotificationsPage] Marking all notifications as read');
       await markAllAsRead(user.uid);
       toast.success('All marked as read', { duration: 2000 });
     } catch (error) {
@@ -143,6 +169,7 @@ const NotificationsPage = () => {
 
   const handleDeleteNotification = async (notificationId) => {
     try {
+      console.log('[NotificationsPage] Deleting notification:', notificationId);
       await deleteNotification(user.uid, notificationId);
       toast.success('Notification deleted', { duration: 2000 });
     } catch (error) {
@@ -154,6 +181,7 @@ const NotificationsPage = () => {
   const handleDeleteAllNotifications = async () => {
     if (window.confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
       try {
+        console.log('[NotificationsPage] Deleting all notifications');
         await deleteAllNotifications(user.uid);
         toast.success('All notifications deleted', { duration: 2000 });
       } catch (error) {
@@ -188,6 +216,8 @@ const NotificationsPage = () => {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
   const hasUnread = unreadCount > 0;
+  
+  console.log('[NotificationsPage] Rendering with unreadCount:', unreadCount, 'totalCount:', notifications.length);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col">

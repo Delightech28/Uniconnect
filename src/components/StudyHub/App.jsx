@@ -88,6 +88,18 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
 
       setLoadingMessage('Extracting topics...');
       const extractedTopics = await generateTopics(text, abortRef.current.signal);
+      console.log('[StudyHubApp] Topics extracted from document:', {
+        count: extractedTopics?.length,
+        topics: extractedTopics,
+        type: typeof extractedTopics,
+        isArray: Array.isArray(extractedTopics)
+      });
+      
+      if (extractedTopics && extractedTopics.length > 0) {
+        extractedTopics.forEach((topic, i) => {
+          console.log(`[StudyHubApp] Topic ${i}:`, { topic, type: typeof topic });
+        });
+      }
       
       const docData = {
         name: file.name,
@@ -98,6 +110,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
       };
 
       setStudyDoc(docData);
+      console.log('[StudyHubApp] Setting topics state with extracted topics:', extractedTopics);
       setTopics(extractedTopics);
       setHistory([...history, docData]);
       setCurrentView('analysis');
@@ -105,7 +118,10 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
       setCooldown(30);
     } catch (error) {
       if (error.name !== 'AbortError') {
-        alert('Error processing document: ' + error.message);
+        console.error('[StudyHubApp] ❌ Error during file processing:', error);
+        const errorMessage = error.message || 'Unknown error processing document';
+        alert(errorMessage);
+        setCooldown(0); // Reset cooldown on error so user can try again
       }
     } finally {
       setLoading(false);
@@ -148,7 +164,10 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         ) : (
           <Dashboard 
             topics={topics}
-            onStartQuiz={() => setCurrentView('quiz')}
+            onStartQuiz={() => {
+              console.log('[App] onStartQuiz called, topics state:', topics);
+              setCurrentView('quiz');
+            }}
             onStartChat={() => setCurrentView('tutor')}
             onStartPodcast={() => setCurrentView('podcast')}
             isDarkMode={darkMode}
@@ -156,7 +175,12 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         );
       
       case 'quiz':
-        console.log('[App] Rendering QuizSection with topics:', topics);
+        console.log('[App] Rendering QuizSection with topics:', {
+          topics: topics,
+          topicsCount: topics?.length,
+          topicsType: typeof topics,
+          firstTopic: topics?.[0]
+        });
         return studyDoc ? (
           <QuizSection 
             docText={studyDoc.text}

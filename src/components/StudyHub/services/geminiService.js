@@ -12,26 +12,34 @@ const getAI = () => {
   const apiKey = import.meta.env?.VITE_GEMINI_API_KEY ||
                  window.__VITE_GEMINI_API_KEY;
   
-  console.log('[StudyHub] API key sources checked:');
-  console.log('  import.meta.env.VITE_GEMINI_API_KEY:', !!import.meta.env?.VITE_GEMINI_API_KEY);
-  console.log('  window.__VITE_GEMINI_API_KEY:', !!window.__VITE_GEMINI_API_KEY);
+  console.log('[StudyHub] API key sources checked:', {
+    fromEnv: !!import.meta.env?.VITE_GEMINI_API_KEY,
+    fromWindow: !!window.__VITE_GEMINI_API_KEY,
+    envPrefix: import.meta.env?.VITE_GEMINI_API_KEY?.substring(0, 20) + '...',
+  });
   
   if (!apiKey) {
-    console.error('VITE_GEMINI_API_KEY not found in:');
-    console.error('  import.meta.env:', import.meta.env);
-    throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env and restart dev server.');
+    console.error('[StudyHub] ❌ VITE_GEMINI_API_KEY not found');
+    console.error('[StudyHub] Available env vars with VITE_:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')).join(', '));
+    throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env.local and restart dev server.');
   }
   
   // Trim whitespace and validate
   const trimmedKey = apiKey.trim();
   if (trimmedKey.length < 20) {
-    console.error('API key appears invalid (too short):', trimmedKey);
-    throw new Error(`Invalid API key format. Length: ${trimmedKey.length}`);
+    console.error('[StudyHub] ❌ API key too short:', { length: trimmedKey.length, key: trimmedKey });
+    throw new Error(`Invalid API key format. Length: ${trimmedKey.length}, expected >= 20`);
   }
   
-  console.log('[StudyHub] Using Gemini API key:', trimmedKey.substring(0, 10) + '...');
-  console.log('[StudyHub] Initializing GoogleGenerativeAI');
-  return new GoogleGenerativeAI({ apiKey: trimmedKey });
+  console.log('[StudyHub] ✅ API key found and validated:', {
+    length: trimmedKey.length,
+    prefix: trimmedKey.substring(0, 10) + '...',
+    suffix: '...' + trimmedKey.substring(trimmedKey.length - 5)
+  });
+  console.log('[StudyHub] Initializing GoogleGenerativeAI with model:', MODEL_FLASH);
+  const ai = new GoogleGenerativeAI({ apiKey: trimmedKey });
+  console.log('[StudyHub] ✅ GoogleGenerativeAI initialized successfully');
+  return ai;
 };
 
 // Rate limit callback
@@ -195,45 +203,68 @@ const callGenerate = async (modelName, body, signal) => {
  * Generate topics from document text
  * @param {string} text - Document text
  * @param {AbortSignal} signal - Abort signal for cancellation
- * @returns {Promise<string[]>} Array of topics
+ * @returns {Promise<string[]>} Array of topics extracted from document
  */
 export const generateTopics = async (text, signal) => {
   console.log('[StudyHub] generateTopics called with text length:', text?.length);
   if (!text || text.trim().length === 0) {
-    console.log('[StudyHub] Empty text, returning default topics');
-    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+    throw new Error('No document text provided');
   }
   
   try {
-    console.log('[StudyHub] Calling getAI() for topic generation');
-    const ai = getAI();
-    const model = ai.getGenerativeModel({ model: MODEL_FLASH });
-    
+    console.log('[StudyHub] Using REST API for topic generation');
     const body = {
       contents: [{
         parts: [{
-          text: `Extract 7-10 distinct, specific study topics from this document. Include chapters, modules, section titles, subtitles, or any headings when they represent meaningful sections. Return ONLY a JSON array of strings with concise topic names (2-4 words each).\n\nText (first 2000 chars):\n${text.substring(0,2000)}...\n\nFormat: ["Topic 1", "Topic 2", "Topic 3", ...]`
+          text: `Extract 8-10 specific study topics/chapters/modules/sections from this document. Extract ONLY actual content from the document - no generic topics. Return ONLY a JSON array of strings with topic names (2-4 words each).\n\nDocument excerpt:\n${text.substring(0,2000)}...\n\nFormat: ["Topic 1", "Topic 2", "Topic 3", ...]\n\nIMPORTANT: Do NOT create generic topics like 'Overview', 'Summary', 'Review'. Extract REAL topics from the document content.`
         }]
       }]
     };
 
-    console.log('[StudyHub] Making generateContent call for topics');
-    const result = await model.generateContent(body);
-    console.log('[StudyHub] generateContent returned for topics');
-    const response = await result.response;
-    const textOut = response.text();
-    console.log('[StudyHub] Topic generation response received, length:', textOut?.length);
+    console.log('[StudyHub] Making REST API call for topics');
+    const json = await callGenerate(MODEL_FLASH, body, signal);
+    console.log('[StudyHub] generateTopics REST call returned');
     
-    const topics = parseJsonResponse(textOut) || parseJsonResponse(result?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('\n'));
-    if (Array.isArray(topics)) {
-      console.log('[StudyHub] Parsed topics:', topics.slice(0,7));
-      return topics.slice(0,7);
+    const textOut = extractTextFromResponse(json);
+    console.log('[StudyHub] Topic extraction response received, length:', textOut?.length);
+    console.log('[StudyHub] Raw response preview:', textOut.substring(0, 200));
+    
+    const topics = parseJsonResponse(textOut);
+    if (Array.isArray(topics) && topics.length > 0) {
+      // Filter out generic topics if they somehow appeared
+      const realTopics = topics.filter(t => 
+        !['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review', 'Conclusion'].includes(t)
+      ).slice(0, 10);
+      
+      console.log('[StudyHub] ✅ Successfully extracted topics from document:', {
+        count: realTopics.length,
+        topics: realTopics
+      });
+      
+      if (realTopics.length === 0) {
+        throw new Error('No real topics could be extracted from document. Please ensure the document has clear sections or chapters.');
+      }
+      
+      return realTopics;
     }
-    console.log('[StudyHub] Failed to parse topics, returning defaults');
-    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+    
+    console.error('[StudyHub] ❌ Failed to parse topics from API response');
+    throw new Error('Could not parse topics from document. Please try uploading a different document.');
   } catch (error) {
-    console.error('[StudyHub] Error generating topics:', error);
-    return ['Overview', 'Key Concepts', 'Practice', 'Summary', 'Review'];
+    console.error('[StudyHub] ❌ Error extracting topics from document:', {
+      error: error.message,
+      status: error.status,
+      errorCode: error.code
+    });
+    
+    // API key specific errors
+    if (error.message?.includes('API key') || error.message?.includes('api_key') || error.status === 400 || error.message?.includes('INVALID')) {
+      const apiKeyError = `❌ GEMINI API KEY ERROR:\n\n1. Open: d:\\Company\\Uniconnect\\.env.local\n2. Add: VITE_GEMINI_API_KEY=your_key_here\n3. Get key from: https://makersuite.google.com/app/apikeys\n4. Restart dev server (Ctrl+C, then npm run dev)`;
+      console.error('[StudyHub]', apiKeyError);
+      throw new Error(apiKeyError);
+    }
+    
+    throw error;
   }
 };
 

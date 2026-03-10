@@ -359,11 +359,18 @@ export const notifyOfferReceived = async (sellerId, offerData) => {
  */
 export const notifyNewMessage = async (recipientId, messageData) => {
   try {
+    console.log('[NotifService] notifyNewMessage called for recipient:', {
+      recipientId,
+      conversationId: messageData.conversationId,
+      senderId: messageData.senderId,
+      messagePreview: messageData.messagePreview?.substring(0, 50)
+    });
+    
     // First check an in-memory tracker (fast) and then check Firestore presence doc for the recipient
     // If recipient is actively viewing this conversation, skip notification
     const convoId = messageData.conversationId;
     if (isUserViewingConversation(convoId, recipientId)) {
-      console.log(`Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`);
+      console.log(`[NotifService] Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`);
       return;
     }
 
@@ -378,15 +385,16 @@ export const notifyNewMessage = async (recipientId, messageData) => {
         const now = Date.now();
         // If user was active in last 10 seconds, skip notification
         if (lastMillis && (now - lastMillis) < 10000) {
-          console.log(`Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`);
+          console.log(`[NotifService] Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`);
           return;
         }
       }
     } catch (presenceErr) {
-      console.warn('Failed to check conversation presence doc:', presenceErr);
+      console.warn('[NotifService] Failed to check conversation presence doc:', presenceErr);
       // Fall through and send notification (safer than silently ignoring)
     }
 
+    console.log('[NotifService] Creating message notification for:', recipientId);
     await createNotification(
       recipientId,
       NOTIFICATION_TYPES.NEW_MESSAGE,
@@ -399,9 +407,19 @@ export const notifyNewMessage = async (recipientId, messageData) => {
         senderAvatar: messageData.senderAvatar,
       }
     );
-    console.log(`Notification sent to ${recipientId} for new message in conversation ${messageData.conversationId}`);
+    console.log('[NotifService] ✅ Message notification successfully sent to', {
+      recipientId,
+      conversationId: messageData.conversationId,
+      senderName: messageData.senderName,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error notifying new message:', error);
+    console.error('[NotifService] ❌ Error notifying new message:', {
+      error: error.message,
+      recipientId: messageData?.recipientId,
+      senderId: messageData?.senderId,
+      stack: error.stack
+    });
   }
 };
 
@@ -559,7 +577,7 @@ export const getNotifications = async (userId, limitCount = 50) => {
  */
 export const subscribeToNotifications = (userId, callback) => {
   try {
-    console.log(`Subscribing to notifications for user: ${userId}`);
+    console.log(`[NotifService] Subscribing to notifications for user: ${userId}`);
     const q = query(
       collection(db, 'users', userId, 'notifications'),
       orderBy('createdAt', 'desc')
@@ -568,10 +586,24 @@ export const subscribeToNotifications = (userId, callback) => {
     return onSnapshot(
       q,
       (snapshot) => {
-        console.log(`Received ${snapshot.size} notifications for user ${userId}`);
+        console.log(`[NotifService] Received ${snapshot.size} notifications for user ${userId}`);
+        
+        // Deduplicate by notification id to prevent duplicates
+        const seen = new Set();
         const notifications = snapshot.docs.map((doc) => {
           const data = doc.data();
-          console.log(`Notification ${doc.id}:`, { type: data.type, title: data.title });
+          if (seen.has(doc.id)) {
+            console.warn(`[NotifService] Duplicate notification detected: ${doc.id}`);
+            return null;
+          }
+          seen.add(doc.id);
+          
+          console.log(`[NotifService] Notification ${doc.id}:`, { 
+            type: data.type, 
+            title: data.title, 
+            unread: data.unread,
+            createdAt: data.createdAt?.toDate?.() || 'unknown'
+          });
           return {
             id: doc.id,
             ...data,
@@ -579,17 +611,19 @@ export const subscribeToNotifications = (userId, callback) => {
               ? getTimeAgo(new Date(data.createdAt.toDate()))
               : 'Just now',
           };
-        });
+        }).filter(n => n !== null);
+        
+        console.log(`[NotifService] After deduplication: ${notifications.length} notifications, ${notifications.filter(n => n.unread).length} unread`);
         callback(notifications);
       },
       (error) => {
-        console.error(`Error listening to notifications for user ${userId}:`, error);
+        console.error(`[NotifService] Error listening to notifications for user ${userId}:`, error);
         // Call callback with empty array on error to prevent UI from hanging
         callback([]);
       }
     );
   } catch (error) {
-    console.error('Error setting up notification subscription:', error);
+    console.error('[NotifService] Error setting up notification subscription:', error);
     return () => {};
   }
 };
@@ -637,16 +671,21 @@ export const fetchNotificationsOnce = async (userId) => {
  */
 export const subscribeToUnreadCount = (userId, callback) => {
   try {
+    console.log(`[NotifService] Subscribing to unread count for user: ${userId}`);
     const q = query(
       collection(db, 'users', userId, 'notifications'),
       where('unread', '==', true)
     );
 
     return onSnapshot(q, (snapshot) => {
+      console.log(`[NotifService] Unread count for ${userId}: ${snapshot.size}`);
       callback(snapshot.size);
+    }, (error) => {
+      console.error(`[NotifService] Error subscribing to unread count:`, error);
+      callback(0);
     });
   } catch (error) {
-    console.error('Error subscribing to unread count:', error);
+    console.error('[NotifService] Error subscribing to unread count:', error);
     return () => {};
   }
 };
@@ -658,10 +697,12 @@ export const subscribeToUnreadCount = (userId, callback) => {
  */
 export const markAsRead = async (userId, notificationId) => {
   try {
+    console.log(`[NotifService] Marking notification ${notificationId} as read for user ${userId}`);
     const notifRef = doc(db, 'users', userId, 'notifications', notificationId);
     await updateDoc(notifRef, { unread: false });
+    console.log(`[NotifService] Successfully marked ${notificationId} as read`);
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error(`[NotifService] Error marking notification as read:`, error);
   }
 };
 
@@ -671,19 +712,23 @@ export const markAsRead = async (userId, notificationId) => {
  */
 export const markAllAsRead = async (userId) => {
   try {
+    console.log(`[NotifService] Marking all notifications as read for user ${userId}`);
     const q = query(
       collection(db, 'users', userId, 'notifications'),
       where('unread', '==', true)
     );
 
     const snapshot = await getDocs(q);
+    console.log(`[NotifService] Found ${snapshot.size} unread notifications to mark as read`);
+    
     const updates = snapshot.docs.map((doc) =>
       updateDoc(doc.ref, { unread: false })
     );
 
     await Promise.all(updates);
+    console.log(`[NotifService] Successfully marked ${snapshot.size} notifications as read`);
   } catch (error) {
-    console.error('Error marking all as read:', error);
+    console.error('[NotifService] Error marking all as read:', error);
   }
 };
 

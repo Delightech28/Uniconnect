@@ -3,8 +3,24 @@ import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, Clock, MapPin, Target
 import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
-  console.log('[QuizSection] QUIZSECTION COMPONENT MOUNTED/UPDATED');
-  console.log('[QuizSection] Props received:', { docText: !!docText, topicsLength: topics?.length, topics, onQuizComplete: !!onQuizComplete, setLoading: !!setLoading, setLoadingMessage: !!setLoadingMessage, isDarkMode });
+  console.log('[QuizSection] COMPONENT MOUNTED/UPDATED with props:', {
+    hasDocText: !!docText,
+    topicsCount: topics?.length,
+    topics: topics,
+    topicsType: typeof topics,
+    topicsArray: Array.isArray(topics)
+  });
+  
+  // Log topics in detail
+  if (topics && topics.length > 0) {
+    console.log('[QuizSection] Topics detail:', topics.map((t, i) => ({
+      index: i,
+      topic: t,
+      type: typeof t,
+      length: t?.length
+    })));
+  }
+  
   // State for quiz setup
   const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
   const [lockedTopic, setLockedTopic] = useState(null);
@@ -12,11 +28,16 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
 
   // update selectedTopic if topics prop changes
   useEffect(() => {
+    console.log('[QuizSection] useEffect triggered for topics update', {
+      topicsLength: topics?.length,
+      selectedTopic,
+      hasTopics: !!topics
+    });
     if (topics && topics.length && !selectedTopic) {
-      console.log('[QuizSection] topics updated, setting default topic', topics[0]);
+      console.log('[QuizSection] Setting selectedTopic to first topic:', topics[0]);
       setSelectedTopic(topics[0]);
     }
-  }, [topics]);
+  }, [topics, selectedTopic]);
   const [numQuestions, setNumQuestions] = useState(5);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
 
@@ -319,6 +340,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
         {topics && topics.length > 0 ? (
           topics.map((topic, index) => {
+          console.log('[QuizSection] Rendering topic card:', { index, topic, type: typeof topic });
           const switchBlocked = lockedTopic && lockedTopic !== topic && (topicScores[lockedTopic] || 0) < 70;
           return (
             <button
@@ -347,7 +369,13 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               }`}>{index + 1}</div>
             </div>
             <div className="space-y-1 sm:space-y-2">
-              <h3 className="text-lg sm:text-xl font-bold leading-tight text-gray-900 dark:text-white">{topic}</h3>
+              <h3 className="text-lg sm:text-xl font-bold leading-tight text-gray-900 dark:text-white">
+                {(() => {
+                  const displayText = topic?.trim?.() || String(topic);
+                  console.log('[QuizSection] Displaying topic title:', displayText);
+                  return displayText;
+                })()}
+              </h3>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-gray-300 dark:border-zinc-700">
               <div className="text-[9px] font-black uppercase text-gray-600 dark:text-gray-400 tracking-widest">Ready</div>
@@ -359,6 +387,10 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
         ) : (
           <div className="col-span-full max-w-3xl mx-auto py-6 sm:py-12 px-4 sm:px-6 mb-24">
             <div className="bg-white dark:bg-zinc-900 rounded-[32px] sm:rounded-[50px] p-6 sm:p-12 shadow-2xl flex flex-col items-center justify-center gap-8 min-h-96">
+              {(() => {
+                console.log('[QuizSection] No topics available:', { topics, topicsLength: topics?.length });
+                return null;
+              })()}
               <div className="relative w-20 h-20">
                 <div className="absolute inset-0 bg-gradient-to-r from-unispace to-[#07bc0c] rounded-full blur-lg opacity-50 animate-pulse"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -366,7 +398,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                 </div>
               </div>
               <div className="text-center space-y-3">
-                <p className="text-lg font-bold dark:text-white">Loading topics...</p>
+                <p className="text-lg font-bold dark:text-white">Loading topics from document...</p>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                   <div className="w-2 h-2 bg-unispace rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
