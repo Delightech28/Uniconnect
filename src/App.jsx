@@ -8,6 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import UniConnectLandingPage from "./components/UniConnectLandingPage";
 import UniConnectRegistration from "./components/UniConnectRegistration";
 import StudentVerificationPage from "./components/StudentVerificationPage";
+import VerifyPage from "./components/VerifyPage";
 import VerificationPendingPage from "./components/VerificationPendingPage";
 import VerificationCompletePage from "./components/VerificationCompletePage";
 import VerificationFailedPage from "./components/VerificationFailedPage";
@@ -91,6 +92,7 @@ function App() {
         <Route path="/" element={<UniConnectLandingPage />} />
         <Route path="/signup" element={<UniConnectRegistration />} />
         <Route path="/verify-student" element={<StudentVerificationPage />} />
+        <Route path="/verify" element={<VerifyPage />} />
         <Route path="/verification-pending" element={<VerificationPendingPage />} />
         <Route path="/verification-complete" element={<VerificationCompletePage />} />
         <Route path="/verification-failed" element={<VerificationFailedPage />} />

@@ -19,8 +19,8 @@ answer: 'Verification is typically an automated process that takes only a few mi
 },
 ];
 const contactMethods = [
-{ icon: 'email', text: 'unispaceinnovationhub@gmail.com', href:
-'mailto:unispaceinnovationhub@gmail.com' },
+{ icon: 'email', text: 'unispaceinnovationhubltd@gmail.com', href:
+'mailto:unispaceinnovationhubltd@gmail.com' },
 { icon: 'call', text: '+234 123 456 789', href: 'tel:+234123456789' }
 ];
 // --- Sub-components for better organization ---

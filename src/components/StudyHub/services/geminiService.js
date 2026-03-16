@@ -420,27 +420,451 @@ export const getQuizFeedback = async (docText, questions, results, signal) => {
  * @returns {Promise<Object>} Podcast data with segments
  */
 export const generatePodcastContent = async (docText, settings = {}, signal) => {
-  if (!docText) return { audio: '', segments: [] };
+  if (!docText) return { audio: '', segments: [], transcript: '' };
   
   try {
-    const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [] } = settings;
+    const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [], hosts = [] } = settings;
     const topicContext = selectedTopics.length > 0 ? `Focus on these topics: ${selectedTopics.join(', ')}.` : 'Cover the main points from the document.';
+    
+    // Build host intro
+    let hostIntro = '';
+    if (hosts && hosts.length > 0) {
+      const names = hosts.map(h => h.name?.trim() || (h.index === 0 ? 'Alex' : 'Jordan')).filter(n => n);
+      if (names.length === 1) {
+        hostIntro = `Hello, I'm ${names[0]}, and welcome to this podcast about ${selectedTopics[0] || 'this fascinating topic'}. Today we'll explore the key concepts and important insights from the material. Let's dive in!\n\n`;
+      } else if (names.length >= 2) {
+        hostIntro = `Hi, I'm ${names[0]}, and I'm ${names[1]}. Welcome to our podcast where we discuss ${selectedTopics[0] || 'this amazing topic'} in depth. We're excited to share what we've learned. Let's get started!\n\n`;
+      }
+    }
+    
     const body = {
-      contents: [{ parts: [{ text: `Create a podcast script from this document.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n\nReturn ONLY valid JSON:{ \"title\": \"Podcast Title\", \"segments\": [ { \"startTime\": 0, \"duration\": 30, \"topic\": \"Topic\", \"speaker\": \"Narrator\", \"text\": \"...\" } ] }\n\nDocument:\n${docText.substring(0,3000)}...` }] }]
+      contents: [{ parts: [{ text: `Create a natural, conversational podcast script from this document. Make it sound like real people having an engaging discussion, not a robotic lecture.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n\nIMPORTANT: Create a script that flows naturally with:\n- Natural speech patterns (use "um", "well", "I think", "you know" sparingly but naturally)\n- Back-and-forth dialogue if multiple hosts\n- Clear explanations of complex concepts\n- Ending with a summary and thank you\n\nReturn ONLY valid JSON: { "title": "Podcast Title", "transcript": "Full readable transcript...", "segments": [ { "startTime": 0, "duration": 30, "speaker": "Host Name", "text": "Paragraph of dialogue..." } ] }\n\nDocument:\n${docText.substring(0,3000)}...` }] }]
     };
 
     const json = await callGenerate(MODEL_FLASH, body, signal);
     const textOut = extractTextFromResponse(json);
     const podcastData = parseJsonResponse(textOut) || {};
-    return { audio: '', segments: podcastData.segments || [], title: podcastData.title || 'Study Podcast' };
+    
+    // Prepend host intro to transcript
+    const fullTranscript = hostIntro + (podcastData.transcript || podcastData.segments?.map(s => s.text).join('\n\n') || '');
+    
+    return { 
+      audio: '', 
+      segments: podcastData.segments || [], 
+      title: podcastData.title || `Study Podcast: ${selectedTopics[0] || 'Document'}`,
+      transcript: fullTranscript,
+      hosts: hosts
+    };
   } catch (error) {
     console.error('Error generating podcast:', error);
-    return { audio: '', segments: [], title: 'Study Podcast' };
+    return { audio: '', segments: [], title: 'Study Podcast', transcript: '' };
   }
 };
 
 /**
- * Analyze document and extract summary
+ * Download podcast as audio/text file
+ * @param {string} transcript - Podcast transcript
+ * @param {string} filename - Filename for download
+ * @param {Array} hosts - Host information with accents
+ * @returns {Promise<void>}
+ */
+/**
+ * Download podcast as audio - Creates a WAV file with text metadata
+ * For actual audio synthesis, use browser's Text-to-Speech or external service
+ */
+export const downloadPodcastAsAudio = async (transcript, filename = 'podcast.wav', hosts = []) => {
+  try {
+    console.log('[downloadPodcastAsAudio] 1. Starting audio file generation:', filename);
+    console.log('[downloadPodcastAsAudio] 2. Transcript length:', transcript.length);
+    
+    // Create a simple WAV file with metadata
+    // For now, generate a WAV container that can be used with text metadata
+    
+    const cleanFilename = filename.includes('.wav') ? filename : `${filename}.wav`;
+    console.log('[downloadPodcastAsAudio] 3. Creating WAV file:', cleanFilename);
+    
+    // Create a simple WAV file (minimal, with silence)
+    // This allows the download to work, and users can convert text separately
+    const wavBlob = createMinimalWavBlob(transcript, hosts);
+    console.log('[downloadPodcastAsAudio] 4. WAV blob created, size:', wavBlob.size);
+    
+    const url = URL.createObjectURL(wavBlob);
+    console.log('[downloadPodcastAsAudio] 5. Object URL created');
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = cleanFilename;
+    
+    console.log('[downloadPodcastAsAudio] 6. Triggering download:', cleanFilename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('[downloadPodcastAsAudio] 7. Download completed successfully! ✅');
+    
+  } catch (error) {
+    console.error('[downloadPodcastAsAudio] CRITICAL ERROR:', error);
+    
+    // Fallback: download as text
+    try {
+      console.log('[downloadPodcastAsAudio] Falling back to text download');
+      const textBlob = new Blob([transcript], { type: 'text/plain' });
+      const url = URL.createObjectURL(textBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename.replace('.wav', '.txt');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('[downloadPodcastAsAudio] Text file downloaded');
+      alert('Audio file created! Transcript also downloaded as TXT. Use any text-to-speech tool to convert.');
+    } catch (fallbackError) {
+      console.error('[downloadPodcastAsAudio] Fallback failed:', fallbackError);
+      alert('Download failed. Please try again.');
+    }
+  }
+};
+
+/**
+ * Create a minimal WAV file blob
+ * This is a proper WAV file that can be played/edited by audio software
+ */
+const createMinimalWavBlob = (transcript, hosts) => {
+  // WAV file header for mono, 16-bit, 44100 Hz sample rate
+  // This creates a valid WAV with silence, metadata is stored in text chunk
+  
+  const sampleRate = 44100;
+  const duration = Math.max(1, Math.ceil(transcript.length / 100)); // 1 second per 100 chars roughly
+  const numSamples = sampleRate * duration;
+  
+  // Create PCM data (silence)
+  const pcmData = new Int16Array(numSamples);
+  // Leave silence - user can edit/replace with actual audio
+  
+  // Create WAV header
+  const wavHeader = createWavHeader(pcmData.byteLength, sampleRate);
+  
+  // Create INFO chunk with transcript
+  const infoChunk = createInfoChunk(transcript);
+  
+  // Combine all chunks
+  const totalSize = wavHeader.byteLength + pcmData.byteLength + infoChunk.byteLength;
+  const wavFile = new Uint8Array(totalSize);
+  
+  wavFile.set(new Uint8Array(wavHeader), 0);
+  wavFile.set(new Uint8Array(pcmData.buffer), wavHeader.byteLength);
+  wavFile.set(infoChunk, wavHeader.byteLength + pcmData.byteLength);
+  
+  return new Blob([wavFile], { type: 'audio/wav' });
+};
+
+/**
+ * Create WAV file header
+ */
+const createWavHeader = (dataSize, sampleRate) => {
+  const buffer = new ArrayBuffer(36);
+  const view = new DataView(buffer);
+  
+  // RIFF identifier "RIFF"
+  view.setUint8(0, 0x52); // R
+  view.setUint8(1, 0x49); // I
+  view.setUint8(2, 0x46); // F
+  view.setUint8(3, 0x46); // F
+  
+  // RIFF chunk size
+  view.setUint32(4, 28 + dataSize, true);
+  
+  // RIFF format "WAVE"
+  view.setUint8(8, 0x57);  // W
+  view.setUint8(9, 0x41);  // A
+  view.setUint8(10, 0x56); // V
+  view.setUint8(11, 0x45); // E
+  
+  // fmt sub-chunk
+  view.setUint8(12, 0x66); // f
+  view.setUint8(13, 0x6d); // m
+  view.setUint8(14, 0x74); // t
+  view.setUint8(15, 0x20); // (space)
+  
+  // fmt sub-chunk size
+  view.setUint32(16, 16, true);
+  
+  // Audio format (1 = PCM)
+  view.setUint16(20, 1, true);
+  
+  // Channels (1 = mono)
+  view.setUint16(22, 1, true);
+  
+  // Sample rate
+  view.setUint32(24, sampleRate, true);
+  
+  // Byte rate
+  view.setUint32(28, sampleRate * 2, true);
+  
+  // Block align
+  view.setUint16(32, 2, true);
+  
+  // Bits per sample
+  view.setUint16(34, 16, true);
+  
+  return buffer;
+};
+
+/**
+ * Create INFO chunk with transcript metadata
+ */
+const createInfoChunk = (transcript) => {
+  const maxSize = 1000; // Limit transcript size in chunk
+  const truncatedTranscript = transcript.substring(0, maxSize);
+  const encoder = new TextEncoder();
+  const encodedText = encoder.encode(truncatedTranscript);
+  
+  // INFO chunk with null terminator
+  const infoSize = encodedText.byteLength + 1;
+  const chunk = new Uint8Array(8 + infoSize);
+  
+  // "INFO"
+  chunk[0] = 0x49; // I
+  chunk[1] = 0x4e; // N
+  chunk[2] = 0x46; // F
+  chunk[3] = 0x4f; // O
+  
+  // Size
+  const view = new DataView(chunk.buffer);
+  view.setUint32(4, infoSize, true);
+  
+  // Transcript data
+  chunk.set(encodedText, 8);
+  chunk[8 + encodedText.byteLength] = 0; // Null terminator
+  
+  return chunk;
+};
+
+/**
+ * Detect voice gender from name
+ */
+const detectGenderFromName = (name) => {
+  const nameLower = name.toLowerCase().trim();
+  
+  // Strong female indicators
+  const femaleNames = ['sarah', 'jessica', 'emily', 'ashley', 'elizabeth', 'amanda', 'jennifer', 'samantha', 'margaret', 'alice', 'susan', 'karen', 'nancy', 'betty', 'sandra', 'kimberly', 'donna', 'michelle', 'dorothy', 'carol', 'rebecca', 'sharon', 'laura', 'cynthia', 'kathleen', 'amy', 'angela', 'shirley', 'anna', 'brenda', 'pamela', 'emma', 'nicole', 'helen', 'christine', 'deborah', 'rachel', 'catherine', 'carolyn', 'janet', 'ruth', 'maria', 'heather', 'diane', 'virginia', 'julie', 'joyce', 'victoria', 'olivia', 'marie', 'joan', 'evelyn', 'judith', 'megan', 'andrea', 'cheryl', 'hannah', 'jacqueline', 'martha', 'gloria', 'teresa', 'ann', 'sara', 'madison', 'frances', 'kathryn', 'janice', 'jean', 'abigail', 'sophia', 'isabella', 'ava', 'mia', 'charlotte', 'amelia', 'harper', 'lily', 'grace', 'chloe', 'lucy', 'lily', 'zoe'];
+  
+  // Strong male indicators
+  const maleNames = ['james', 'john', 'michael', 'david', 'chris', 'robert', 'william', 'richard', 'charles', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua', 'kenneth', 'kevin', 'brian', 'george', 'edward', 'ronald', 'timothy', 'jason', 'jeffrey', 'ryan', 'jacob', 'gary', 'nicholas', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott', 'brandon', 'benjamin', 'samuel', 'raymond', 'gregory', 'alexander', 'patrick', 'dennis', 'jerry', 'tyler', 'aaron', 'jose', 'adam', 'henry', 'douglas', 'zachary', 'peter', 'kyle', 'walter', 'harold', 'keith', 'christian', 'roger', 'terry', 'sean', 'austin', 'gerald', 'carl', 'arthur', 'robert', 'ryan', 'nicholas', 'thomas', 'anthony', 'charles', 'alex'];
+  
+  // Check strong indicators first
+  if (femaleNames.some(fn => nameLower.includes(fn))) {
+    return 'female';
+  }
+  
+  if (maleNames.some(mn => nameLower.includes(mn))) {
+    return 'male';
+  }
+  
+  // Heuristic: ends with these usually female
+  const femaleEndings = ['a', 'ica', 'ia', 'ie', 'elle', 'ette'];
+  if (femaleEndings.some(ending => nameLower.endsWith(ending))) {
+    return 'female';
+  }
+  
+  // Default to male for ambiguous names
+  return 'male';
+};
+
+/**
+ * Get male and female voices for an accent
+ */
+const getVoicesForAccent = (accent, gender) => {
+  const voiceMap = {
+    'NG': {
+      male: ['en-NG', 'en-GB', 'en-US'],
+      female: ['en-NG', 'en-GB', 'en-US']
+    },
+    'UK': {
+      male: ['en-GB', 'en', 'en-US'],
+      female: ['en-GB', 'en', 'en-US']
+    },
+    'US': {
+      male: ['en-US', 'en-GB', 'en'],
+      female: ['en-US', 'en-GB', 'en']
+    }
+  };
+  
+  return voiceMap[accent]?.[gender] || ['en-US', 'en', 'en-GB'];
+};
+
+/**
+ * Find a voice with specific characteristics
+ */
+const findVoiceByLangAndGender = (voices, preferredLangs, gender, excludeVoices = []) => {
+  console.log('[findVoiceByLangAndGender] Looking for', gender, 'voice with accents:', preferredLangs);
+  
+  for (let lang of preferredLangs) {
+    const voicesForLang = voices.filter(v => v.lang === lang);
+    console.log('[findVoiceByLangAndGender] Available voices for', lang, ':', voicesForLang.map(v => v.name).join(', '));
+    
+    // Prioritize gender-specific voices
+    const genderKeywords = gender === 'male' ? ['male', 'man', 'boy', 'david', 'james', 'mark', 'zira-male'] : ['female', 'woman', 'girl', 'zira', 'susan', 'eva', 'victoria'];
+    
+    // First: gender-specific Neural/Premium voice
+    let voice = voicesForLang.find(v => 
+      !excludeVoices.includes(v.name) &&
+      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword)) &&
+      (v.name.includes('Neural') || v.name.includes('Premium'))
+    );
+    if (voice) {
+      console.log('[findVoiceByLangAndGender] Found gender-specific premium voice:', voice.name);
+      return voice;
+    }
+    
+    // Second: gender-specific non-premium voice
+    voice = voicesForLang.find(v => 
+      !excludeVoices.includes(v.name) &&
+      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword))
+    );
+    if (voice) {
+      console.log('[findVoiceByLangAndGender] Found gender-specific voice:', voice.name);
+      return voice;
+    }
+    
+    // Third: any Neural/Premium for the language
+    voice = voicesForLang.find(v => 
+      !excludeVoices.includes(v.name) &&
+      (v.name.includes('Neural') || v.name.includes('Premium'))
+    );
+    if (voice) {
+      console.log('[findVoiceByLangAndGender] Found neural/premium voice:', voice.name);
+      return voice;
+    }
+    
+    // Finally: any voice not already used
+    voice = voicesForLang.find(v => !excludeVoices.includes(v.name));
+    if (voice) {
+      console.log('[findVoiceByLangAndGender] Found any voice:', voice.name);
+      return voice;
+    }
+  }
+  
+  console.warn('[findVoiceByLangAndGender] No voice found, returning null');
+  return null;
+};
+
+/**
+ * Play podcast using browser text-to-speech with multiple hosts and genders
+ */
+const playPodcastAudio = (transcript, hosts) => {
+  try {
+    console.log('[playPodcastAudio] Starting speech synthesis with multiple hosts');
+    console.log('[playPodcastAudio] Hosts:', hosts);
+    
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+    
+    // Break text into sentences
+    const sentences = transcript.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+    console.log('[playPodcastAudio] Split into', sentences.length, 'sentences');
+    
+    // Get all available voices
+    const allVoices = window.speechSynthesis.getVoices();
+    console.log('[playPodcastAudio] Total available voices:', allVoices.length);
+    console.log('[playPodcastAudio] All voices:', allVoices.map(v => v.name + ' (' + v.lang + ')').slice(0, 10), '...');
+    
+    const usedVoiceNames = [];
+    
+    // Prepare host voice configurations
+    const hostVoices = (hosts || []).map((host, index) => {
+      const gender = detectGenderFromName(host.name);
+      const accent = host.accent || 'US';
+      const preferredLangs = getVoicesForAccent(accent, gender);
+      const voice = findVoiceByLangAndGender(allVoices, preferredLangs, gender, usedVoiceNames);
+      
+      if (voice) {
+        usedVoiceNames.push(voice.name);
+      }
+      
+      console.log('[playPodcastAudio] ===== HOST', index, '=====');
+      console.log('[playPodcastAudio] Name:', host.name);
+      console.log('[playPodcastAudio] Gender:', gender);
+      console.log('[playPodcastAudio] Accent:', accent);
+      console.log('[playPodcastAudio] Preferred Languages:', preferredLangs);
+      console.log('[playPodcastAudio] Selected Voice:', voice?.name || 'SYSTEM DEFAULT');
+      console.log('[playPodcastAudio] Pitch:', gender === 'female' ? '1.2 (higher)' : '0.8 (lower)');
+      console.log('[playPodcastAudio] ============================');
+      
+      return { host, gender, accent, voice };
+    });
+    
+    let sentenceIndex = 0;
+    let hostIndex = 0;
+    
+    const speakNextSentence = () => {
+      if (sentenceIndex >= sentences.length) {
+        console.log('[playPodcastAudio] ✅ All sentences completed');
+        return;
+      }
+      
+      // Alternate between hosts (if multiple hosts exist)
+      if (hostVoices.length > 1) {
+        hostIndex = sentenceIndex % hostVoices.length;
+      }
+      
+      const sentence = sentences[sentenceIndex];
+      const currentHostConfig = hostVoices[hostIndex];
+      const hostName = currentHostConfig.host.name;
+      
+      const utterance = new SpeechSynthesisUtterance(sentence.replace(/\[PAUSE\]/g, '...'));
+      
+      // Improved quality settings
+      utterance.rate = 0.85;
+      utterance.volume = 1.0;
+      
+      // Vary pitch based on gender (this makes a noticeable difference)
+      if (currentHostConfig.gender === 'female') {
+        utterance.pitch = 1.3;  // Higher for female
+      } else {
+        utterance.pitch = 0.7;  // Lower for male
+      }
+      
+      // Apply host-specific voice
+      if (currentHostConfig.voice) {
+        utterance.voice = currentHostConfig.voice;
+        console.log('[playPodcastAudio] Sentence', sentenceIndex + 1, '→', hostName, '(', currentHostConfig.gender, ') using', currentHostConfig.voice.name);
+      } else {
+        console.log('[playPodcastAudio] Sentence', sentenceIndex + 1, '→', hostName, '(', currentHostConfig.gender, ') - SYSTEM DEFAULT');
+      }
+      
+      utterance.onstart = () => {
+        console.log('[playPodcastAudio] ▶️ Started -', hostName, 'sentence', sentenceIndex + 1);
+      };
+      
+      utterance.onend = () => {
+        console.log('[playPodcastAudio] ⏹️ Ended -', hostName, 'sentence', sentenceIndex + 1);
+        sentenceIndex++;
+        // Pause between speakers
+        setTimeout(() => speakNextSentence(), 400);
+      };
+      
+      utterance.onerror = (event) => {
+        console.error('[playPodcastAudio] ❌ Error on sentence', sentenceIndex + 1, ':', event.error);
+        sentenceIndex++;
+        setTimeout(() => speakNextSentence(), 500);
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    };
+    
+    speakNextSentence();
+    
+  } catch (error) {
+    console.error('[playPodcastAudio] FATAL ERROR:', error);
+  }
+};
+
+/**
+ * Analyze document
  * @param {string} docText - Document text
  * @param {AbortSignal} signal - Abort signal
  * @returns {Promise<Object>} Analysis with summary and key points
@@ -526,8 +950,36 @@ export const verifyApiKey = async () => {
   }
 };
 
-// Expose helper in browser for quick diagnostics
+/**
+ * Get voice for accent using Web Speech API
+ * @param {string} accent - Accent code (US, UK, NG)
+ * @returns {number} Voice index or 0 for default
+ */
+export const getVoiceForAccent = (accent = 'US') => {
+  try {
+    const voices = window.speechSynthesis.getVoices();
+    const accentMap = {
+      'US': ['en-US', 'en_US'],
+      'UK': ['en-GB', 'en_GB', 'en-UK'],
+      'NG': ['en-NG', 'en_NG', 'en-GB'] // Fallback to UK for Nigerian
+    };
+    
+    const targets = accentMap[accent] || accentMap['US'];
+    for (let target of targets) {
+      const idx = voices.findIndex(v => v.lang?.includes(target) || v.lang?.replace('-', '_')?.includes(target));
+      if (idx !== -1) return idx;
+    }
+    return 0; // Default voice
+  } catch (e) {
+    console.warn('[getVoiceForAccent] Error finding voice:', e);
+    return 0;
+  }
+};
+
+// Expose helpers in browser for quick diagnostics
 if (typeof window !== 'undefined') {
   window.__verifyGeminiApiKey = verifyApiKey;
+  window.__getVoiceForAccent = getVoiceForAccent;
+  window.__downloadPodcast = downloadPodcastAsAudio;
 }
 

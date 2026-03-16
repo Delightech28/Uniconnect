@@ -9,6 +9,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { createNotification } from '../services/notificationService';
+import { createVerificationRequest } from '../services/verificationService';
 import CompleteProfileForm from './CompleteProfileForm';
 // --- Data for select options (grouped by category) ---
 const universityData = {
@@ -566,8 +567,8 @@ const handleGoogleSignUp = async () => {
 		const message = err?.message || 'Failed to sign up with Google';
 		// Surface helpful messages to the user for debugging
 		if (code === 'auth/popup-closed-by-user') {
-			setError('Sign-up cancelled.');
-			toast.error('Sign-up cancelled.');
+			// Silent cancellation - user closed the popup, no error notification needed
+			console.log('Google sign-up popup closed by user');
 		} else if (code === 'auth/popup-blocked') {
 			setError('Pop-up was blocked. Please allow pop-ups and try again.');
 			toast.error('Pop-up was blocked. Please allow pop-ups and try again.');
@@ -668,6 +669,18 @@ const handleSubmit = async (e) => {
 			console.log('Welcome notification created for new user');
 		} catch (notifErr) {
 			console.warn('Failed to create welcome notification:', notifErr);
+		}
+
+		// Create verification request and send email to admin (for students only)
+		if (formData.registerAs === 'student') {
+			try {
+				await createVerificationRequest(user.uid, userData);
+				console.log('Verification request created and email sent to admin');
+			} catch (verErr) {
+				console.error('Failed to create verification request:', verErr);
+				// Don't fail the registration - this is a secondary action
+				toast.error('Registration successful but verification email could not be sent. Please contact support.');
+			}
 		}
 
 		// Redirect to verification-pending page for students

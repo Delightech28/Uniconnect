@@ -10,8 +10,10 @@ service cloud.firestore {
         request.auth.uid == userId ||
         // Any authenticated user can update specific interaction arrays/fields only
         // (connection requests, likes, followers/following updates performed via arrayUnion/arrayRemove)
+        // Also allow verification-related fields to be updated
         request.resource.data.keys().hasAny([
-          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following', 'connectionsCount'
+          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following', 'connectionsCount',
+          'verified', 'verifiedAt'
         ])
       );
 
@@ -206,6 +208,17 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == likeId;
         allow update: if false;
       }
+    }
+
+    // Verification Requests collection: tracks student verification requests
+    match /verificationRequests/{userId} {
+      // Authenticated users can create their own verification request
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // User can read their own request
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow users to update their own verification requests (status updates from verification backend)
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Default deny all other access

@@ -85,9 +85,8 @@ const handleGoogleSignIn = async () => {
     const code = error?.code;
     const message = error?.message || 'Google sign-in failed.';
     if (code === 'auth/popup-closed-by-user') {
+      // Silent cancellation - user closed the popup, no error notification needed
       console.log('Google sign-in popup closed by user');
-      toast.error('Google sign-in cancelled.');
-      setErrorMessage('Google sign-in cancelled by user.');
     } else if (code === 'auth/unauthorized-domain') {
       console.error('Google sign-in unauthorized domain:', error);
       toast.error(`Unauthorized domain: ${message}`);

@@ -176,7 +176,7 @@ const ContactSupportPage = () => {
                       <span className="material-symbols-outlined text-primary mt-0.5">mail</span>
                       <div className="flex flex-col">
                         <p className="font-medium text-slate-700 dark:text-slate-300">Email Us</p>
-                        <a className="text-primary hover:underline" href="mailto:unispaceinnovationhub@gmail.com">unispaceinnovationhub@gmail.com</a>
+                        <a className="text-primary hover:underline" href="mailto:unispaceinnovationhubltdltd@gmail.com">unispaceinnovationhubltd@gmail.com</a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
