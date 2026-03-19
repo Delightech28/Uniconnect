@@ -58,7 +58,18 @@ const handleGoogleSignIn = async () => {
     });
     
     const result = await signInWithPopup(auth, provider);
+    
+    // Validate result and user exist
+    if (!result || !result.user) {
+      throw new Error('Google sign-in failed: Invalid response from provider');
+    }
+    
     const user = result.user;
+    
+    // Validate user has email
+    if (!user.uid || !user.email) {
+      throw new Error('Google sign-in failed: Missing user email');
+    }
     
     // Check if user document exists (i.e., they already registered)
     const userDoc = await getDoc(doc(db, 'users', user.uid));

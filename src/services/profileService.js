@@ -123,28 +123,28 @@ export const toggleFollow = async (currentUserId, targetUserId) => {
     const targetUserRef = doc(db, 'users', targetUserId);
 
     if (isFollowing) {
-      // Unfollow
+      // Unfollow - use atomic increment to avoid race conditions
       await Promise.all([
         updateDoc(currentUserRef, {
           following: arrayRemove(targetUserId),
-          followingCount: (await getDoc(currentUserRef)).data().followingCount - 1,
+          followingCount: increment(-1), // Use atomic increment instead of manual count
         }),
         updateDoc(targetUserRef, {
           followers: arrayRemove(currentUserId),
-          followerCount: (await getDoc(targetUserRef)).data().followerCount - 1,
+          followerCount: increment(-1), // Use atomic increment instead of manual count
         }),
       ]);
       return false;
     } else {
-      // Follow
+      // Follow - use atomic increment to avoid race conditions
       await Promise.all([
         updateDoc(currentUserRef, {
           following: arrayUnion(targetUserId),
-          followingCount: (await getDoc(currentUserRef)).data().followingCount + 1 || 1,
+          followingCount: increment(1), // Use atomic increment instead of manual count
         }),
         updateDoc(targetUserRef, {
           followers: arrayUnion(currentUserId),
-          followerCount: (await getDoc(targetUserRef)).data().followerCount + 1 || 1,
+          followerCount: increment(1), // Use atomic increment instead of manual count
         }),
       ]);
 

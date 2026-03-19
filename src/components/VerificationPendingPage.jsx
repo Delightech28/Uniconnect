@@ -66,7 +66,7 @@ dark:bg-content-dark rounded-xl border border-border-light
 dark:border-border-dark">
 <div className="flex items-center gap-0">
 <img src="/logo/green_whitebg.png" alt="UniSpace" className="h-12 w-12 mb-1 object-contain" />
-<h2 className="text-text-primary-light dark:text-text-primary-dark
+<h2 className="text-primary
 text-xl font-bold tracking-tight -ml-3">niSpace</h2>
 </div>
 <button

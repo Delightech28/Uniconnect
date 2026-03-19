@@ -10,6 +10,7 @@ import { useNavigate, Link, NavLink } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { createNotification } from '../services/notificationService';
 import { createVerificationRequest } from '../services/verificationService';
+import { validateEmail, validatePassword, validateDisplayName, validateRegistrationForm } from '../utils/validationUtils';
 import CompleteProfileForm from './CompleteProfileForm';
 // --- Data for select options (grouped by category) ---
 const universityData = {
@@ -594,10 +595,49 @@ const handleSubmit = async (e) => {
 	try {
 		console.log('Starting user registration...');
 		
+		// Validate form data
+		const emailValidation = validateEmail(formData.email);
+		if (!emailValidation.valid) {
+			setError(emailValidation.error);
+			setLoading(false);
+			toast.error(emailValidation.error);
+			return;
+		}
+
+		const passwordValidation = validatePassword(formData.password);
+		if (!passwordValidation.valid) {
+			setError(passwordValidation.error);
+			setLoading(false);
+			toast.error(passwordValidation.error);
+			return;
+		}
+
+		const nameValidation = validateDisplayName(formData.displayName);
+		if (!nameValidation.valid) {
+			setError(nameValidation.error);
+			setLoading(false);
+			toast.error(nameValidation.error);
+			return;
+		}
+
+		if (!formData.gender) {
+			setError('Please select your gender');
+			setLoading(false);
+			toast.error('Please select your gender');
+			return;
+		}
+
+		if (formData.registerAs === 'student' && !formData.institution) {
+			setError('Please select your institution');
+			setLoading(false);
+			toast.error('Please select your institution');
+			return;
+		}
+		
 		// Create the user in Firebase Auth
 		const userCredential = await createUserWithEmailAndPassword(
 			auth,
-			formData.email,
+			formData.email.trim(),
 			formData.password
 		);
 		const user = userCredential.user;
@@ -674,18 +714,25 @@ const handleSubmit = async (e) => {
 		// Create verification request and send email to admin (for students only)
 		if (formData.registerAs === 'student') {
 			try {
+				console.log('[UniConnectRegistration] 🚀 CALLING createVerificationRequest...');
+				console.log('[UniConnectRegistration] userId:', user.uid);
+				console.log('[UniConnectRegistration] userData email:', userData.email);
+				console.log('[UniConnectRegistration] userData displayName:', userData.displayName);
+				
 				await createVerificationRequest(user.uid, userData);
-				console.log('Verification request created and email sent to admin');
+				
+				console.log('[UniConnectRegistration] ✅ Verification request completed successfully');
 			} catch (verErr) {
-				console.error('Failed to create verification request:', verErr);
+				console.error('[UniConnectRegistration] ❌ Verification request failed:', verErr.message);
+				console.error('[UniConnectRegistration] Full error:', verErr);
 				// Don't fail the registration - this is a secondary action
 				toast.error('Registration successful but verification email could not be sent. Please contact support.');
 			}
 		}
 
-		// Redirect to verification-pending page for students
+		// Redirect to dashboard for students (verification happens async via email)
 		if (formData.registerAs === 'student') {
-			navigate('/verification-pending');
+			navigate('/dashboard');
 		} else {
 			// For guests, redirect to guest dashboard or appropriate page
 			navigate('/guest-dashboard');

@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { useTheme } from '../hooks/useTheme';
+import { useOptimisticUpdate } from '../hooks/useOptimisticUpdate';
 import AppHeader from './AppHeader';
 import Footer from './Footer';
 import GenderBadge from './GenderBadge';
@@ -39,6 +40,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
   const { darkMode, toggleTheme } = useTheme();
+  const { executeOptimistic } = useOptimisticUpdate();
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [userDoc, setUserDoc] = useState(null);
@@ -48,7 +50,16 @@ const ProfilePage = () => {
   const [hasReceivedRequest, setHasReceivedRequest] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [badges, setBadges] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    followersCount: 0,
+    followingCount: 0,
+    postsCreated: 0,
+    itemsSold: 0,
+    connectionsCount: 0,
+    likesReceived: 0,
+    ratings: 0,
+    verificationStatus: 'none'
+  });
   const [posts, setPosts] = useState([]);
   const [soldItems, setSoldItems] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -326,22 +337,40 @@ const ProfilePage = () => {
       return;
     }
 
-    setConnectLoading(true);
-    try {
+    // Store previous state for rollback
+    const prevHasPendingRequest = hasPendingRequest;
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
+      setHasPendingRequest(true);
+    };
+
+    // Server operation
+    const asyncOp = async () => {
       const result = await sendConnectionRequest(currentUser.uid, userId);
-      if (result === 'sent') {
-        setHasPendingRequest(true);
-        toast.success('Connection request sent!');
-      } else if (result === 'already_connected') {
+      if (result === 'already_connected') {
         toast.info('You are already connected');
       } else if (result === 'already_pending') {
         toast.info('Connection request already pending');
       }
+      return result;
+    };
+
+    // Rollback function
+    const rollbackFn = () => {
+      setHasPendingRequest(prevHasPendingRequest);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        () => toast.success('Connection request sent!'),
+        null,
+        rollbackFn
+      );
     } catch (err) {
       console.error('Connection request error:', err);
-      toast.error('Error sending connection request: ' + (err.message || err));
-    } finally {
-      setConnectLoading(false);
     }
   };
 
@@ -351,20 +380,44 @@ const ProfilePage = () => {
       return;
     }
 
-    setConnectLoading(true);
-    try {
-      await acceptConnectionRequest(currentUser.uid, userId);
+    // Store previous state for rollback
+    const prevIsConnected = isConnected;
+    const prevHasReceivedRequest = hasReceivedRequest;
+    const prevStats = stats;
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
       setIsConnected(true);
       setHasReceivedRequest(false);
+      // Show immediate update to connections count
+      setStats(prev => ({ ...(prev || {}), connectionsCount: (prev?.connectionsCount || 0) + 1 }));
+    };
+
+    // Server operation
+    const asyncOp = async () => {
+      await acceptConnectionRequest(currentUser.uid, userId);
       const updatedConnections = await getConnections(currentUser.uid);
       setConnections(updatedConnections);
-      // update stats.connectionsCount so UI reflects new count immediately
-      setStats(prev => ({ ...(prev || {}), connectionsCount: updatedConnections.length }));
-      toast.success('Connection accepted!');
+      return updatedConnections;
+    };
+
+    // Rollback function
+    const rollbackFn = () => {
+      setIsConnected(prevIsConnected);
+      setHasReceivedRequest(prevHasReceivedRequest);
+      setStats(prevStats);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        () => toast.success('Connection accepted!'),
+        null,
+        rollbackFn
+      );
     } catch (err) {
-      toast.error('Error accepting connection');
-    } finally {
-      setConnectLoading(false);
+      console.error('Error accepting connection:', err);
     }
   };
 
@@ -374,15 +427,34 @@ const ProfilePage = () => {
       return;
     }
 
-    setConnectLoading(true);
-    try {
-      await rejectConnectionRequest(currentUser.uid, userId);
+    // Store previous state for rollback
+    const prevHasReceivedRequest = hasReceivedRequest;
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
       setHasReceivedRequest(false);
-      toast.success('Connection request rejected');
+    };
+
+    // Server operation
+    const asyncOp = async () => {
+      await rejectConnectionRequest(currentUser.uid, userId);
+    };
+
+    // Rollback function
+    const rollbackFn = () => {
+      setHasReceivedRequest(prevHasReceivedRequest);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        () => toast.success('Connection request rejected'),
+        null,
+        rollbackFn
+      );
     } catch (err) {
-      toast.error('Error rejecting connection');
-    } finally {
-      setConnectLoading(false);
+      console.error('Error rejecting connection:', err);
     }
   };
 
@@ -392,14 +464,20 @@ const ProfilePage = () => {
       return;
     }
 
-    setLikeLoading(true);
-    try {
+    // Store previous state for rollback
+    const prevIsLiked = isLiked;
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
+      setIsLiked(!prevIsLiked);
+    };
+
+    // Server operation
+    const asyncOp = async () => {
       const newLiked = await toggleUserLike(currentUser.uid, userId);
-      setIsLiked(newLiked);
       
-      if (newLiked) {
-        toast.success('Profile liked!');
-        // Send notification
+      // Only send notification on like, not unlike
+      if (newLiked && newLiked !== prevIsLiked) {
         try {
           console.log('Sending like notification to user:', userId);
           await notifyUserLiked(userId, {
@@ -411,14 +489,28 @@ const ProfilePage = () => {
         } catch (err) {
           console.error('Failed to send like notification:', err);
         }
-      } else {
-        toast.success('Profile unliked');
       }
+      
+      return newLiked;
+    };
+
+    // Rollback function
+    const rollbackFn = () => {
+      setIsLiked(prevIsLiked);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        (newLiked) => {
+          toast.success(newLiked ? 'Profile liked!' : 'Profile unliked');
+        },
+        null,
+        rollbackFn
+      );
     } catch (err) {
       console.error('Like toggle error:', err);
-      toast.error('Error updating like status: ' + (err.message || err));
-    } finally {
-      setLikeLoading(false);
     }
   };
 

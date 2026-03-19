@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { notifyPostLiked, notifyPostCommented } from '../services/notificationService';
 import { getDefaultAvatar } from '../services/avatarService';
+import { useOptimisticUpdate } from '../hooks/useOptimisticUpdate';
 
 const PostStats = ({ likes, comments, onToggleLike, liked, onToggleComments, onShare }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
@@ -180,6 +181,7 @@ export default function CampusFeed() {
 
 function PostItem({ post }) {
   const navigate = useNavigate();
+  const { executeOptimistic, loading: optimisticLoading } = useOptimisticUpdate();
   const [likesCount, setLikesCount] = useState(post.likesCount || 0);
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState([]);
@@ -278,10 +280,23 @@ function PostItem({ post }) {
       navigate('/uni-connect-login');
       return;
     }
+
+    // Store previous state for rollback
+    const prevLiked = liked;
+    const prevLikesCount = likesCount;
+    const isCurrentlyLiked = prevLiked;
+
     const likeDocRef = doc(db, 'posts', post.id, 'likes', user.uid);
     const postDocRef = doc(db, 'posts', post.id);
-    
-    try {
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
+      setLiked(!isCurrentlyLiked);
+      setLikesCount(prev => isCurrentlyLiked ? Math.max(0, prev - 1) : prev + 1);
+    };
+
+    // Server operation: perform the actual database update
+    const asyncOp = async () => {
       await runTransaction(db, async (transaction) => {
         const likeSnap = await transaction.get(likeDocRef);
         const postSnap = await transaction.get(postDocRef);
@@ -313,6 +328,22 @@ function PostItem({ post }) {
           }
         }
       });
+    };
+
+    // Rollback function: revert UI if server operation fails
+    const rollbackFn = () => {
+      setLiked(prevLiked);
+      setLikesCount(prevLikesCount);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        null, // No special success callback needed
+        null, // No special error callback needed
+        rollbackFn
+      );
     } catch (err) {
       console.error('Like toggle failed', err);
     }
@@ -324,10 +355,27 @@ function PostItem({ post }) {
       navigate('/uni-connect-login');
       return;
     }
+
+    // Store previous state for rollback
+    const prevCommentLikes = { ...commentLikes };
+    const isCurrentlyLiked = commentLikes[commentId]?.liked || false;
+
     const commentLikeDocRef = doc(db, 'posts', postId, 'comments', commentId, 'likes', user.uid);
     const commentDocRef = doc(db, 'posts', postId, 'comments', commentId);
-    
-    try {
+
+    // Optimistic update: update UI immediately
+    const optimisticUpdateFn = () => {
+      setCommentLikes(prev => ({
+        ...prev,
+        [commentId]: {
+          liked: !isCurrentlyLiked,
+          count: isCurrentlyLiked ? Math.max(0, (prev[commentId]?.count || 0) - 1) : (prev[commentId]?.count || 0) + 1
+        }
+      }));
+    };
+
+    // Server operation: perform the actual database update
+    const asyncOp = async () => {
       await runTransaction(db, async (transaction) => {
         const likeSnap = await transaction.get(commentLikeDocRef);
         const commentSnap = await transaction.get(commentDocRef);
@@ -344,6 +392,21 @@ function PostItem({ post }) {
           });
         }
       });
+    };
+
+    // Rollback function: revert UI if server operation fails
+    const rollbackFn = () => {
+      setCommentLikes(prevCommentLikes);
+    };
+
+    try {
+      await executeOptimistic(
+        optimisticUpdateFn,
+        asyncOp,
+        null,
+        null,
+        rollbackFn
+      );
     } catch (err) {
       console.error('Comment like toggle failed', err);
     }

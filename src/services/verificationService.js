@@ -22,10 +22,23 @@ const generateVerificationToken = () => {
  * Create a verification request and send admin email
  */
 export const createVerificationRequest = async (userId, userData) => {
+  console.log('[verificationService] ===== START: createVerificationRequest =====');
+  console.log('[verificationService] Input userId:', userId);
+  console.log('[verificationService] Input userData:', { displayName: userData.displayName, email: userData.email, registerAs: userData.registerAs });
+  console.log('[verificationService] Environment Check:', {
+    VITE_EMAILJS_SERVICE_ID: EMAILJS_SERVICE_ID || 'NOT SET',
+    VITE_EMAILJS_TEMPLATE_ID: EMAILJS_TEMPLATE_ID || 'NOT SET',
+    VITE_EMAILJS_PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? 'SET' : 'NOT SET',
+    VITE_APP_URL: import.meta.env.VITE_APP_URL || 'NOT SET',
+    ADMIN_EMAIL: ADMIN_EMAIL
+  });
+
   try {
     const verificationToken = generateVerificationToken();
+    console.log('[verificationService] Generated verification token:', verificationToken);
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    console.log('[verificationService] Token expiration set to:', expiresAt);
 
     // Create verification request in Firestore
     const verificationDoc = {
@@ -43,34 +56,78 @@ export const createVerificationRequest = async (userId, userData) => {
     };
 
     await setDoc(doc(db, 'verificationRequests', userId), verificationDoc);
+    console.log('[verificationService] ✅ Verification document saved to Firestore');
 
     // Generate approval/rejection links
     const baseUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+    console.log('[verificationService] Base URL for verification links:', baseUrl);
     const approveLink = `${baseUrl}/verify?token=${verificationToken}&action=approve&userId=${userId}`;
     const rejectLink = `${baseUrl}/verify?token=${verificationToken}&action=reject&userId=${userId}`;
+    console.log('[verificationService] Generated approval link:', approveLink.substring(0, 80) + '...');
+    console.log('[verificationService] Generated rejection link:', rejectLink.substring(0, 80) + '...');
 
     // Send verification email to admin
-    await emailjs.send(
+    console.log('[verificationService] 📧 PREPARING EMAIL TO ADMIN...');
+    console.log('[verificationService] EmailJS Config:', {
+      service: EMAILJS_SERVICE_ID,
+      template: EMAILJS_TEMPLATE_ID,
+      to_email: ADMIN_EMAIL,
+    });
+
+    const emailPayload = {
+      to_email: ADMIN_EMAIL,
+      user_name: userData.displayName || 'Student',
+      user_email: userData.email || '',
+      username: userData.username || userData.email.split('@')[0],
+      institution: userData.institution || 'Not specified',
+      register_as: userData.registerAs || 'Student',
+      created_at: createdAt.toLocaleDateString(),
+      approve_link: approveLink,
+      reject_link: rejectLink,
+      year: new Date().getFullYear(),
+    };
+    console.log('[verificationService] Email payload keys:', Object.keys(emailPayload));
+    console.log('[verificationService] to_email:', emailPayload.to_email);
+    console.log('[verificationService] user_email:', emailPayload.user_email);
+    console.log('[verificationService] user_name:', emailPayload.user_name);
+
+    console.log('[verificationService] Calling emailjs.send()...');
+    const sendResult = await emailjs.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID,
-      {
-        user_name: userData.displayName || 'Student',
-        user_email: userData.email || '',
-        username: userData.username || userData.email.split('@')[0],
-        institution: userData.institution || 'Not specified',
-        register_as: userData.registerAs || 'Student',
-        created_at: createdAt.toLocaleDateString(),
-        approve_link: approveLink,
-        reject_link: rejectLink,
-        year: new Date().getFullYear(),
-      }
+      emailPayload
     );
-
-    console.log('[verificationService] Verification request created and email sent to admin');
+    console.log('[verificationService] ✅ EMAIL SENT SUCCESSFULLY');
+    console.log('[verificationService] EmailJS Result:', sendResult);
     return verificationToken;
   } catch (error) {
-    console.error('[verificationService] Error creating verification request:', error);
-    throw error;
+    console.error('[verificationService] ❌ ERROR in createVerificationRequest');
+    console.error('[verificationService] Error message:', error.message);
+    console.error('[verificationService] Error code:', error.code);
+    console.error('[verificationService] Full error object:', error);
+    
+    // Capture error details
+    if (error.status) {
+      console.error('[verificationService] HTTP Status:', error.status);
+    }
+    if (error.text) {
+      console.error('[verificationService] Error text:', error.text);
+    }
+    if (error.stack) {
+      console.error('[verificationService] Stack trace:', error.stack);
+    }
+    
+    console.error('[verificationService] EmailJS Configuration Status:', {
+      SERVICE_ID: EMAILJS_SERVICE_ID ? '✓ Set' : '✗ NOT SET',
+      TEMPLATE_ID: EMAILJS_TEMPLATE_ID ? '✓ Set' : '✗ NOT SET',
+      PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? '✓ Set' : '✗ NOT SET',
+      ADMIN_EMAIL: ADMIN_EMAIL,
+    });
+    
+    // Even if email fails, verification request was created in Firestore
+    // Log error but continue
+    toast.error('Registration complete but verification email may not have been sent. Please contact support.');
+    return verificationToken;
   }
 };
 

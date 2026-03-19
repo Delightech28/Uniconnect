@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import Footer from './Footer';
+import toast from 'react-hot-toast';
 // --- Data for the feature list (cleaner than hardcoding in JSX) ---
 const guestFeatures = [
 {
@@ -26,10 +30,55 @@ enabled: false, // This flag will control the styling
 },
 ];
 const GuestWelcomePage = () => {
-const { darkMode, toggleTheme } = useTheme();
-const navigate = useNavigate();
-return (
-<div className="relative flex min-h-screen w-full flex-col
+  const { darkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [isConverting, setIsConverting] = useState(false);
+
+  // Check auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        setUser(u);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleVerifyAsStudent = async () => {
+    if (!user) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    try {
+      setIsConverting(true);
+      toast.loading('Converting to student...', { id: 'convert' });
+
+      // Update user profile to student (unverified)
+      await updateDoc(doc(db, 'users', user.uid), {
+        registerAs: 'student',
+        verificationStatus: 'pending',
+        verificationInitiatedAt: new Date(),
+      });
+
+      toast.dismiss('convert');
+      toast.success('You will be verified shortly! 🎉', { duration: 3000 });
+
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } catch (error) {
+      console.error('Error converting to student:', error);
+      toast.dismiss('convert');
+      toast.error('Failed to convert. Please try again.');
+      setIsConverting(false);
+    }
+  };
+
+  return (
+    <div className="relative flex min-h-screen w-full flex-col
 overflow-x-hidden bg-background-light dark:bg-background-dark">
 {/* Dark Mode Toggle - Added for interactivity demo */}
 <div className="absolute top-4 right-4 z-10">
@@ -84,25 +133,30 @@ font-normal leading-normal flex-1">
 })}
 </div>
 <div className="flex flex-col gap-3 pt-2">
-<button onClick={() => navigate('/guest-dashboard')} className="flex h-12 w-full items-center justify-center
+            <button 
+              onClick={() => navigate('/guest-dashboard')} 
+              className="flex h-12 w-full items-center justify-center
 rounded-lg bg-primary px-6 text-base font-semibold text-white
 transition-colors hover:bg-primary/90 focus-visible:outline
 focus-visible:outline-2 focus-visible:outline-offset-2
 focus-visible:outline-primary">
-Continue as a Guest
-</button>
-<button className="flex h-12 w-full items-center justify-center
+              Continue as a Guest
+            </button>
+            <button 
+              onClick={handleVerifyAsStudent}
+              disabled={isConverting}
+              className="flex h-12 w-full items-center justify-center
 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent
 px-6 text-base font-semibold text-primary transition-colors
-hover:bg-primary/10 dark:hover:bg-primary/10">
-Verify to become a Student
-</button>
+hover:bg-primary/10 dark:hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed">
+              {isConverting ? 'Converting...' : 'Verify to become a Student'}
+            </button>
 </div>
       </div>
     </div>
     <Footer darkMode={darkMode} />
   </div>
-);
+  );
 };
 export default GuestWelcomePage;
 

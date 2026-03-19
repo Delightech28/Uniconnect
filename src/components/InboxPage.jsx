@@ -185,6 +185,7 @@ function InboxPage() {
     const [typingUsers, setTypingUsers] = useState({});
     const messagesRef = useRef(null);
     const fileInputRef = useRef(null);
+    const creatingConvoRef = useRef(false); // Prevent race condition in convo creation
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [gifOpen, setGifOpen] = useState(false);
     const [gifQuery, setGifQuery] = useState('');
@@ -273,10 +274,17 @@ function InboxPage() {
                         return convoResult;
                     });
 
-                    Promise.all(promises).then((items) => {
-                        if (!mounted) return;
-                        setConversations(items);
-                    });
+                    Promise.all(promises)
+                        .then((items) => {
+                            if (!mounted) return;
+                            setConversations(items);
+                        })
+                        .catch((err) => {
+                            console.error('[InboxPage] Error processing conversations:', err);
+                            if (mounted) {
+                                setConversations([]);
+                            }
+                        });
                 }, (err) => console.error('Conversations subscription error', err));
                 return () => unsub();
             } catch (err) {
@@ -437,10 +445,37 @@ function InboxPage() {
                 }
 
                 // No existing conversation found — create one on-demand
-                // Write to both top-level conversations and per-user mirrors
-                const convoRef = await addDoc(collection(db, 'conversations'), {
-                    participants: [user.uid, recipientId],
-                    lastMessage: '',
+                // But prevent race condition with double creation
+                if (creatingConvoRef.current) {
+                    console.warn('[InboxPage] Conversation creation already in progress, skipping duplicate');
+                    return;
+                }
+
+                creatingConvoRef.current = true;
+                try {
+                    // Re-check for existing to avoid race condition
+                    const confirmQ = query(collection(db, 'conversations'), where('participants', 'array-contains', user.uid));
+                    const confirmSnap = await getDocs(confirmQ);
+                    let recheck = null;
+                    confirmSnap.forEach(d => {
+                        const data = d.data();
+                        const parts = data.participants || [];
+                        if (parts.includes(recipientId)) {
+                            recheck = { id: d.id, ...data };
+                        }
+                    });
+
+                    if (recheck) {
+                        console.log('[InboxPage] Found existing conversation during re-check, using that instead');
+                        setActiveConvoId(recheck.id);
+                        setIsChatVisible(true);
+                        return;
+                    }
+
+                    // Write to both top-level conversations and per-user mirrors
+                    const convoRef = await addDoc(collection(db, 'conversations'), {
+                        participants: [user.uid, recipientId],
+                        lastMessage: '',
                     lastTimestamp: serverTimestamp(),
                     unreadCount: 0,
                 });
@@ -464,8 +499,12 @@ function InboxPage() {
 
                 setActiveConvoId(convoId);
                 setIsChatVisible(true);
+                } finally {
+                    creatingConvoRef.current = false;
+                }
             } catch (err) {
                 console.error('Failed to open/create conversation from profile recipientId:', err);
+                creatingConvoRef.current = false;
             }
         })();
     }, [location.search, user]);
