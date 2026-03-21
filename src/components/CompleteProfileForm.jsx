@@ -25,6 +25,7 @@ const universityData = {
     'Federal University of Technology, Akure',
     'Federal University of Technology, Minna',
     'Federal University of Technology, Owerri',
+    'National Open University Of Nigeria',
     'Obafemi Awolowo University, Ile-Ife',
     'University of Benin, Benin City',
     'University of Ibadan',

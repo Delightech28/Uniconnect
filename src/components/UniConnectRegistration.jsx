@@ -64,6 +64,7 @@ const universityData = {
 		'Joseph Sarwuan Tarka University, Makurdi',
 		'Michael Okpara University of Agricultural Umudike',
 		'Modibbo Adama University of Technology, Yola',
+		'National Open University Of Nigeria',
 		'National Open University of Nigeria, Abuja',
 		'National University of Science and Technology, Abuja',
 		'Nigeria Police Academy Wudil',
