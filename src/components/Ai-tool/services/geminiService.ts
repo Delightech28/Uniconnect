@@ -1,8 +1,18 @@
 import { UploadedFile, ResultMode } from "../types";
 
-// Helper to prepare files for the backend
+// NO TRAILING SPACES - Copy paste this exactly
+const STREAM_FUNCTION_URL = "https://streamgemini-e37xi73mhq-uc.a.run.app";
+const UNIDOC_API_URL = "https://unidocstandardapi-e37xi73mhq-uc.a.run.app";
+
+// Validate URL has no spaces
+if (STREAM_FUNCTION_URL.includes(" ")) {
+  console.error("FATAL: URL contains spaces!", STREAM_FUNCTION_URL);
+}
+if (UNIDOC_API_URL.includes(" ")) {
+  console.error("FATAL: URL contains spaces!", UNIDOC_API_URL);
+}
+
 const fileToPart = (file: UploadedFile) => {
-  // Ensure we handle potential base64 prefix
   const base64Data = file.data.includes(',') ? file.data.split(',')[1] : file.data;
   return {
     inlineData: {
@@ -19,10 +29,8 @@ export async function* generateContentStream(
   signal?: AbortSignal
 ): AsyncGenerator<string, void, unknown> {
   
-
   const partsA = filesA.map(fileToPart);
   const partsB = filesB.map(fileToPart);
-
 
   let systemInstruction = "CRITICAL FORMATTING RULE: NEVER use hashtags (#). For headers, use hierarchical numbering (1.0, 1.1). Use double asterisks (e.g., **important text**) to BOLD key points, names, titles, years, specific events, and critical terms.";
 
@@ -34,7 +42,6 @@ export async function* generateContentStream(
     systemInstruction += ` You are an Expert Academic Simplifier. Breakdown every topic in extreme detail... BOLD key concepts.`;
   }
 
-  // Construct the prompt parts
   let contentsParts: any[] = [];
   if (mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW) {
     const modePrompt = mode === ResultMode.SUMMARY 
@@ -55,26 +62,40 @@ export async function* generateContentStream(
     ];
   }
 
-  try {
+  // Debug log
+  console.log("Fetching from:", STREAM_FUNCTION_URL);
+  console.log("Payload size:", JSON.stringify({ contentsParts, systemInstruction }).length);
 
-    const STREAM_FUNCTION_URL = "https://us-central1-unispace-73480.cloudfunctions.net/streamGemini";
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    
+    const fetchSignal = signal || controller.signal;
 
     const response = await fetch(STREAM_FUNCTION_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "text/plain"
+      },
       body: JSON.stringify({ contentsParts, systemInstruction }),
-      signal 
+      signal: fetchSignal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloud Function Error: ${errorText}`);
+      console.error("HTTP Error:", response.status, errorText);
+      throw new Error(`Server error ${response.status}: ${errorText}`);
     }
 
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+    if (!response.body) {
+      throw new Error("Response body is null");
+    }
 
-    if (!reader) throw new Error("Failed to initialize stream reader.");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -86,8 +107,51 @@ export async function* generateContentStream(
       }
     }
   } catch (error: any) {
-    if (error.name === 'AbortError') return;
-    console.error("Gemini Stream Error:", error);
-    throw new Error(error.message || "Failed to generate content.");
+    if (error.name === 'AbortError') {
+      console.log("Request aborted");
+      return;
+    }
+    console.error("Fetch Error:", error);
+    
+    // Provide specific error messages
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error("Network error: Check CORS configuration and URL. Ensure no spaces in URL.");
+    }
+    throw error;
   }
 }
+
+// Non-streaming version with fallback
+export const callUnidocAPI = async (prompt: string) => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(UNIDOC_API_URL, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ prompt }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server error ${response.status}: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error("Request timeout");
+    }
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error("Network error: Cannot connect to API. Check CORS and URL.");
+    }
+    throw error;
+  }
+};

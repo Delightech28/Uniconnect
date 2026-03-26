@@ -55,7 +55,7 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
 
   try {
 
-    const FUNCTION_URL = "https://us-central1-unispace-73480.cloudfunctions.net/streamGemini";
+    const FUNCTION_URL = "https://streamgemini-e37xi73mhq-uc.a.run.app";
 
     const response = await fetch(FUNCTION_URL, {
       method: "POST",

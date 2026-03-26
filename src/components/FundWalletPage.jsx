@@ -14,13 +14,14 @@ import {
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'YOUR_PAYSTACK_PUBLIC_KEY';
 
-// Determine API base: Vercel (/api), or fallback to VITE_API_BASE, or localhost
+
 const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return 'http://localhost:4000';
   }
-  // On production (Vercel), use /api (same domain)
+ 
+  
   return '/api';
 };
 
@@ -283,7 +284,6 @@ const FundWalletPage = () => {
               </div>
             )}
 
-            {/* Main Form Card */}
             <div className="bg-white dark:bg-secondary rounded-xl shadow-md p-8">
               {/* Amount Section */}
               <div className="mb-8">

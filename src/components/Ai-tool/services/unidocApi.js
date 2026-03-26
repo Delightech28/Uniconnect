@@ -1,31 +1,62 @@
 import { db } from '../../../firebase';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 
-// NO MORE API KEY IN FRONTEND!
 
-const CLOUD_FUNCTION_URL = "https://us-central1-unispace-73480.cloudfunctions.net/unidocStandardAPI";
 
-/**
- * Make API request to our SECURE Cloud Function
- */
+const STREAM_GEMINI_URL = "https://streamgemini-e37xi73mhq-uc.a.run.app";
+const UNIDOC_API_URL = "https://unidocstandardapi-e37xi73mhq-uc.a.run.app";
+
+
+export async function* generateContentStream(contentsParts, systemInstruction) {
+  try {
+    const response = await fetch(STREAM_GEMINI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "text/plain",
+      },
+      body: JSON.stringify({ contentsParts, systemInstruction }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cloud Function Error: ${errorText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield decoder.decode(value, { stream: true });
+    }
+  } catch (error) {
+    console.error("Cloud Function Error:", error);
+    throw error;
+  }
+}
+
+
 export const callUnidocAPI = async (prompt) => {
   try {
-    const response = await fetch(CLOUD_FUNCTION_URL, {
-      method: 'POST',
+    const response = await fetch(UNIDOC_API_URL, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        "Accept": "application/json",
       },
       body: JSON.stringify({ prompt }),
     });
 
     if (!response.ok) {
-      const errorDetail = await response.text();
-      throw new Error(`Cloud Function Error: ${errorDetail}`);
+      const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
-    console.error('API call failed:', error);
+    console.error("API call failed:", error);
     throw error;
   }
 };

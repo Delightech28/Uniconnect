@@ -7,8 +7,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage } from 'firebase/storage';
 
-// Load config from Vite environment variables. Require a real API key to avoid
-// sending a placeholder to the Firebase REST endpoints (causes 400 / invalid key).
+
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 if (!apiKey) {
   throw new Error(
@@ -16,14 +15,23 @@ if (!apiKey) {
   );
 }
 
+// const firebaseConfig = {
+//   apiKey,
+//   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+//   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+//   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+//   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+//   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+//   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
+// };
+
 const firebaseConfig = {
-  apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
+  apiKey: "AIzaSyDybrQtHhsfNRtDw-xDkBDwmJbDgGRkHrY",
+  authDomain: "unispacee-cee.firebaseapp.com",
+  projectId: "unispacee-cee",
+  storageBucket: "unispacee-cee.firebasestorage.app",
+  messagingSenderId: "488543975520",
+  appId: "1:488543975520:web:cb00a4ac54d8c94ae5ab05"
 };
 
 

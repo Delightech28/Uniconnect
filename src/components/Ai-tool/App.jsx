@@ -48,13 +48,13 @@ const App = () => {
 
   const abortControllerRef = useRef(null);
 
-  // Initialize local dark mode
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) setIsDark(JSON.parse(savedTheme));
   }, []);
 
-  // Sync with global dark mode changes
+
   useEffect(() => {
     setIsDark(globalDarkMode);
   }, [globalDarkMode]);

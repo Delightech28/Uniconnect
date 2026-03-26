@@ -1,3 +1,5 @@
+// Vercel Serverless Function: Create Virtual Account
+// POST /api/create-virtual-account
 
 export default async function handler(req, res) {
   // Enable CORS
