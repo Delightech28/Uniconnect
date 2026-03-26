@@ -1,0 +1,324 @@
+{
+  "auditDate": "2026-03-19",
+  "projectName": "UniConnect",
+  "scope": "Production Readiness Audit - Core Components (excluding wallet, unidoc, payment pages)",
+  "criticalBugs": [
+    {
+      "file": "src/services/profileService.js",
+      "line": "127-147",
+      "issue": "Race condition in toggleFollow - reading count, decrementing/incrementing separately, then updating. Two simultaneous follow/unfollow operations can result in count mismatches.",
+      "severity": "critical",
+      "fix": "Use Firestore transactions or use increment() function: `followingCount: increment(isFollowing ? -1 : 1)` instead of manual increment/decrement"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "line": "276-280",
+      "issue": "Promise.all with no catch handler for failed user fetches. If any user document fetch fails, entire conversation list update silently fails due to unhandled rejection.",
+      "severity": "critical",
+      "fix": "Add .catch() handler: `Promise.all(promises).then(...).catch(err => console.error('Error loading conversations:', err))`"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "line": "342-346",
+      "issue": "Same as above - per-user conversations Promise.all has unhandled error chain. Errors are logged with console.error but state update may not happen, leaving UI in inconsistent state.",
+      "severity": "critical",
+      "fix": "Add proper error handling and fallback state update"
+    },
+    {
+      "file": "src/components/UniConnectLogin.jsx",
+      "line": "102-104",
+      "issue": "After Google sign-in, accessing user.email without null check. If googleUser object is null, will crash with 'Cannot read property email of null'",
+      "severity": "critical",
+      "fix": "Add validation: `if (!user || !user.email) { throw new Error('Invalid user object'); }`"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "line": "632-680",
+      "issue": "Race condition in conversation creation. Double-check for existing conversation happens AFTER setActiveConvoId is called. If two rapid clicks occur, two conversations may be created.",
+      "severity": "critical",
+      "fix": "Lock conversation creation with a flag or move race-condition check before setActiveConvoId"
+    },
+    {
+      "file": "src/components/ProfilePage.jsx",
+      "line": "65-105",
+      "issue": "Stats state initialized as null but accessed directly in multiple places (line 262, 305) without null checks. Will throw 'Cannot read property of null' at runtime.",
+      "severity": "critical",
+      "fix": "Initialize stats with default empty object: `useState({ postsCreated: 0, followers: 0, following: 0, connectionsCount: 0 })` and always use stats?.property"
+    },
+    {
+      "file": "src/components/CampusFeed.jsx",
+      "line": "205-215",
+      "issue": "Missing null check on post.authorId in fetching avatar. If post.authorId is undefined/null, getDoc fails silently.",
+      "severity": "high",
+      "fix": "Add check: `if (!post.authorId) { setAuthorAvatar(getDefaultAvatar('male')); return; }`"
+    },
+    {
+      "file": "src/components/EditProfilePage.jsx",
+      "line": "140-150",
+      "issue": "handleFileChange converts file to base64 but size check is done on original file. File size validation should happen BEFORE conversion to avoid memory issues with large files.",
+      "severity": "high",
+      "fix": "Check file.size FIRST: `if (file.size > 2 * 1024 * 1024) { toast.error(...); return; }` BEFORE FileReader"
+    },
+    {
+      "file": "src/components/UniConnectRegistration.jsx",
+      "line": "390-410",
+      "issue": "Email/password validation missing. No check for valid email format, password length validation only happens in UI but backend has no validation.",
+      "severity": "high",
+      "fix": "Add: `const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/; if (!emailRegex.test(formData.email)) setError('Invalid email format');`"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "line": "312-315",
+      "issue": "Unsafe timestamp conversion. Code doesn't check if lastTimestamp.toDate is a function before calling it. If data format changes, will throw 'toDate is not a function'",
+      "severity": "high",
+      "fix": "Add safe conversion: `const ts = data.lastTimestamp && typeof data.lastTimestamp.toDate === 'function' ? data.lastTimestamp.toDate() : new Date(data.lastTimestamp)`"
+    },
+    {
+      "file": "src/components/ChangePasswordPage.jsx",
+      "line": "125-140",
+      "issue": "After re-authentication fails, setIsLoading(false) is called but error is only console.logged. User sees no visual feedback of failure.",
+      "severity": "medium",
+      "fix": "Move error handling to catch all auth errors: wrap entire block in try-catch with proper user feedback"
+    },
+    {
+      "file": "src/components/ProfilePage.jsx",
+      "line": "63-228",
+      "issue": "Multiple Firestore queries without abort/cleanup on unmount. If user navigates away before queries complete, setters update unmounted component.",
+      "severity": "medium",
+      "fix": "Use mounted flag in all async operations to prevent setState on unmounted component"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "line": "194-201",
+      "issue": "Auth state change listener doesn't return unsubscribe. Multiple listeners may accumulate if component remounts.",
+      "severity": "medium",
+      "fix": "Currently returns unsub correctly, but verify all useEffect dependencies are correct to prevent re-creation"
+    }
+  ],
+  "warnings": [
+    {
+      "file": "src/components/UniConnectDashboard.jsx",
+      "issue": "Multiple useEffect hooks (lines 44, 133, 151, 178, 202) with auth.currentUser dependency. All have onAuthStateChanged which will trigger on every auth state change. Potential for multiple simultaneous listeners.",
+      "severity": "medium"
+    },
+    {
+      "file": "src/services/profileService.js",
+      "issue": "Follow/unfollow operations fetch user data twice (line 127-147) - before update to check state, then again to get new counts. This is inefficient and creates window for count mismatches.",
+      "severity": "medium"
+    },
+    {
+      "file": "src/components/CampusFeed.jsx",
+      "issue": "useEffect for post fetch (line 114) has empty dependency array but location.hash changes trigger scroll effect. Posts list could become stale if data updates.",
+      "severity": "medium"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "issue": "useEffect at line 195 sets user state in onChange callback but dependency array doesn't prevent stale closures on subsequent renders.",
+      "severity": "low"
+    },
+    {
+      "file": "src/components/EditProfilePage.jsx",
+      "issue": "URL.createObjectURL called without cleanup in handleFileChange. Refs leak if component unmounts during file selection.",
+      "severity": "low"
+    },
+    {
+      "file": "src/components/StudentVerificationPage.jsx",
+      "issue": "File upload in drag-drop handler doesn't validate file type. Any file can be uploaded without checking for valid document types.",
+      "severity": "medium"
+    },
+    {
+      "file": "src/components/InboxPage.jsx",
+      "issue": "Avatar URLs hardcoded as null in multiple places (lines 323, 406, 407, 740, 808, 925). Should use getDefaultAvatar() instead.",
+      "severity": "low"
+    },
+    {
+      "file": "src/services/profileService.js",
+      "issue": "Connection request creation may fail silently if array operations fail partway through. Transaction should wrap entire operation.",
+      "severity": "medium"
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "Authentication",
+      "item": "Add email format validation to both login and registration forms using regex or email-validator library",
+      "priority": "high"
+    },
+    {
+      "category": "Authentication",
+      "item": "Implement token refresh logic - JWT tokens should be refreshed before expiration",
+      "priority": "high"
+    },
+    {
+      "category": "Error Handling",
+      "item": "Create global error boundary component to catch unhandled React errors and display user-friendly messages",
+      "priority": "high"
+    },
+    {
+      "category": "Error Handling",
+      "item": "Add retry logic for failed Firestore operations with exponential backoff",
+      "priority": "medium"
+    },
+    {
+      "category": "Data Validation",
+      "item": "Create centralized validation utility with schema validation (e.g., using zod or yup) for all user input",
+      "priority": "high"
+    },
+    {
+      "category": "Data Validation",
+      "item": "Add file upload validation: check MIME type, file size, and scan for malicious content",
+      "priority": "high"
+    },
+    {
+      "category": "Performance",
+      "item": "Wrap frequently updated list components (InboxPage conversations, CampusFeed posts) with React.memo to prevent unnecessary re-renders",
+      "priority": "medium"
+    },
+    {
+      "category": "Performance",
+      "item": "Implement pagination for conversations and posts lists to reduce DOM nodes and improve rendering performance",
+      "priority": "medium"
+    },
+    {
+      "category": "Performance",
+      "item": "Use useCallback for all event handlers passed to memoized components to prevent re-creation on parent render",
+      "priority": "low"
+    },
+    {
+      "category": "Database",
+      "item": "Replace manual increment/decrement with Firestore increment() function in toggleFollow, toggleConnectionStatus functions",
+      "priority": "high"
+    },
+    {
+      "category": "Database",
+      "item": "Add Firestore security rules to validate all mutations on server-side, don't trust client validation",
+      "priority": "high"
+    },
+    {
+      "category": "State Management",
+      "item": "Consider Context API or Redux for global state (user, notifications, unread counts) to avoid prop drilling and multiple listeners",
+      "priority": "medium"
+    },
+    {
+      "category": "Type Safety",
+      "item": "Add JSDoc or TypeScript interfaces for all data objects to catch null/undefined errors at development time",
+      "priority": "medium"
+    },
+    {
+      "category": "Memory Leaks",
+      "item": "Audit all useEffect hooks - ensure all async subscriptions are properly cleaned up in return function",
+      "priority": "high"
+    },
+    {
+      "category": "Security",
+      "item": "Never store sensitive data in localStorage/sessionStorage. Move to secure HTTP-only cookies for auth tokens",
+      "priority": "high"
+    },
+    {
+      "category": "Testing",
+      "item": "Add unit tests for all utility functions (validation, avatar service, profile service) with >80% coverage",
+      "priority": "medium"
+    },
+    {
+      "category": "Testing",
+      "item": "Add integration tests for auth flows (login, registration, logout) and error scenarios",
+      "priority": "medium"
+    },
+    {
+      "category": "Monitoring",
+      "item": "Add Sentry or similar error tracking to capture runtime errors in production",
+      "priority": "medium"
+    },
+    {
+      "category": "Documentation",
+      "item": "Document all Firestore data schemas and validation rules",
+      "priority": "low"
+    }
+  ],
+  "performanceIssues": [
+    {
+      "component": "InboxPage.jsx",
+      "issue": "Multiple Promise.all operations in useEffect without debouncing. Conversation list can trigger 100+ async operations on load.",
+      "impact": "high",
+      "solution": "Batch user fetches, implement request caching"
+    },
+    {
+      "component": "ProfilePage.jsx",
+      "issue": "Stats computed from multiple separate queries instead of single aggregated read",
+      "impact": "medium",
+      "solution": "Use Firestore aggregation queries or batch reads"
+    },
+    {
+      "component": "CampusFeed.jsx",
+      "issue": "Comment likes subscribed individually for each comment (useEffect at line 258+)",
+      "impact": "medium",
+      "solution": "Batch subscription to comments/likes subcollection"
+    }
+  ],
+  "securityIssues": [
+    {
+      "issue": "No CSRF token protection visible in forms",
+      "severity": "high",
+      "recommendation": "Verify backend implements CSRF protection"
+    },
+    {
+      "issue": "Base64 encoded files stored in Firestore documents",
+      "severity": "high",
+      "recommendation": "Move files to Firebase Storage instead of embedded in documents"
+    },
+    {
+      "issue": "No input sanitization visible for user-generated content",
+      "severity": "high",
+      "recommendation": "Sanitize all user inputs with DOMPurify before storing in Firestore"
+    },
+    {
+      "issue": "File uploads have no virus scanning",
+      "severity": "medium",
+      "recommendation": "Integrate virus scanning service (ClamAV, VirusTotal API)"
+    }
+  ],
+  "overallReadiness": {
+    "status": "NOT READY FOR PRODUCTION",
+    "readinessScore": "32/100",
+    "summary": "Multiple critical race conditions, unhandled errors, and null pointer issues could cause runtime crashes or data consistency problems. Requires fixes to: (1) Race conditions in parallel database operations, (2) Comprehensive error handling for all async operations, (3) Input validation for all user-submitted data, (4) Null safety checks throughout component renders.",
+    "estimatedFixTime": "3-4 weeks",
+    "blockers": [
+      "CRITICAL: Race conditions in toggleFollow must be fixed with Firestore transactions",
+      "CRITICAL: All Promise.all chains need error handling - currently silent failures",
+      "CRITICAL: Stats state null initialization will cause runtime crashes",
+      "CRITICAL: Email validation missing on registration",
+      "HIGH: Conversation creation race condition can duplicate conversations"
+    ]
+  },
+  "criticalPathFixes": [
+    {
+      "priority": 1,
+      "task": "Fix race conditions in toggleFollow (profileService.js) using Firestore transactions",
+      "affectedComponents": ["ProfilePage", "CampusFeed"],
+      "estimatedTime": "2-3 hours"
+    },
+    {
+      "priority": 2,
+      "task": "Add error handlers to all Promise.all chains in async operations",
+      "affectedComponents": ["InboxPage", "ProfilePage"],
+      "estimatedTime": "4-5 hours"
+    },
+    {
+      "priority": 3,
+      "task": "Add null checks for all state objects before rendering/accessing properties",
+      "affectedComponents": ["ProfilePage", "CampusFeed", "InboxPage"],
+      "estimatedTime": "3-4 hours"
+    },
+    {
+      "priority": 4,
+      "task": "Implement email validation on registration and login",
+      "affectedComponents": ["UniConnectRegistration", "UniConnectLogin"],
+      "estimatedTime": "1-2 hours"
+    },
+    {
+      "priority": 5,
+      "task": "Add proper error boundaries and user feedback for all auth operations",
+      "affectedComponents": ["UniConnectLogin", "UniConnectRegistration", "ChangePasswordPage"],
+      "estimatedTime": "2-3 hours"
+    }
+  ]
+}
