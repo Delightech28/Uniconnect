@@ -83,6 +83,11 @@ const Footer = ({ darkMode }) => {
 		{ icon: 'linkedin', label: 'LinkedIn', href: '#' },
 	];
 
+	// Only show footer on landing page or when user is not logged in
+	if (isLoggedIn && location.pathname !== '/') {
+		return null;
+	}
+
 	return (
 		<footer className={`${localDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} border-t ${localDarkMode ? 'border-gray-800' : 'border-gray-200'} mt-16 lg:mt-24`}>
 			{/* Newsletter Section - only show on landing page */}

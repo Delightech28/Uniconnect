@@ -873,9 +873,6 @@ function InboxPage() {
 
                                 {/* Actions */}
                                 <div className="flex items-center gap-2">
-                                    <button className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark">
-                                        <span className="material-symbols-outlined">call</span>
-                                    </button>
                                     <button
                                         onClick={() => setShowConvoInfo(!showConvoInfo)}
                                         className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark"
@@ -981,17 +978,13 @@ function InboxPage() {
                                         disabled={isUploading}
                                     />
 
-                                    { (newMessage.trim() || selectedFile) ? (
+                                    { (newMessage.trim() || selectedFile) && (
                                         <button
                                             onClick={handleSendMessage}
                                             disabled={isUploading || (!newMessage.trim() && !selectedFile)}
                                             className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 font-bold"
                                         >
                                             <span className="material-symbols-outlined text-base sm:text-lg md:text-xl">{isUploading ? 'schedule' : 'send'}</span>
-                                        </button>
-                                    ) : (
-                                        <button className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0">
-                                            <span className="material-symbols-outlined text-base sm:text-lg md:text-xl">keyboard_voice</span>
                                         </button>
                                     )}
                                 </div>
