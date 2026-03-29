@@ -107,25 +107,30 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
 
   // Fetch current user's avatar from Firestore and subscribe to unread notifications
   useEffect(() => {
+    let userSnapshotUnsub = null;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData.avatarUrl) {
-              setUserAvatar(userData.avatarUrl);
-            } else {
-              setUserAvatar(getDefaultAvatar(userData.gender || 'male'));
+          const userRef = doc(db, 'users', user.uid);
+          userSnapshotUnsub = onSnapshot(userRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const userData = snapshot.data();
+              if (userData.avatarUrl) {
+                setUserAvatar(userData.avatarUrl);
+              } else {
+                setUserAvatar(getDefaultAvatar(userData.gender || 'male'));
+              }
             }
-          }
+          }, (err) => {
+            console.error('Error listening to user profile in header:', err);
+          });
         } catch (err) {
           if (err && err.code === 'permission-denied') {
             console.warn('Permission denied when fetching user avatar; using placeholder');
             setUserAvatar(getDefaultAvatar('male'));
           } else {
-            console.error('Error fetching user avatar:', err);
+            console.error('Error setting up header user subscription:', err);
           }
         }
 
@@ -153,7 +158,10 @@ const AppHeader = ({ darkMode, toggleDarkMode }) => {
         };
       }
     });
-    return () => unsubscribe();
+    return () => {
+      if (userSnapshotUnsub) userSnapshotUnsub();
+      unsubscribe();
+    };
   }, []);
 
   // hide/disable some features for unverified/failed users

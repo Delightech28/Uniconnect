@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../hooks/useTheme';
@@ -200,7 +200,36 @@ function EditProfilePage() {
 
       // Update user document in Firestore
       await updateDoc(doc(db, 'users', user.uid), dataToSave);
-      
+
+      // Also update Firebase Auth profile displayName immediately
+      try {
+        await updateProfile(user, { displayName: profileData.displayName });
+      } catch (authErr) {
+        console.warn('Could not update Firebase Auth displayName:', authErr);
+      }
+
+      // Reflect username changes in existing posts so CampusFeed updates immediately
+      try {
+        const postsQuery = query(collection(db, 'posts'), where('authorId', '==', user.uid));
+        const postsSnapshot = await getDocs(postsQuery);
+        console.log(`Found ${postsSnapshot.size} posts to update for user ${user.uid}`);
+        
+        if (!postsSnapshot.empty) {
+          const batch = writeBatch(db);
+          postsSnapshot.forEach((postDoc) => {
+            console.log(`Updating post ${postDoc.id} authorName to ${profileData.displayName}`);
+            batch.update(postDoc.ref, { authorName: profileData.displayName });
+          });
+          await batch.commit();
+          console.log('Successfully updated all posts with new authorName');
+        } else {
+          console.log('No posts found to update');
+        }
+      } catch (batchErr) {
+        console.error('Error updating posts with new authorName:', batchErr);
+        // Don't fail the entire save operation for this
+      }
+
       toast.success('Profile updated successfully!', {
         duration: 4000,
         style: {

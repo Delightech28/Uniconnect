@@ -5,7 +5,6 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigate, Link } from 'react-router-dom';
 import AppHeader from './AppHeader';
-import Footer from './Footer';
 import GenderBadge from './GenderBadge';
 import { getDefaultAvatar } from '../services/avatarService';
 // --- Data for UI elements (Makes JSX cleaner and easier to manage) ---
@@ -43,18 +42,22 @@ const Greeting = () => {
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
-    // Use onAuthStateChanged to wait for auth state to be loaded
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            setUserData(userDoc.data());
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
+    let userUnsub = null;
+
+    const authUnsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setUserData(null);
+        return;
       }
+
+      const userRef = doc(db, 'users', user.uid);
+      userUnsub = onSnapshot(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setUserData(snapshot.data());
+        }
+      }, (err) => {
+        console.error('Error listening to user data:', err);
+      });
     });
 
     const setTimeBasedGreeting = () => {
@@ -69,15 +72,18 @@ const Greeting = () => {
     };
 
     setTimeBasedGreeting();
-    
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+
+    return () => {
+      if (userUnsub) userUnsub();
+      authUnsub();
+    };
   }, []);
 
-    <h1 className="text-secondary dark:text-white tracking-light
-text-xl sm:text-2xl lg:text-3xl font-bold leading-tight px-3 sm:px-4 text-left pb-3 sm:pb-4 lg:pb-6">
+  return (
+    <h1 className="text-secondary dark:text-white tracking-light text-xl sm:text-2xl lg:text-3xl font-bold leading-tight px-3 sm:px-4 text-left pb-3 sm:pb-4 lg:pb-6">
       {greeting}, {userData?.displayName || 'there'}!
     </h1>
+  );
 };
 
 const Logo = () => (
@@ -384,7 +390,6 @@ font-medium mt-4 hover:underline" to="/campusfeed">View Full Feed</Link>
 </div>
 </div>
 </main>
-<Footer darkMode={darkMode} />
 </div>
 );
 };

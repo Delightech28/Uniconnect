@@ -223,6 +223,24 @@ const ProfilePage = () => {
     return () => unsub();
   }, [userId, navigate]);
 
+  // Real-time listener for profile data (name/avatar/bio) so edits appear instantly
+  useEffect(() => {
+    if (!userId && !currentUser) return;
+    const targetUserId = userId || currentUser?.uid;
+    if (!targetUserId) return;
+
+    const userRef = doc(db, 'users', targetUserId);
+    const unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserDoc(snapshot.data());
+      }
+    }, (err) => {
+      console.error('Error listening to user profile updates:', err);
+    });
+
+    return () => unsubscribeProfile();
+  }, [userId, currentUser]);
+
   // Real-time listener for user stats to keep data updated
   useEffect(() => {
     if (!userId && !currentUser) return;

@@ -58,12 +58,19 @@ export const getProfileStats = async (userId) => {
     stats.itemsSold = soldCount;
 
     // Get seller rating and reviews
-    const reviewsQuery = query(
-      collection(db, 'reviews'),
-      where('sellerId', '==', userId)
-    );
-    const reviewsSnapshot = await getDocs(reviewsQuery);
-    const reviews = reviewsSnapshot.docs.map(doc => doc.data());
+    let reviews = [];
+    try {
+      const reviewsQuery = query(
+        collection(db, 'reviews'),
+        where('sellerId', '==', userId)
+      );
+      const reviewsSnapshot = await getDocs(reviewsQuery);
+      reviews = reviewsSnapshot.docs.map(doc => doc.data());
+    } catch (e) {
+      // Reviews collection may not exist or permissions may be insufficient
+      console.warn('Could not access reviews collection:', e.message || e);
+      reviews = [];
+    }
 
     stats.reviews = reviews.length;
     

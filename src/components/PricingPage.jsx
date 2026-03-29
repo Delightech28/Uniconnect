@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import Footer from './Footer';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const PricingPage = () => {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [cardIndex, setCardIndex] = useState(1); // Start with Premium (center)
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setWalletBalance(data.walletBalance || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching wallet balance:', error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const allPlans = [
     {
@@ -100,10 +122,10 @@ const PricingPage = () => {
                   <div className="p-2 bg-[#07bb0d]/10 rounded-lg text-[#07bb0d]">
                     <span className="material-symbols-outlined">account_balance_wallet</span>
                   </div>
-                  <button className="text-xs sm:text-sm font-medium text-[#07bb0d] hover:underline">Top Up</button>
+                  <button onClick={() => navigate('/uni-wallet')} className="text-xs sm:text-sm font-medium text-[#07bb0d] hover:underline">Top Up</button>
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium leading-normal">Current Wallet Balance</p>
-                <p className="text-[#111811] dark:text-white tracking-light text-2xl sm:text-3xl font-bold leading-tight mt-1">₦5,400</p>
+                <p className="text-[#111811] dark:text-white tracking-light text-2xl sm:text-3xl font-bold leading-tight mt-1">₦{walletBalance.toLocaleString()}</p>
               </div>
             </div>
 

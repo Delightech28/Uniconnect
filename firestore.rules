@@ -10,8 +10,10 @@ service cloud.firestore {
         request.auth.uid == userId ||
         // Any authenticated user can update specific interaction arrays/fields only
         // (connection requests, likes, followers/following updates performed via arrayUnion/arrayRemove)
+        // Also allow verification-related fields to be updated
         request.resource.data.keys().hasAny([
-          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following'
+          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following', 'connectionsCount',
+          'verified', 'verifiedAt'
         ])
       );
 
@@ -51,14 +53,20 @@ service cloud.firestore {
 
       // Transactions subcollection: allow users to read and create their own transactions
       match /transactions/{transactionId} {
-        allow read, create: if request.auth != null && request.auth.uid == userId;
-        allow update, delete: if false; // Transactions should be immutable
+        allow read, create: if request.time > timestamp.date(2020, 9, 10);
+        allow update, delete: if request.time > timestamp.date(2020, 9, 10);
+        allow read, write: if request.time > timestamp.date(2020, 9, 10);
       }
 
       // Bank accounts subcollection: allow users to manage their saved bank accounts
       match /bankAccounts/{accountId} {
         allow read, create, delete: if request.auth != null && request.auth.uid == userId;
         allow update: if false; // Re-saving overwrites or just delete and re-add
+      }
+
+      // Conversations subcollection: mirrored conversations for each user
+      match /conversations/{convoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
     
@@ -72,6 +80,13 @@ service cloud.firestore {
 
     // Items collection (market items). Allow public reads; sellers control their items.
     match /items/{itemId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Marketplace collection: same rules as items/listings
+    match /marketplace/{itemId} {
       allow read: if true;
       allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
@@ -193,6 +208,17 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == likeId;
         allow update: if false;
       }
+    }
+
+    // Verification Requests collection: tracks student verification requests
+    match /verificationRequests/{userId} {
+      // Authenticated users can create their own verification request
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // User can read their own request
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow users to update their own verification requests (status updates from verification backend)
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Default deny all other access

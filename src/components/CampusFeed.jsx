@@ -7,7 +7,6 @@ import { db, auth } from '../firebase';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import Footer from './Footer';
 import { notifyPostLiked, notifyPostCommented } from '../services/notificationService';
 import { getDefaultAvatar } from '../services/avatarService';
 
@@ -175,7 +174,7 @@ export default function CampusFeed() {
             </div>
           </main>
           </div>
-          <Footer darkMode={darkMode} />
+        
     </div>
   );
 }
@@ -191,31 +190,79 @@ function PostItem({ post }) {
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
   const [authorAvatar, setAuthorAvatar] = useState(null);
+  const [authorName, setAuthorName] = useState(post.authorName || 'Anonymous');
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAuthor, setIsAuthor] = useState(false);
 
-  // Fetch author avatar from user profile
   useEffect(() => {
-    const fetchAuthorAvatar = async () => {
-      if (!post.authorId) return;
-      try {
-        const userDocRef = doc(db, 'users', post.authorId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          const avatar = userData.avatarUrl || getDefaultAvatar(userData.gender || 'male');
-          setAuthorAvatar(avatar);
-        }
-      } catch (err) {
-        console.warn('Could not fetch author avatar:', err);
-        setAuthorAvatar(getDefaultAvatar('male'));
+    if (!post?.id) return;
+
+    const postDocRef = doc(db, 'posts', post.id);
+    const unsubscribePost = onSnapshot(postDocRef, (snapshot) => {
+      const postData = snapshot.data();
+      if (postData) {
+        setLikesCount(postData.likesCount || 0);
       }
+    }, (err) => {
+      console.error('Post snapshot error:', err);
+    });
+
+    let unsubscribeUserLike = null;
+    const currentUid = auth.currentUser?.uid;
+    if (currentUid) {
+      const userLikeDocRef = doc(db, 'posts', post.id, 'likes', currentUid);
+      unsubscribeUserLike = onSnapshot(userLikeDocRef, (snap) => {
+        setLiked(snap.exists());
+      }, (err) => {
+        console.error('User like snapshot error:', err);
+      });
+    }
+
+    const authUnsub = auth.onAuthStateChanged((user) => {
+      if (user) {
+        const userLikeDocRef = doc(db, 'posts', post.id, 'likes', user.uid);
+        if (unsubscribeUserLike) unsubscribeUserLike();
+        unsubscribeUserLike = onSnapshot(userLikeDocRef, (snap) => {
+          setLiked(snap.exists());
+        }, (err) => {
+          console.error('User like snapshot error:', err);
+        });
+      } else {
+        setLiked(false);
+      }
+    });
+
+    return () => {
+      unsubscribePost();
+      if (unsubscribeUserLike) unsubscribeUserLike();
+      if (authUnsub) authUnsub();
     };
-    fetchAuthorAvatar();
-    
+  }, [post.id]);
+
+  // Fetch author avatar and name from user profile in real-time
+  useEffect(() => {
+    if (!post.authorId) return;
+
+    const userDocRef = doc(db, 'users', post.authorId);
+    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.data();
+        const avatar = userData.avatarUrl || getDefaultAvatar(userData.gender || 'male');
+        setAuthorAvatar(avatar);
+        // Update author name in real-time
+        setAuthorName(userData.displayName || userData.email || 'Anonymous');
+      }
+    }, (err) => {
+      console.warn('Could not fetch author profile:', err);
+      setAuthorAvatar(getDefaultAvatar('male'));
+      setAuthorName(post.authorName || 'Anonymous');
+    });
+
     // Check if current user is the post author
     const currentUser = auth.currentUser;
     setIsAuthor(currentUser && currentUser.uid === post.authorId);
+
+    return () => unsubscribe();
   }, [post.authorId]);
 
   useEffect(() => {
@@ -282,12 +329,13 @@ function PostItem({ post }) {
     }
     const likeDocRef = doc(db, 'posts', post.id, 'likes', user.uid);
     const postDocRef = doc(db, 'posts', post.id);
-    
+    const wasLiked = liked;
+
     try {
       await runTransaction(db, async (transaction) => {
         const likeSnap = await transaction.get(likeDocRef);
         const postSnap = await transaction.get(postDocRef);
-        
+
         if (likeSnap.exists()) {
           transaction.delete(likeDocRef);
           transaction.update(postDocRef, {
@@ -315,6 +363,9 @@ function PostItem({ post }) {
           }
         }
       });
+
+      setLiked(!wasLiked);
+      setLikesCount((prev) => (wasLiked ? Math.max(0, prev - 1) : prev + 1));
     } catch (err) {
       console.error('Like toggle failed', err);
     }
@@ -518,7 +569,7 @@ function PostItem({ post }) {
         {/* Profile picture */}
         <button onClick={() => navigate(`/profile/${post.authorId}`)} className="shrink-0">
           <img 
-            alt={`${post.authorName}'s profile`} 
+            alt={`${authorName}'s profile`} 
             className="w-12 h-12 rounded-full object-cover cursor-pointer" 
             src={authorAvatar || getDefaultAvatar('male')}
             onError={(e) => {
@@ -530,7 +581,7 @@ function PostItem({ post }) {
         {/* Author info and menu */}
         <div className="flex-grow flex items-start justify-between">
           <div className="flex flex-col">
-            <p className="text-sm sm:text-base font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{post.authorName || 'Anonymous'}</p>
+            <p className="text-sm sm:text-base font-bold text-secondary dark:text-white cursor-pointer" onClick={() => navigate(`/profile/${post.authorId}`)}>{authorName}</p>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleString() : ''}</p>
           </div>
           {isAuthor && (
