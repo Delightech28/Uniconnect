@@ -40,23 +40,32 @@ const InterestTag = ({ interest, isSelected, onToggle }) => {
     const unselectedClasses = "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
  
     return ( 
-        <label className={`${baseClasses} ${isSelected ? 
-selectedClasses : unselectedClasses}`}> 
-            <input 
-                type="checkbox" 
-                className="sr-only" 
-                value={interest.value} 
-                checked={isSelected} 
+        <div
+            className={`${baseClasses} ${isSelected ? selectedClasses : unselectedClasses}`}
+            onClick={() => onToggle(interest.value)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(interest.value);
+                }
+            }}
+        >
+            <input
+                type="checkbox"
+                className="sr-only"
+                value={interest.value}
+                checked={isSelected}
+                readOnly
+            />
+            <span>{interest.label}</span>
+        </div>
+    );
+};
 
-                onChange={() => onToggle(interest.value)} 
-            /> 
-            <span>{interest.label}</span> 
-        </label> 
-    ); 
-}; 
- 
-// --- Main Page Component --- 
-function EditProfilePage() { 
+// --- Main Page Component ---
+function EditProfilePage() {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const [profileData, setProfileData] = useState(initialProfileData);

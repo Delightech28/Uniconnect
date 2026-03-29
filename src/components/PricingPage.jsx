@@ -33,6 +33,11 @@ const PricingPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Reset card index when billing cycle changes
+  useEffect(() => {
+    setCardIndex(1); // Reset to center card (Premium for monthly, AI Chat Bundle for pay-as-you-go)
+  }, [billingCycle]);
+
   const allPlans = [
     {
       name: 'Basic',
@@ -78,22 +83,73 @@ const PricingPage = () => {
     }
   ];
 
+  const payAsYouGoOptions = [
+    {
+      name: 'Quiz Credits',
+      description: 'Pay per quiz assessment',
+      price: '₦500',
+      period: '/quiz',
+      buttonText: 'Get Credits',
+      badge: 'Flexible',
+      badgeColor: 'bg-blue-500',
+      features: [
+        'Pay only for quizzes you take',
+        'No expiration on credits',
+        'Bulk discounts available',
+        'Cancel anytime'
+      ]
+    },
+    {
+      name: 'AI Chat Bundle',
+      description: 'Credits for AI interactions',
+      price: '₦1,000',
+      period: '/month',
+      buttonText: 'Buy Bundle',
+      badge: 'Most Popular',
+      badgeColor: 'bg-primary',
+      features: [
+        'Unlimited AI chat for 30 days',
+        'Access to all AI features',
+        'Document analysis included',
+        'Expert tutor support'
+      ]
+    },
+    {
+      name: 'Resource Access',
+      description: 'One-time document access',
+      price: '₦2,000',
+      period: '/access',
+      buttonText: 'Purchase Access',
+      badge: 'Premium Content',
+      badgeColor: 'bg-purple-600',
+      features: [
+        'Full UniDoc library access',
+        'All study materials unlocked',
+        '60-day access period',
+        'Downloadable resources'
+      ]
+    }
+  ];
+
   // Get the 3 cards to display (left, center, right)
   const getDisplayedCards = () => {
-    const left = allPlans[(cardIndex - 1 + allPlans.length) % allPlans.length];
-    const center = allPlans[cardIndex];
-    const right = allPlans[(cardIndex + 1) % allPlans.length];
+    const currentPlans = billingCycle === 'monthly' ? allPlans : payAsYouGoOptions;
+    const left = currentPlans[(cardIndex - 1 + currentPlans.length) % currentPlans.length];
+    const center = currentPlans[cardIndex];
+    const right = currentPlans[(cardIndex + 1) % currentPlans.length];
     return { left, center, right };
   };
 
   const { left, center, right } = getDisplayedCards();
 
   const handlePrevious = () => {
-    setCardIndex((cardIndex - 1 + allPlans.length) % allPlans.length);
+    const currentPlans = billingCycle === 'monthly' ? allPlans : payAsYouGoOptions;
+    setCardIndex((cardIndex - 1 + currentPlans.length) % currentPlans.length);
   };
 
   const handleNext = () => {
-    setCardIndex((cardIndex + 1) % allPlans.length);
+    const currentPlans = billingCycle === 'monthly' ? allPlans : payAsYouGoOptions;
+    setCardIndex((cardIndex + 1) % currentPlans.length);
   };
 
   return (
