@@ -2,6 +2,7 @@ import emailjs from '@emailjs/browser';
 import { db } from '../firebase';
 import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { queueOperation, removeQueuedOperation, getQueueStatus } from './offlineQueueService';
 
 // Initialize EmailJS
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
@@ -92,14 +93,50 @@ export const createVerificationRequest = async (userId, userData) => {
     console.log('[verificationService] user_name:', emailPayload.user_name);
 
     console.log('[verificationService] Calling emailjs.send()...');
-    const sendResult = await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      emailPayload
-    );
-    console.log('[verificationService] ✅ EMAIL SENT SUCCESSFULLY');
-    console.log('[verificationService] EmailJS Result:', sendResult);
-    return verificationToken;
+    
+    try {
+      const sendResult = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        emailPayload
+      );
+      console.log('[verificationService] ✅ EMAIL SENT SUCCESSFULLY');
+      console.log('[verificationService] EmailJS Result:', sendResult);
+      return { verificationToken, emailStatus: 'sent', queued: false };
+    } catch (emailError) {
+      // Check if error is network-related
+      const isNetworkError = 
+        emailError.message.includes('offline') ||
+        emailError.message.includes('network') ||
+        emailError.message.includes('Failed') ||
+        !navigator.onLine;
+      
+      if (isNetworkError) {
+        console.warn('[verificationService] 📧 Network offline - queuing email for later...');
+        
+        // Queue the email for sending when online
+        const queueId = queueOperation('send_verification_email', {
+          userId,
+          userData,
+          emailPayload,
+          verificationDocData: verificationDoc,
+          verificationToken,
+        });
+        
+        toast.success('Registered successfully! Verification email will be sent when you go online.');
+        console.log('[verificationService] Email queued with ID:', queueId);
+        
+        return { 
+          verificationToken, 
+          emailStatus: 'queued', 
+          queued: true,
+          queueId,
+          message: 'Verification email will be sent when you\'re back online'
+        };
+      } else {
+        throw emailError;
+      }
+    }
   } catch (error) {
     console.error('[verificationService] ❌ ERROR in createVerificationRequest');
     console.error('[verificationService] Error message:', error.message);
@@ -127,7 +164,40 @@ export const createVerificationRequest = async (userId, userData) => {
     // Even if email fails, verification request was created in Firestore
     // Log error but continue
     toast.error('Registration complete but verification email may not have been sent. Please contact support.');
-    return verificationToken;
+    
+    return { 
+      verificationToken, 
+      emailStatus: 'failed', 
+      queued: false,
+      error: error.message 
+    };
+  }
+};
+
+/**
+ * Retry sending a queued verification email
+ * Called by offline queue service when connection is restored
+ */
+export const retryVerificationEmail = async (queuedOperation) => {
+  console.log('[verificationService] 🔄 Retrying queued verification email:', queuedOperation.id);
+  
+  try {
+    const { emailPayload } = queuedOperation.data;
+    
+    const sendResult = await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      emailPayload
+    );
+    
+    console.log('[verificationService] ✅ RETRIED EMAIL SENT SUCCESSFULLY');
+    console.log('[verificationService] EmailJS Result:', sendResult);
+    
+    // Success - will be removed from queue by offline service
+    return { success: true };
+  } catch (error) {
+    console.error('[verificationService] ❌ Retry failed:', error.message);
+    throw error; // Let offline service handle retry count
   }
 };
 

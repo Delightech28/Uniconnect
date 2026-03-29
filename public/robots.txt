@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/private/
+Disallow: /api/
+Disallow: /?*sort=
+Disallow: /?*filter=
+Allow: /public/
+
+# Crawl delay for respect
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://unispace.com.ng/sitemap.xml
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
