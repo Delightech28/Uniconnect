@@ -436,7 +436,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               </div>
             </div>
 
-            <button onClick={startQuiz} className="w-full py-5 sm:py-6 bg-unispace hover:bg-unispace/90 text-white dark:text-gray-900 rounded-2xl sm:rounded-[24px] font-black text-lg sm:text-xl hover:scale-[1.05] active:scale-95 transition-all shadow-2xl shadow-unispace/40 hover:shadow-2xl hover:shadow-unispace/60 border-2 border-unispace/40 hover:border-unispace">Begin Quiz</button>
+            <button onClick={startQuiz} className="w-full py-5 sm:py-6 bg-unispace hover:bg-unispace/90 text-gray-900 dark:bg-gray-300 dark:text-gray-900 rounded-2xl sm:rounded-[24px] font-black text-lg sm:text-xl hover:scale-[1.05] active:scale-95 transition-all shadow-2xl shadow-unispace/40 hover:shadow-2xl hover:shadow-unispace/60 border-2 border-unispace/40 hover:border-unispace">Begin Quiz</button>
           </div>
         </div>
       )}
