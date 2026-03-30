@@ -1,98 +1,104 @@
 /**
  * CompleteProfileForm.jsx
- * 
+ *
  * Shown after Gmail sign-up/sign-in when user is missing required profile fields.
  * Collects: gender, institution, registerAs (student/guest), and bio
  */
 
-import React, { useState, useEffect } from 'react';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
-import AppHeader from './AppHeader';
-import Footer from './Footer';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "../hooks/useTheme";
+import AppHeader from "./AppHeader";
+import Footer from "./Footer";
+import toast from "react-hot-toast";
 
 // University data
 const universityData = {
   federal: [
-    'Abubakar Tafawa Balewa University, Bauchi',
-    'Adeyemi Federal University of Education, Ondo',
-    'Ahmadu Bello University, Zaria',
-    'Bayero University, Kano',
-    'Federal University of Agriculture, Abeokuta',
-    'Federal University of Technology, Akure',
-    'Federal University of Technology, Minna',
-    'Federal University of Technology, Owerri',
-    'National Open University Of Nigeria',
-    'Obafemi Awolowo University, Ile-Ife',
-    'University of Benin, Benin City',
-    'University of Ibadan',
-    'University of Ilorin',
-    'University of Jos',
-    'University of Lagos',
-    'University of Nigeria, Nsukka',
-    'University of Port Harcourt',
+    "Abubakar Tafawa Balewa University, Bauchi",
+    "Adeyemi Federal University of Education, Ondo",
+    "Ahmadu Bello University, Zaria",
+    "Bayero University, Kano",
+    "Federal University of Agriculture, Abeokuta",
+    "Federal University of Technology, Akure",
+    "Federal University of Technology, Minna",
+    "Federal University of Technology, Owerri",
+    "National Open University Of Nigeria",
+    "Obafemi Awolowo University, Ile-Ife",
+    "University of Benin, Benin City",
+    "University of Ibadan",
+    "University of Ilorin",
+    "University of Jos",
+    "University of Lagos",
+    "University of Nigeria, Nsukka",
+    "University of Port Harcourt",
   ],
   state: [
-    'Abia State University, Uturu',
-    'Adamawa State University, Mubi',
-    'Akwa Ibom State University, Uyo',
-    'Anambra State University, Uli',
-    'Bauchi State University, Gadau',
-    'Benue State University, Makurdi',
-    'Cross River University of Technology, Calabar',
-    'Delta State University, Abraka',
-    'Ekiti State University, Ado-Ekiti',
-    'Enugu State University of Science and Technology',
-    'Imo State University, Owerri',
-    'Kaduna State University',
-    'Kano State University of Science and Technology',
-    'Katsina State University, Katsina',
-    'Kebbi State University of Science and Technology',
-    'Kogi State University, Anyigba',
-    'Kwara State University, Malete',
-    'Lagos State University, Ojo',
-    'Nasarawa State University, Keffi',
-    'Niger State University of Science and Technology, Zungeru',
-    'Ogun State University, Ago-Iwoye',
-    'Ondo State University of Science and Technology, Ondo',
-    'Osun State University, Osogbo',
-    'Oyo State College of Education, Oyo',
-    'Plateau State University, Bokkos',
-    'Rivers State University, Port Harcourt',
-    'Taraba State University, Jalingo',
-    'Yobe State University, Damaturu',
-    'Zamfara State University, Gusau',
+    "Abia State University, Uturu",
+    "Adamawa State University, Mubi",
+    "Akwa Ibom State University, Uyo",
+    "Chukwuemeka Odumegwu Ojukwu University, Uli",
+    "Bauchi State University, Gadau",
+    "Benue State University, Makurdi",
+    "Cross River University of Technology, Calabar",
+    "Delta State University, Abraka",
+    "Ekiti State University, Ado-Ekiti",
+    "Enugu State University of Science and Technology",
+    "Imo State University, Owerri",
+    "Kaduna State University",
+    "Kano State University of Science and Technology",
+    "Katsina State University, Katsina",
+    "Kebbi State University of Science and Technology",
+    "Kogi State University, Anyigba",
+    "Kwara State University, Malete",
+    "Lagos State University, Ojo",
+    "Nasarawa State University, Keffi",
+    "Niger State University of Science and Technology, Zungeru",
+    "Ogun State University, Ago-Iwoye",
+    "Ondo State University of Science and Technology, Ondo",
+    "Osun State University, Osogbo",
+    "Oyo State College of Education, Oyo",
+    "Plateau State University, Bokkos",
+    "Rivers State University, Port Harcourt",
+    "Taraba State University, Jalingo",
+    "Yobe State University, Damaturu",
+    "Zamfara State University, Gusau",
   ],
   private: [
-    'Afe Babalola University, Ado-Ekiti',
-    'American University of Nigeria, Yola',
-    'Babcock University, Ilishan-Remo',
-    'Benson Idahosa University, Benin City',
-    'Bowen University, Iwo',
-    'Covenant University, Ota',
-    'Crescent University, Abeokuta',
-    'Fountainhead College, Ibadan',
-    'Hallmark University, Ijebu-Itele',
-    'Landmark University, Omu-Aran',
-    'Lead City University, Ibadan',
-    'Loyola Jesuit College, Abuja',
-    'Maranatha University, Ogun State',
-    'Nexford University, Lagos',
-    'Pan-Atlantic University, Lagos',
-    'Redeemer\'s University, Ede',
-    'Regent University, Lagos',
-    'Ritman University, Omu-Aran',
-    'Salem University, Lokoja',
-    'Southwestern University, Ogun State',
-    'The American University of Nigeria, Yola',
-    'Unicaf University, Lagos',
-    'University of Jos, Jos',
-    'Veritas University, Abuja',
-    'Wellspring University, Benin City',
-    'Westland University, Ijebu-Ode',
+    "Afe Babalola University, Ado-Ekiti",
+    "American University of Nigeria, Yola",
+    "Babcock University, Ilishan-Remo",
+    "Benson Idahosa University, Benin City",
+    "Bowen University, Iwo",
+    "Covenant University, Ota",
+    "Crescent University, Abeokuta",
+    "Fountainhead College, Ibadan",
+    "Hallmark University, Ijebu-Itele",
+    "Landmark University, Omu-Aran",
+    "Lead City University, Ibadan",
+    "Loyola Jesuit College, Abuja",
+    "Maranatha University, Ogun State",
+    "Nexford University, Lagos",
+    "Pan-Atlantic University, Lagos",
+    "Redeemer's University, Ede",
+    "Regent University, Lagos",
+    "Ritman University, Omu-Aran",
+    "Salem University, Lokoja",
+    "Southwestern University, Ogun State",
+    "The American University of Nigeria, Yola",
+    "Unicaf University, Lagos",
+    "University of Jos, Jos",
+    "Veritas University, Abuja",
+    "Wellspring University, Benin City",
+    "Westland University, Ijebu-Ode",
   ],
 };
 
@@ -101,21 +107,23 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
   const { darkMode, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    gender: '',
-    institution: '',
-    registerAs: 'student',
-    bio: '',
+    gender: "",
+    institution: "",
+    registerAs: "student",
+    bio: "",
   });
   const [step, setStep] = useState(1); // Step 1: Gender & RegisterAs, Step 2: Institution, Step 3: Bio
-  const [universityCategory, setUniversityCategory] = useState('federal');
-  const [filteredUniversities, setFilteredUniversities] = useState(universityData.federal);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [universityCategory, setUniversityCategory] = useState("federal");
+  const [filteredUniversities, setFilteredUniversities] = useState(
+    universityData.federal,
+  );
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     setFilteredUniversities(
       universityData[universityCategory].filter((uni) =>
-        uni.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+        uni.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
     );
   }, [universityCategory, searchTerm]);
 
@@ -126,7 +134,7 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
 
   const handleCategoryChange = (category) => {
     setUniversityCategory(category);
-    setSearchTerm('');
+    setSearchTerm("");
     setFilteredUniversities(universityData[category]);
   };
 
@@ -142,18 +150,18 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
     try {
       // Validate required fields
       if (!formData.gender) {
-        toast.error('Please select a gender');
+        toast.error("Please select a gender");
         setLoading(false);
         return;
       }
       if (!formData.institution) {
-        toast.error('Please select a university');
+        toast.error("Please select a university");
         setLoading(false);
         return;
       }
 
       // Update user document with additional profile info
-      const userRef = doc(db, 'users', userId);
+      const userRef = doc(db, "users", userId);
       const userDoc = await getDoc(userRef);
       const currentUser = auth.currentUser;
 
@@ -163,20 +171,20 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
           gender: formData.gender,
           institution: formData.institution,
           registerAs: formData.registerAs,
-          bio: formData.bio || '',
+          bio: formData.bio || "",
           updatedAt: serverTimestamp(),
         });
       } else {
         // New user (registered with Gmail), create full document
         await setDoc(userRef, {
-          email: currentUser?.email || '',
-          displayName: currentUser?.displayName || '',
+          email: currentUser?.email || "",
+          displayName: currentUser?.displayName || "",
           avatarUrl: currentUser?.photoURL || null,
-          username: currentUser?.email?.split('@')[0] || '',
+          username: currentUser?.email?.split("@")[0] || "",
           gender: formData.gender,
           institution: formData.institution,
           registerAs: formData.registerAs,
-          bio: formData.bio || '',
+          bio: formData.bio || "",
           verified: false,
           referralCode: userId.slice(0, 8),
           referralLink: `${window.location.origin}/?ref=${userId.slice(0, 8)}`,
@@ -185,24 +193,28 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
         });
       }
 
-      toast.success('Profile completed!');
+      toast.success("Profile completed!");
       setLoading(false);
 
       // Call the completion callback or navigate
       if (onComplete) {
         onComplete(formData);
       } else {
-        navigate(formData.registerAs === 'student' ? '/dashboard' : '/dashboard');
+        navigate(
+          formData.registerAs === "student" ? "/dashboard" : "/dashboard",
+        );
       }
     } catch (err) {
-      console.error('Error completing profile:', err);
-      toast.error('Failed to complete profile. Please try again.');
+      console.error("Error completing profile:", err);
+      toast.error("Failed to complete profile. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <div className={`w-full min-h-screen flex flex-col bg-background-light dark:bg-background-dark ${darkMode ? 'text-white' : 'text-text-primary-light'}`}>
+    <div
+      className={`w-full min-h-screen flex flex-col bg-background-light dark:bg-background-dark ${darkMode ? "text-white" : "text-text-primary-light"}`}
+    >
       <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
       <main className="flex-1 flex items-center justify-center p-4 py-12">
@@ -219,14 +231,21 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                 <div
                   key={s}
                   className={`h-2 rounded-full transition-all ${
-                    s === step ? 'bg-primary w-8' : s < step ? 'bg-primary w-2' : 'bg-gray-300 dark:bg-gray-600 w-2'
+                    s === step
+                      ? "bg-primary w-8"
+                      : s < step
+                        ? "bg-primary w-2"
+                        : "bg-gray-300 dark:bg-gray-600 w-2"
                   }`}
                 />
               ))}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-secondary rounded-lg shadow-md p-6">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-secondary rounded-lg shadow-md p-6"
+          >
             {/* Step 1: Gender & RegisterAs */}
             {step === 1 && (
               <div className="space-y-4">
@@ -235,15 +254,20 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                     Gender
                   </label>
                   <div className="grid grid-cols-3 gap-3">
-                    {['Male', 'Female', 'Other'].map((g) => (
+                    {["Male", "Female", "Other"].map((g) => (
                       <button
                         key={g}
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, gender: g.toLowerCase() }))}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            gender: g.toLowerCase(),
+                          }))
+                        }
                         className={`py-2 px-3 rounded-lg font-medium transition-all ${
                           formData.gender === g.toLowerCase()
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-300 dark:hover:bg-gray-600'
+                            ? "bg-primary text-white"
+                            : "bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-300 dark:hover:bg-gray-600"
                         }`}
                       >
                         {g}
@@ -258,10 +282,21 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                   </label>
                   <div className="space-y-2">
                     {[
-                      { value: 'student', label: 'Student', description: 'Get verified student badge' },
-                      { value: 'guest', label: 'Guest', description: 'Browse as visitor' },
+                      {
+                        value: "student",
+                        label: "Student",
+                        description: "Get verified student badge",
+                      },
+                      {
+                        value: "guest",
+                        label: "Guest",
+                        description: "Browse as visitor",
+                      },
                     ].map((opt) => (
-                      <label key={opt.value} className="flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                      <label
+                        key={opt.value}
+                        className="flex items-start gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
                         <input
                           type="radio"
                           name="registerAs"
@@ -271,8 +306,12 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                           className="mt-1"
                         />
                         <div>
-                          <p className="font-medium text-text-primary-light dark:text-text-primary-dark">{opt.label}</p>
-                          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{opt.description}</p>
+                          <p className="font-medium text-text-primary-light dark:text-text-primary-dark">
+                            {opt.label}
+                          </p>
+                          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            {opt.description}
+                          </p>
                         </div>
                       </label>
                     ))}
@@ -298,15 +337,15 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                     University Type
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {['federal', 'state', 'private'].map((cat) => (
+                    {["federal", "state", "private"].map((cat) => (
                       <button
                         key={cat}
                         type="button"
                         onClick={() => handleCategoryChange(cat)}
                         className={`py-2 px-2 rounded text-sm font-medium transition-all ${
                           universityCategory === cat
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-300'
+                            ? "bg-primary text-white"
+                            : "bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark hover:bg-gray-300"
                         }`}
                       >
                         {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -333,7 +372,9 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                         type="button"
                         onClick={() => handleUniversitySelect(uni)}
                         className={`w-full text-left px-4 py-3 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors border-b border-border-light dark:border-border-dark last:border-b-0 ${
-                          formData.institution === uni ? 'bg-primary/10 font-semibold' : ''
+                          formData.institution === uni
+                            ? "bg-primary/10 font-semibold"
+                            : ""
                         }`}
                       >
                         {uni}
@@ -366,7 +407,7 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                     Selected University
                   </label>
                   <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-text-primary-light dark:text-text-primary-dark font-medium">
-                    {formData.institution || 'Not selected'}
+                    {formData.institution || "Not selected"}
                   </div>
                 </div>
 
@@ -400,7 +441,7 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
                     disabled={loading || !formData.institution}
                     className="flex-1 py-2 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {loading ? 'Completing...' : 'Complete Profile'}
+                    {loading ? "Completing..." : "Complete Profile"}
                   </button>
                 </div>
               </div>
