@@ -1,33 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Firebase Cloud Function endpoint for secure API access
+const CLOUD_FUNCTION_URL = 'https://us-central1-unispacee-cee.cloudfunctions.net/streamGemini';
 
 // Using valid Gemini API models (gemini-3.1-pro-preview does not exist in v1)
 const MODEL_FLASH = 'gemini-2.0-flash';
 const MODEL_PRO = 'gemini-2.0-flash';
-
-
-const getAI = () => {
-  // Try multiple sources for the API key
-  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || 
-                 process.env?.VITE_GEMINI_API_KEY ||
-                 window.__VITE_GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    console.error('VITE_GEMINI_API_KEY not found in:');
-    console.error('  import.meta.env:', import.meta.env);
-    console.error('  process.env:', process.env);
-    throw new Error('Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env and restart dev server.');
-  }
-  
-  // Trim whitespace and validate
-  const trimmedKey = apiKey.trim();
-  if (trimmedKey.length < 20) {
-    console.error('API key appears invalid (too short):', trimmedKey);
-    throw new Error(`Invalid API key format. Length: ${trimmedKey.length}`);
-  }
-  
-  console.log('Using Gemini API key:', trimmedKey.substring(0, 10) + '...');
-  return new GoogleGenerativeAI({ apiKey: trimmedKey });
-};
 
 // Rate limit callback
 let onRateLimitReached = () => {};
@@ -127,19 +103,50 @@ const getToneInstruction = (tone) => {
   }
 };
 
-// Return trimmed API key string
-const getApiKey = () => {
-  const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY || window.__VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error('[getApiKey] API key not found. Checked sources:', {
-      'import.meta.env': !!import.meta.env?.VITE_GEMINI_API_KEY,
-      'process.env': !!process.env?.VITE_GEMINI_API_KEY,
-      'window': !!window.__VITE_GEMINI_API_KEY
+/**
+ * Call Cloud Function to securely access Gemini API
+ * The API key is stored in Firebase Secret Manager and never exposed to frontend
+ */
+const callCloudFunction = async (requestBody, signal) => {
+  try {
+    console.log('[callCloudFunction] Calling Cloud Function at:', CLOUD_FUNCTION_URL);
+    
+    const response = await fetch(CLOUD_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      signal
     });
-    throw new Error('VITE_GEMINI_API_KEY not configured');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[callCloudFunction] Cloud Function error:', response.status, errorText);
+      throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+    }
+
+    // Handle streaming response - read as text
+    const text = await response.text();
+    console.log('[callCloudFunction] Response received, length:', text.length);
+    
+    // Try to parse as JSON first, otherwise return as text
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      // If not JSON, return as structured response
+      return { 
+        candidates: [{ 
+          content: { 
+            parts: [{ text: text }] 
+          } 
+        }] 
+      };
+    }
+  } catch (error) {
+    console.error('[callCloudFunction] Error calling Cloud Function:', error);
+    throw error;
   }
-  console.log('[getApiKey] API key found, length:', apiKey.trim().length);
-  return apiKey.trim();
 };
 
 const extractTextFromResponse = (json) => {
@@ -169,22 +176,19 @@ const extractTextFromResponse = (json) => {
 };
 
 const callGenerate = async (modelName, body, signal) => {
-  const apiKey = getApiKey();
-  const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    const err = new Error(text || `Request failed: ${res.status}`);
-    err.status = res.status;
-    throw err;
+  // Format the request for Cloud Function
+  const cloudFunctionRequest = {
+    contentsParts: body.contents?.[0]?.parts || [],
+    systemInstruction: body.systemInstruction || undefined
+  };
+  
+  try {
+    const json = await callCloudFunction(cloudFunctionRequest, signal);
+    return json;
+  } catch (error) {
+    console.error('[callGenerate] Error:', error);
+    throw error;
   }
-  const json = await res.json();
-  return json;
 };
 
 
@@ -945,24 +949,6 @@ export const analyzeQuizPerformance = async (topicTitle, questions, userAnswers,
   }, signal);
 };
 
-// Debug helper: verify API key by calling list models endpoint
-export const verifyApiKey = async () => {
-  try {
-    const apiKey = import.meta.env?.VITE_GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
-    console.log('[verifyApiKey] Fetching models list from:', url.substring(0, 80) + '...');
-    const res = await fetch(url, { method: 'GET' });
-    const text = await res.text();
-    console.log('[verifyApiKey] status:', res.status, 'body:', text.substring(0, 1000));
-    return { status: res.status, body: text };
-  } catch (error) {
-    console.error('[verifyApiKey] Error verifying API key:', error);
-    throw error;
-  }
-};
-
-// Expose helper in browser for quick diagnostics
-if (typeof window !== 'undefined') {
-  window.__verifyGeminiApiKey = verifyApiKey;
-}
+// API key is now managed by Cloud Function (Firebase Secret Manager)
+// No verification needed from frontend
 
