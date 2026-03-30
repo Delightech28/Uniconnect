@@ -1,12 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-import forms from '@tailwindcss/forms'
+import forms from "@tailwindcss/forms";
 
 export default {
   darkMode: "class",
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -15,16 +12,16 @@ export default {
         secondary: "#0A3D62",
         accent: "#FFD700",
         "background-light": "#a1e0a1",
-        "background-dark": "transparent",
+        "background-dark": "#1a1a1a",
         "text-light": "#333333",
         "text-dark": "#F5F5F5",
 
         // Client colors
-        clientPrimary: '#123456',
-        clientSecondary: '#abcdef',
-        clientBackground: '#f0f0f0',
-        'client-background-dark': '#1a1a1a',
-        clientAccent: '#FFD700', // if needed
+        clientPrimary: "#123456",
+        clientSecondary: "#abcdef",
+        clientBackground: "#f0f0f0",
+        "client-background-dark": "#1a1a1a",
+        clientAccent: "#FFD700", // if needed
 
         // Any combined/shared colors
         background: "hsl(0 0% 100%)",
@@ -43,30 +40,30 @@ export default {
         full: "9999px",
       },
       spacing: {
-        72: '18rem', // custom spacing if needed
+        72: "18rem", // custom spacing if needed
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out forwards',
-        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
-        'bounce-soft': 'bounceSoft 1s ease-in-out infinite',
+        "fade-in": "fadeIn 0.3s ease-in-out",
+        "slide-up": "slideUp 0.3s ease-out forwards",
+        "pulse-soft": "pulseSoft 2s ease-in-out infinite",
+        "bounce-soft": "bounceSoft 1s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
         slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         pulseSoft: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.5' },
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
         },
         bounceSoft: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-4px)' },
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
         },
       },
     },
