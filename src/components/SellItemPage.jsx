@@ -19,7 +19,7 @@ const navLinks = [
 const categories = ['Electronics', 'Textbooks', 'Fashion', 'Services',
 'Furniture'];
 const durationOptions = {
-days: { max: 7, fee: 50 },
+days: { max: 7, fee: 100 },
 weeks: { max: 4, fee: 300 },
 months: { max: 12, fee: 1000 },
 };
@@ -259,6 +259,7 @@ const [uploadedFiles, setUploadedFiles] = useState([]);
 const [durationType, setDurationType] = useState('days');
 const [durationValue, setDurationValue] = useState(7);
 const [registerAs, setRegisterAs] = useState(null);
+const [shareOnCampusFeed, setShareOnCampusFeed] = useState(false);
 
 useEffect(() => {
   const unsubAuth = onAuthStateChanged(auth, (u) => {
@@ -397,6 +398,28 @@ const handleSubmit = async (e) => {
 			category: formData.category,
 		});
 
+		// Share on campus feed if requested
+		if (shareOnCampusFeed) {
+			try {
+				const postContent = `📢 New listing: ${formData.productName}\n\n💰 Price: ₦${(Number(formData.price) || formData.price).toLocaleString()}\n📂 Category: ${formData.category}\n\n${formData.description ? formData.description : ''}\n\n#UniMarket #${formData.category.replace(' ', '')}`;
+
+				await setDoc(doc(db, 'posts', listingDocRef.id), {
+					content: postContent,
+					authorId: user.uid,
+					authorName: sellerName,
+					authorAvatar: sellerAvatarUrl,
+					createdAt: serverTimestamp(),
+					likes: [],
+					comments: [],
+					listingId: listingDocRef.id, // Link to the listing
+					images: images.slice(0, 1), // Use first image for the post
+				});
+			} catch (shareErr) {
+				console.warn('Failed to share on campus feed:', shareErr);
+				// Don't fail the whole process if sharing fails
+			}
+		}
+
 		toast.dismiss('posting');
 		toast.success('Listing posted successfully!');
 		// reset form
@@ -508,6 +531,18 @@ fee={listingFee} balance={walletBalance} />
 </div>
 <div className="pt-6 border-t border-slate-200
 dark:border-slate-700">
+<div className="flex items-center gap-3 mb-4">
+<input
+  id="shareOnCampusFeed"
+  type="checkbox"
+  checked={shareOnCampusFeed}
+  onChange={(e) => setShareOnCampusFeed(e.target.checked)}
+  className="w-4 h-4 text-primary bg-background-light dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded focus:ring-primary focus:ring-2"
+/>
+<label htmlFor="shareOnCampusFeed" className="text-sm text-slate-700 dark:text-slate-300">
+  Share this listing on Campus Feed
+</label>
+</div>
 <div className="flex justify-end">
 <button type="submit" className="flex items-center
 justify-center gap-2 rounded-lg h-12 px-8 bg-primary text-white text-base
