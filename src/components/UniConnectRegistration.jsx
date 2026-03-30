@@ -671,9 +671,9 @@ const handleSubmit = async (e) => {
 			console.warn('Failed to create welcome notification:', notifErr);
 		}
 
-		// Redirect to verification-pending page for students
+		// Redirect to dashboard for students (no longer blocking on verification)
 		if (formData.registerAs === 'student') {
-			navigate('/verification-pending');
+			navigate('/dashboard');
 		} else {
 			// For guests, redirect to guest dashboard or appropriate page
 			navigate('/guest-dashboard');
@@ -710,8 +710,8 @@ const handleProfileComplete = async (profileData) => {
 		} catch (notifErr) {
 			console.warn('Failed to create welcome notification:', notifErr);
 		}
-		// Navigate based on registerAs value
-		const destination = profileData?.registerAs === 'student' ? '/verification-pending' : '/dashboard';
+		// Navigate based on registerAs value (students no longer blocked on verification)
+		const destination = profileData?.registerAs === 'student' ? '/dashboard' : '/dashboard';
 		navigate(destination);
 	}
 };

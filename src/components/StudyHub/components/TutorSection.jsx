@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Volume2, VolumeX, Plus, ChevronDown, FileText } from 'lucide-react';
-import { askTutor } from '../services/geminiService';
+import { askTutor, speakText } from '../services/geminiService';
 
 /**
  * FormattedText component for rendering rich text with markdown support
@@ -133,8 +133,9 @@ const TutorSection = ({
       setError(null);
       
       // Build chat history in format expected by askTutor: {role, text}
+      // Map 'assistant' to 'model' for Gemini API compatibility
       const chatHistory = messages.map(m => ({
-        role: m.role || (m.sender === 'ai' ? 'assistant' : 'user'),
+        role: m.role === 'assistant' ? 'model' : (m.role || (m.sender === 'ai' ? 'model' : 'user')),
         text: m.text
       }));
       

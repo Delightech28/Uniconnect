@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CheckCircle2, XCircle, ChevronRight, ChevronLeft, Clock, MapPin, Target, Zap, Rocket, Activity, Lock, ArrowLeft, BookOpen, ExternalLink, X } from 'lucide-react';
 import { generateQuiz, getQuizFeedback } from '../services/geminiService';
 
 const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMessage, isDarkMode }) => {
-  // State for quiz setup
-  const [selectedTopic, setSelectedTopic] = useState(topics?.[0] || null);
+  // Load persisted state from localStorage
+  const [selectedTopic, setSelectedTopic] = useState(() => {
+    const saved = localStorage.getItem('quizState_selectedTopic');
+    return saved || topics?.[0] || null;
+  });
+  const [lockedTopic, setLockedTopic] = useState(() => {
+    const saved = localStorage.getItem('quizState_lockedTopic');
+    return saved || null;
+  });
+  const [topicScores, setTopicScores] = useState(() => {
+    const saved = localStorage.getItem('quizState_topicScores');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
   const [numQuestions, setNumQuestions] = useState(5);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
 
@@ -18,6 +30,55 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   const [aiFeedback, setAiFeedback] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [validationRef, setValidationRef] = useState(null);
+  const validationScrollRef = useRef(null);
+  
+  // Log component mount/updates (only when props change, not on every render)
+  useEffect(() => {
+    console.log('[QuizSection] Component mounted/updated', { docText: !!docText, topicsLength: topics?.length, isDarkMode, topics });
+  }, [docText, topics?.length, isDarkMode]);
+  
+  // Persist state to localStorage  
+  useEffect(() => {
+    localStorage.setItem('quizState_selectedTopic', selectedTopic || '');
+    localStorage.setItem('quizState_lockedTopic', lockedTopic || '');
+    localStorage.setItem('quizState_topicScores', JSON.stringify(topicScores));
+  }, [selectedTopic, lockedTopic, topicScores]);
+
+  // Handle validation modal scrolling to reference
+  useEffect(() => {
+    console.log('[QuizSection] Validation effect triggered - validationRef:', validationRef, 'docText length:', docText?.length);
+    
+    if (validationRef && validationScrollRef.current && docText) {
+      const container = validationScrollRef.current;
+      const text = docText;
+      
+      // Search for the reference in the text (case-insensitive)
+      const searchPattern = validationRef.toLowerCase();
+      const lowerText = text.toLowerCase();
+      const index = lowerText.indexOf(searchPattern);
+      
+      console.log('[QuizSection] Searching for:', searchPattern, 'Found at index:', index);
+      
+      if (index !== -1) {
+        // Calculate position more accurately by counting lines before the found text
+        const beforeText = text.substring(0, index);
+        const lines = beforeText.split('\n');
+        const lineNumber = lines.length - 1;
+        const roughLineHeight = 24; // Approximate line height in pixels
+        const scrollPosition = Math.max(0, lineNumber * roughLineHeight - 100); // -100 to center it
+        
+        console.log('[QuizSection] Scroll - Line:', lineNumber, 'Position:', scrollPosition, 'Container height:', container.clientHeight);
+        
+        // Wait for DOM to be ready, then scroll
+        setTimeout(() => {
+          container.scrollTop = scrollPosition;
+          console.log('[QuizSection] Scrolled to position:', container.scrollTop);
+        }, 100);
+      } else {
+        console.warn('[QuizSection] Reference not found in document:', searchPattern);
+      }
+    }
+  }, [validationRef, docText]);
 
   const startQuiz = async () => {
     if (!selectedTopic) return;
@@ -80,13 +141,33 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
   };
 
   const finishQuiz = () => {
+    console.log('[QuizSection] finishQuiz called - selectedTopic:', selectedTopic, 'questions:', questions.length, 'userAnswers:', userAnswers.length);
     setIsShowingResults(true);
     const correctCount = userAnswers.reduce((acc, ans, idx) => 
       ans === (questions[idx]?.correctAnswerIndex ?? -1) ? acc + 1 : acc
     , 0);
     const score = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
+    console.log('[QuizSection] Quiz finished - Correct:', correctCount, 'Total:', questions.length, 'Score:', score, 'Topic:', selectedTopic);
+    console.log('[QuizSection] About to call onQuizComplete with:', { selectedTopic, score });
+    
     if (selectedTopic) {
       onQuizComplete(selectedTopic, score);
+      console.log('[QuizSection] Called onQuizComplete successfully');
+      
+      // Update score
+      const newScores = { ...topicScores, [selectedTopic]: Math.max(topicScores[selectedTopic] || 0, score) };
+      setTopicScores(newScores);
+      console.log('[QuizSection] Updated topicScores:', newScores);
+      
+      // If score >= 70%, unlock the topic by clearing the lock
+      if (score >= 70) {
+        setLockedTopic(null);
+      } else {
+        // If score < 70%, keep the topic locked
+        setLockedTopic(selectedTopic);
+      }
+    } else {
+      console.warn('[QuizSection] No selectedTopic, not calling onQuizComplete');
     }
   };
 
@@ -108,7 +189,9 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {!aiFeedback ? (
-                  <button onClick={fetchAiFeedback} disabled={isAnalyzing} className="md:col-span-2 flex items-center justify-center gap-3 px-6 py-4 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl shadow-unispace/20 active:scale-95 transition-all">
+                  <button onClick={fetchAiFeedback} disabled={isAnalyzing} className={`md:col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg transition-all ${
+                    isAnalyzing ? 'bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-unispace text-white shadow-xl shadow-unispace/20 active:scale-95 hover:shadow-2xl'
+                  }`}>
                     {isAnalyzing ? "Analyzing..." : "Get AI Report"}
                   </button>
                 ) : (
@@ -144,7 +227,10 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                     <div className="font-bold text-unispace uppercase text-[9px] tracking-widest mb-2">Explanation</div>
                     <div className="dark:text-zinc-400">{q.explanation}</div>
                     <button 
-                      onClick={() => setValidationRef(q.pageReference)}
+                      onClick={() => {
+                        console.log('[QuizSection] Validate button clicked - pageReference:', q.pageReference, 'docText available:', !!docText);
+                        setValidationRef(q.pageReference);
+                      }}
                       className="mt-4 flex items-center gap-2 text-[9px] font-black text-gray-400 hover:text-unispace uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-transparent active:border-unispace/20 transition-all"
                     >
                       <MapPin size={10}/> {q.pageReference} 
@@ -162,11 +248,35 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-0 sm:p-6" onClick={() => setValidationRef(null)}>
               <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-t-[32px] sm:rounded-[40px] p-6 sm:p-10 space-y-6 shadow-2xl animate-in slide-in-from-bottom-20 sm:zoom-in-95" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-bold flex items-center gap-2"><BookOpen className="text-unispace" /> Validation</h4>
+                  <h4 className="text-lg font-bold flex items-center gap-2"><BookOpen className="text-unispace" /> Validation - Finding: <span className="text-unispace font-black">{validationRef}</span></h4>
                   <button onClick={() => setValidationRef(null)} className="p-2"><X size={18}/></button>
                 </div>
-                <div className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed italic border dark:border-zinc-700">{docText.substring(0, 5000)}...</div>
-                <button onClick={() => setValidationRef(null)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold">Return to Review</button>
+                <div ref={validationScrollRef} className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed border dark:border-zinc-700 font-mono whitespace-pre-wrap break-words">
+                  {docText && validationRef ? (() => {
+                    const parts = [];
+                    const text = docText;
+                    const searchTerm = validationRef;
+                    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    const splitText = text.split(regex);
+                    
+                    splitText.forEach((part, idx) => {
+                      if (regex.test(part)) {
+                        // This is a match
+                        return parts.push(
+                          <span key={idx} className="bg-yellow-300 dark:bg-yellow-600 font-bold px-1 py-0.5 rounded text-gray-900">
+                            {part}
+                          </span>
+                        );
+                      } else {
+                        // Regular text
+                        return parts.push(<span key={idx} className="text-gray-700 dark:text-gray-300">{part}</span>);
+                      }
+                    });
+                    
+                    return parts;
+                  })() : <span className="text-gray-500">Loading document...</span>}
+                </div>
+                <button onClick={() => setValidationRef(null)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all">Return to Review</button>
               </div>
             </div>
           )}
@@ -215,7 +325,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
             </div>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{currentQ.question}</h3>
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{currentQ.text || currentQ.question}</h3>
 
           <div className="grid gap-3 sm:gap-4">
             {currentQ.options.map((opt, idx) => (
@@ -225,10 +335,10 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
                 className={`p-4 sm:p-6 text-left rounded-2xl sm:rounded-[28px] border-2 transition-all font-semibold text-sm sm:text-lg flex items-center gap-4 sm:gap-6 ${
                   userAnswers[currentIdx] === idx 
                     ? 'border-unispace bg-unispace/5 text-unispace shadow-md' 
-                    : 'border-gray-50 dark:border-zinc-800 dark:text-zinc-300'
+                    : 'border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-300'
                 }`}
               >
-                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border-2 shrink-0 ${userAnswers[currentIdx] === idx ? 'bg-unispace text-white border-unispace' : 'border-gray-50 dark:border-zinc-700 text-gray-300'}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border-2 shrink-0 ${userAnswers[currentIdx] === idx ? 'bg-unispace text-white border-unispace' : 'border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-400'}`}>
                   {String.fromCharCode(65 + idx)}
                 </div>
                 <span>{opt}</span>
@@ -244,7 +354,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               onClick={handleNext}
               disabled={userAnswers[currentIdx] === -1}
               className={`flex-1 flex items-center justify-center gap-2 sm:gap-3 py-4 sm:py-5 rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg transition-all ${
-                userAnswers[currentIdx] === -1 ? 'bg-gray-100 text-gray-300' : 'bg-unispace text-white shadow-xl shadow-unispace/20 active:scale-95'
+                userAnswers[currentIdx] === -1 ? 'bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : 'bg-unispace text-white shadow-xl shadow-unispace/20 active:scale-95 hover:scale-105'
               }`}
             >
               {currentIdx === questions.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={18} />
@@ -263,28 +373,43 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {topics && topics.map((topic, index) => (
-          <button
-            key={topic || index}
-            onClick={() => setSelectedTopic(topic)}
-            className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
-              selectedTopic === topic 
-                ? 'border-unispace bg-unispace/5' 
-                : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? 'dark:border-zinc-800' : ''}`
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <h3 className={`text-lg sm:text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{topic}</h3>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
-              <div className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Ready</div>
-              <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
-        ))}
+        {topics && topics.map((topic, index) => {
+          const isLocked = lockedTopic && lockedTopic !== topic && (topicScores[lockedTopic] || 0) < 70;
+          const isCurrentlyLocked = topic === lockedTopic && (topicScores[lockedTopic] || 0) < 70;
+          const handleTopicClick = () => {
+            if (isLocked) {
+              alert(`You must score at least 70% on "${lockedTopic}" before switching topics.`);
+              return;
+            }
+            setSelectedTopic(topic);
+          };
+          return (
+            <button
+              key={topic || index}
+              onClick={handleTopicClick}
+              disabled={isLocked}
+              className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
+                isLocked
+                  ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-zinc-700'
+                  : selectedTopic === topic 
+                    ? 'border-unispace bg-unispace/5' 
+                    : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? 'dark:border-zinc-800' : ''}`
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-zinc-800 text-gray-400' : 'bg-gray-50 text-gray-400'} group-hover:bg-unispace group-hover:text-white transition-colors`}>{index + 1}</div>
+                {isCurrentlyLocked && <Lock size={16} className="text-red-500" />}
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <h3 className={`text-lg sm:text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{topic}</h3>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t dark:border-zinc-800">
+                <div className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Ready</div>
+                <ChevronRight size={16} className="text-unispace group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {selectedTopic && (
@@ -311,7 +436,7 @@ const QuizSection = ({ docText, topics, onQuizComplete, setLoading, setLoadingMe
               </div>
             </div>
 
-            <button onClick={startQuiz} className="w-full py-4 sm:py-5 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-unispace/20">Begin Quiz</button>
+            <button onClick={startQuiz} className="w-full py-5 sm:py-6 bg-unispace hover:bg-unispace/90 text-white dark:text-gray-900 rounded-2xl sm:rounded-[24px] font-black text-lg sm:text-xl hover:scale-[1.05] active:scale-95 transition-all shadow-2xl shadow-unispace/40 hover:shadow-2xl hover:shadow-unispace/60 border-2 border-unispace/40 hover:border-unispace">Begin Quiz</button>
           </div>
         </div>
       )}

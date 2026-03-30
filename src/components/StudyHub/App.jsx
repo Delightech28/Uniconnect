@@ -10,6 +10,7 @@ import PodcastSection from './components/PodcastSection';
 import QuizSection from './components/QuizSection';
 import TutorSection from './components/TutorSection';
 import DocumentSummary from './components/Summary/DocumentSummary';
+import HistoryPage from './components/HistoryPage';
 import { analyzeDocument, generateTopics } from './services/geminiService';
 // ComingSoonOverlay removed
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
@@ -26,7 +27,48 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
   const [cooldown, setCooldown] = useState(0);
   const [topics, setTopics] = useState([]);
   const [summaryData, setSummaryData] = useState(null);
+  const [quizHistory, setQuizHistory] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const abortRef = useRef(null);
+
+  // Load quiz history and documents from localStorage on mount
+  useEffect(() => {
+    console.log('[App] useEffect: Loading quiz history and documents from localStorage');
+    
+    // Load quiz history
+    const savedHistory = localStorage.getItem('studyHub_quizHistory');
+    console.log('[App] Raw localStorage value:', savedHistory);
+    
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        console.log('[App] Parsed quiz history:', parsed, 'Length:', Array.isArray(parsed) ? parsed.length : 'not an array');
+        setQuizHistory(parsed);
+      } catch (e) {
+        console.error('[App] Error parsing quiz history:', e);
+      }
+    } else {
+      console.log('[App] No saved history found in localStorage');
+      setQuizHistory([]);
+    }
+    
+    // Load documents
+    const savedDocuments = localStorage.getItem('studyHub_documents');
+    if (savedDocuments) {
+      try {
+        const parsedDocs = JSON.parse(savedDocuments);
+        console.log('[App] Parsed documents:', parsedDocs.length);
+        setDocuments(parsedDocs);
+      } catch (e) {
+        console.error('[App] Error parsing documents:', e);
+      }
+    }
+  }, []);
+
+  // Track changes to quizHistory
+  useEffect(() => {
+    console.log('[App] quizHistory updated:', quizHistory, 'Length:', quizHistory.length);
+  }, [quizHistory]);
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -70,7 +112,9 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
       }
 
       setLoadingMessage('Extracting topics...');
+      console.log('[App] Starting topic extraction from document text...');
       const extractedTopics = await generateTopics(text, abortRef.current.signal);
+      console.log('[App] Topics extracted:', extractedTopics);
       
       const docData = {
         name: file.name,
@@ -79,9 +123,23 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         id: Date.now().toString()
       };
 
+      console.log('[App] Document uploaded:', docData.name, 'Extracted topics:', extractedTopics);
       setStudyDoc(docData);
       setTopics(extractedTopics);
       setHistory([...history, docData]);
+      
+      // Save document to documents list to avoid re-uploading
+      const updatedDocuments = documents.filter(d => d.id !== docData.id);
+      updatedDocuments.unshift(docData);
+      setDocuments(updatedDocuments);
+      
+      try {
+        localStorage.setItem('studyHub_documents', JSON.stringify(updatedDocuments));
+        console.log('[App] Document saved to localStorage');
+      } catch (e) {
+        console.error('[App] Error saving document:', e);
+      }
+      
       setCurrentView('analysis');
 
       setCooldown(30);
@@ -105,11 +163,70 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
     setCurrentView('upload');
   };
 
+  const handleLoadDocumentFromHistory = async (docId) => {
+    console.log('[App] Loading document from history:', docId);
+    const doc = documents.find(d => d.id === docId);
+    
+    if (!doc) {
+      alert('Document not found in history');
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMessage('Analyzing document...');
+    
+    try {
+      // Re-analyze the document
+      const extractedTopics = await generateTopics(doc.text, new AbortController().signal);
+      console.log('[App] Topics re-extracted:', extractedTopics);
+      
+      setStudyDoc(doc);
+      setTopics(extractedTopics);
+      setCurrentView('analysis');
+    } catch (error) {
+      alert('Error re-analyzing document: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleQuizComplete = (topicId, score) => {
+    console.log('[App] handleQuizComplete called - Topic:', topicId, 'Score:', score, 'CurrentQuizHistory:', quizHistory);
+    
     const updatedTopics = topics.map(t => 
       t.id === topicId ? { ...t, score, passed: score >= 70 } : t
     );
     setTopics(updatedTopics);
+
+    // Save quiz result to history
+    const quizResult = {
+      id: Date.now().toString(),
+      docName: studyDoc?.name || 'Unknown Document',
+      topic: topicId,
+      score: score,
+      passed: score >= 70,
+      completedAt: new Date().toISOString()
+    };
+    
+    console.log('[App] Creating quiz result object:', quizResult);
+    
+    const updatedHistory = [quizResult, ...quizHistory];
+    console.log('[App] Updated history before setState:', updatedHistory, 'Length:', updatedHistory.length);
+    
+    setQuizHistory(updatedHistory);
+    
+    try {
+      const jsonString = JSON.stringify(updatedHistory);
+      console.log('[App] Stringified history:', jsonString.substring(0, 100));
+      localStorage.setItem('studyHub_quizHistory', jsonString);
+      console.log('[App] localStorage.setItem called successfully');
+      
+      // Verify it was saved
+      const verify = localStorage.getItem('studyHub_quizHistory');
+      console.log('[App] Verified localStorage contains:', verify ? verify.substring(0, 100) : 'NOTHING');
+    } catch (e) {
+      console.error('[App] Error saving quiz history:', e);
+    }
   };
 
   const renderView = () => {
@@ -171,39 +288,7 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
         ) : null;
       
       case 'history':
-        return (
-          <div className={`max-w-4xl mx-auto p-8 ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
-            <h2 className="text-3xl font-black mb-8">Document History</h2>
-            {history.length === 0 ? (
-              <p className="text-center text-gray-500">No documents uploaded yet</p>
-            ) : (
-              <div className="space-y-4">
-                {history.map(doc => (
-                  <div
-                    key={doc.id}
-                    onClick={() => {
-                      setStudyDoc(doc);
-                      setCurrentView('analysis');
-                    }}
-                    className={`p-6 rounded-2xl cursor-pointer transition-all ${
-                      darkMode 
-                        ? 'bg-slate-900 hover:bg-slate-800 border border-slate-800' 
-                        : 'bg-white hover:bg-slate-50 border border-slate-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg">{doc.name}</h3>
-                        <p className="text-sm text-gray-500">{new Date(doc.uploadedAt).toLocaleString()}</p>
-                      </div>
-                      <MoreVertical className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
+        return <HistoryPage history={quizHistory} documents={documents} onLoadDocument={handleLoadDocumentFromHistory} isDarkMode={darkMode} />;
       
       default:
         return <FileUpload onFileUpload={handleFileUpload} isDarkMode={darkMode} />;

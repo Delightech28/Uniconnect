@@ -191,7 +191,7 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
       if (onComplete) {
         onComplete(formData);
       } else {
-        navigate(formData.registerAs === 'student' ? '/verification-pending' : '/dashboard');
+        navigate(formData.registerAs === 'student' ? '/dashboard' : '/dashboard');
       }
     } catch (err) {
       console.error('Error completing profile:', err);
