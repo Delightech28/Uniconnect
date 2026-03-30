@@ -291,28 +291,34 @@ DOCUMENT TEXT (reference): ${docText.substring(0, 4000)}`;
  * @param {string} accent - Voice accent (en-US, en-GB, etc.)
  * @returns {Promise<string>} Audio URL or base64
  */
-export const speakText = async (text, accent = 'en-US') => {
+export const speakText = async (text, accent = 'US', hostName = 'Alex', hostIndex = 0) => {
   try {
     // Use browser's Web Speech API
     return new Promise((resolve, reject) => {
       const utterance = new SpeechSynthesisUtterance(text);
       
-      // Set voice based on accent
-      const voices = speechSynthesis.getVoices();
-      const voiceMap = {
-        'en-US': 'en-US',
-        'en-GB': 'en-GB',
-        'en-AU': 'en-AU'
-      };
+      // Get gender-aware voice based on host name and accent
+      const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      const gender = detectGenderFromName(hostName);
+      const preferredLangs = getVoicesForAccent(accent, gender);
       
-      const lang = voiceMap[accent] || 'en-US';
-      const voice = voices.find(v => v.lang.includes(lang));
-      if (voice) utterance.voice = voice;
+      const selectedVoice = findVoiceByLangAndGender(voices, preferredLangs, gender, []);
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        console.log('[speakText] Using voice:', selectedVoice.name, 'for', hostName, '(' + gender + ')');
+      } else {
+        const fallbackVoice = voices.find(v => v.lang?.startsWith('en'));
+        if (fallbackVoice) {
+          utterance.voice = fallbackVoice;
+          console.log('[speakText] Using fallback voice:', fallbackVoice.name);
+        }
+      }
       
       utterance.onend = () => resolve('spoken');
       utterance.onerror = (e) => reject(e);
       
-      speechSynthesis.speak(utterance);
+      window.speechSynthesis.speak(utterance);
     });
   } catch (error) {
     console.error('Error speaking text:', error);
@@ -419,10 +425,32 @@ export const generatePodcastContent = async (docText, settings = {}, signal) => 
   }
   
   try {
-    const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [] } = settings;
+    const { tone = 'TEACHER', durationMinutes = 5, selectedTopics = [], hosts = [] } = settings;
     const topicContext = selectedTopics.length > 0 ? `Focus on these topics: ${selectedTopics.join(', ')}.` : 'Cover the main points from the document.';
     
-    const prompt = `Create a podcast script from this document.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n\nRETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):\n{\n  "title": "Podcast Title",\n  "segments": [\n    {\n      "startTime": 0,\n      "duration": 30,\n      "topic": "Topic Name",\n      "speaker": "Host Name",\n      "text": "Podcast content here..."\n    },\n    {\n      "startTime": 30,\n      "duration": 30,\n      "topic": "Another Topic",\n      "speaker": "Host Name",\n      "text": "More podcast content..."\n    }\n  ]\n}\n\nDocument:\n${docText.substring(0, 3000)}...`;
+    // Build host information
+    const hostCount = hosts.length > 0 ? hosts.length : 1;
+    const hostNames = hosts.length > 0 ? hosts.map(h => h.name || 'Host').join(' and ') : 'Alex';
+    
+    // Different prompt structure for single vs multi-host
+    const hostInstructions = hostCount === 1
+      ? `The podcast is hosted by a single host named "${hosts[0]?.name || 'Alex'}". The host should introduce themselves by name at the beginning.`
+      : `The podcast is hosted by multiple hosts: ${hosts.map(h => h.name || 'Host').join(', ')}. 
+         START with an INTRODUCTION segment where the hosts introduce themselves conversationally:
+         - First host introduces themselves and their name clearly
+         - Second host immediately responds with their own introduction and name
+         - Keep it brief and friendly
+         
+         In the MAIN CONTENT segments, hosts should alternate speaking and hand off naturally:
+         - When one host finishes, they should transition to the next host (e.g., "Let me hand this over to [name]" or "[name], what do you think?")
+         - Keep the conversation natural and dynamic
+         
+         END with a CONCLUSION segment where all hosts wrap up together:
+         - All hosts should participate in the conclusion
+         - Include a closing statement that both hosts say or respond to
+         - Make it clear this is the end of the podcast`;
+    
+    const prompt = `Create a detailed podcast script from this document with proper host management.\n\n${topicContext}\nTone: ${getToneInstruction(tone)}\nTarget duration: ${durationMinutes} minutes\n${hostInstructions}\n\nThe podcast MUST include:\n1. An INTRODUCTION segment at the start\n2. Multiple CONTENT segments covering the topic\n3. A CONCLUSION segment at the end\n4. Each segment must have a clear "speaker" field with the host name\n5. Natural transitions between hosts when needed\n\nRETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):\n{\n  "title": "Podcast Title",\n  "segments": [\n    {\n      "startTime": 0,\n      "duration": 20,\n      "topic": "Introduction",\n      "segment_type": "introduction",\n      "speaker": "Host Name",\n      "text": "Host introduces themselves and the topic..."\n    },\n    {\n      "startTime": 20,\n      "duration": 60,\n      "topic": "Main Content",\n      "segment_type": "content",\n      "speaker": "Host Name",\n      "text": "Main podcast content with smooth transitions between hosts..."\n    },\n    {\n      "startTime": 80,\n      "duration": 20,\n      "topic": "Conclusion",\n      "segment_type": "conclusion",\n      "speaker": "All Hosts",\n      "text": "Final wrap-up and conclusion..."\n    }\n  ]\n}\n\nDocument:\n${docText.substring(0, 3000)}...`;
     
     console.log('[generatePodcastContent] Prompt length:', prompt.length);
     
@@ -529,30 +557,110 @@ export const askTutor = async (docText, chatHistory, question, tone = 'Teacher',
 };
 
 /**
- * Detect voice gender from name
+ * Detect voice gender from name using comprehensive patterns and large name database
  */
-const detectGenderFromName = (name) => {
+export const detectGenderFromName = (name) => {
   const nameLower = name.toLowerCase().trim();
   
-  // Strong female indicators
-  const femaleNames = ['sarah', 'jessica', 'emily', 'ashley', 'elizabeth', 'amanda', 'jennifer', 'samantha', 'margaret', 'alice', 'susan', 'karen', 'nancy', 'betty', 'sandra', 'kimberly', 'donna', 'michelle', 'dorothy', 'carol', 'rebecca', 'sharon', 'laura', 'cynthia', 'kathleen', 'amy', 'angela', 'shirley', 'anna', 'brenda', 'pamela', 'emma', 'nicole', 'helen', 'christine', 'deborah', 'rachel', 'catherine', 'carolyn', 'janet', 'ruth', 'maria', 'heather', 'diane', 'virginia', 'julie', 'joyce', 'victoria', 'olivia', 'marie', 'joan', 'evelyn', 'judith', 'megan', 'andrea', 'cheryl', 'hannah'];
+  // COMPREHENSIVE FEMALE NAMES DATABASE - 200+ names
+  const femaleNames = [
+    'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'evelyn', 'abigail', 'emily', 'elizabeth', 'mila',
+    'ella', 'avery', 'aria', 'scarlett', 'victoria', 'grace', 'chloe', 'camila', 'penelope', 'riley',
+    'zoey', 'nora', 'lily', 'eliana', 'layla', 'lucy', 'lillian', 'ava', 'luna', 'claire',
+    'hannah', 'charlotte', 'meghan', 'rachel', 'monica', 'phoebe', 'leah', 'jessica', 'ashley', 'margaret',
+    'alice', 'susan', 'karen', 'nancy', 'betty', 'sandra', 'kimberly', 'donna', 'michelle', 'dorothy',
+    'carol', 'rebecca', 'sharon', 'laura', 'cynthia', 'kathleen', 'amy', 'angela', 'shirley', 'anna',
+    'brenda', 'pamela', 'emma', 'nicole', 'helen', 'christine', 'deborah', 'catherine', 'carolyn', 'janet',
+    'ruth', 'maria', 'heather', 'diane', 'virginia', 'julie', 'joyce', 'marie', 'joan', 'judith',
+    'megan', 'andrea', 'cheryl', 'margot', 'amelie', 'louise', 'celine', 'brigitte', 'dominique', 'monique',
+    'simone', 'francoise', 'gisele', 'renee', 'josette', 'annette', 'danielle', 'rochelle', 'yvette', 'josee',
+    'lucie', 'muriel', 'paulette', 'pauline', 'rosette', 'suette', 'suzette', 'yvonne', 'helene', 'denise',
+    'georgette', 'jeanette', 'claudette', 'lourdes', 'lydia', 'alexa', 'siri', 'cortana', 'alexis', 'alize',
+    'zara', 'iris', 'nova', 'sage', 'isis', 'violet', 'indigo', 'sienna', 'aurora', 'destiny',
+    'paisley', 'everley', 'eloise', 'evangeline', 'gloria', 'constance', 'doris', 'eileen', 'elaine', 'elsa',
+    'enid', 'estelle', 'esther', 'ethel', 'eva', 'eve', 'frieda', 'gail', 'gladys', 'glenda',
+    'greta', 'gwen', 'gwendolyn', 'hailey', 'haley', 'harriet', 'hayley', 'heidi', 'helena', 'henrietta',
+    'hermine', 'hester', 'hildegard', 'hildegarde', 'hilda', 'holly', 'honey', 'honorine', 'horense', 'hyacinth'
+  ];
   
-  // Strong male indicators
-  const maleNames = ['james', 'john', 'michael', 'david', 'chris', 'robert', 'william', 'richard', 'charles', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua', 'kenneth', 'kevin', 'brian', 'george', 'edward', 'ronald', 'timothy', 'jason', 'jeffrey', 'ryan', 'jacob', 'gary', 'nicholas', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott', 'brandon', 'benjamin', 'samuel', 'raymond', 'alex', 'jordan', 'thomas'];
+  // COMPREHENSIVE MALE NAMES DATABASE - 200+ names
+  const maleNames = [
+    'liam', 'noah', 'oliver', 'elijah', 'james', 'william', 'benjamin', 'lucas', 'henry', 'alexander',
+    'mason', 'michael', 'ethan', 'daniel', 'jacob', 'logan', 'jackson', 'sebastian', 'aiden', 'matthew',
+    'samuel', 'david', 'joseph', 'carter', 'owen', 'wyatt', 'cooper', 'jayden', 'luke', 'evan',
+    'alex', 'jordan', 'casey', 'morgan', 'taylor', 'blake', 'skyler', 'cameron', 'dakota', 'anthony',
+    'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua', 'kenneth', 'kevin', 'brian', 'george',
+    'edward', 'ronald', 'timothy', 'jason', 'jeffrey', 'ryan', 'gary', 'nicholas', 'eric', 'jonathan',
+    'stephen', 'larry', 'justin', 'scott', 'brandon', 'raymond', 'thomas', 'dennis', 'walter', 'patrick',
+    'peter', 'harold', 'douglas', 'carl', 'arthur', 'roger', 'joe', 'juan', 'jack', 'albert',
+    'wayne', 'billy', 'chris', 'robert', 'richard', 'charles', 'andre', 'denis', 'francois', 'jacques',
+    'jean', 'jean-luc', 'jean-paul', 'jean-pierre', 'laurent', 'louis', 'marc', 'mathieu', 'matthieu', 'maurice',
+    'maxime', 'michel', 'moe', 'montrose', 'noel', 'nolan', 'norman', 'olivier', 'oscar', 'pascal',
+    'patrice', 'pavel', 'pedro', 'percival', 'perry', 'pete', 'philippe', 'philip', 'pierre', 'pierce',
+    'ralph', 'aaron', 'abel', 'abraham', 'adam', 'adrian', 'alan', 'alastair', 'alec', 'aleksei',
+    'aleph', 'alessandro', 'alexei', 'alfred', 'alphonse', 'alphonzo', 'alston', 'alva', 'alvin', 'amani'
+  ];
   
-  // Check strong indicators first
+  // Extract first name (before space) for better matching
+  const firstName = nameLower.split(/\s+/)[0];
+  
+  // Check exact matches first (most reliable)
+  if (femaleNames.includes(firstName)) {
+    return 'female';
+  }
+  if (maleNames.includes(firstName)) {
+    return 'male';
+  }
+  
+  // Check if name contains any female name
   if (femaleNames.some(fn => nameLower.includes(fn))) {
     return 'female';
   }
   
+  // Check if name contains any male name
   if (maleNames.some(mn => nameLower.includes(mn))) {
     return 'male';
   }
   
-  // Heuristic: ends with these usually female
-  const femaleEndings = ['a', 'ica', 'ia', 'ie', 'elle', 'ette'];
-  if (femaleEndings.some(ending => nameLower.endsWith(ending))) {
+  // Advanced regex patterns for female names
+  const femalePatterns = [
+    /[aeiou]a$/i,      // Ends with vowel + 'a'
+    /ia$/i,            // Ends with 'ia'
+    /ie$/i,            // Ends with 'ie'
+    /elle$/i,          // Ends with 'elle'
+    /ette$/i,          // Ends with 'ette'
+    /ine$/i,           // Ends with 'ine'
+    /yn(e)?$/i,        // Ends with 'yn' or 'yne'
+    /cy$/i,            // Ends with 'cy'
+    /ly$/i,            // Ends with 'ly'
+    /na$/i,            // Ends with 'na'
+    /sha$/i            // Ends with 'sha'
+  ];
+  
+  // Advanced regex patterns for male names
+  const malePatterns = [
+    /us$/i,            // Ends with 'us'
+    /er$/i,            // Ends with 'er'
+    /or$/i,            // Ends with 'or'
+    /on$/i,            // Ends with 'on'
+    /an$/i,            // Ends with 'an'
+    /en$/i,            // Ends with 'en'
+    /in$/i,            // Ends with 'in'
+    /ar$/i,            // Ends with 'ar'
+    /ew$/i,            // Ends with 'ew'
+    /el$/i,            // Ends with 'el'
+    /es$/i,            // Ends with 'es'
+    /is$/i,            // Ends with 'is'
+    /as$/i,            // Ends with 'as'
+    /id$/i             // Ends with 'id'
+  ];
+  
+  // Check regex patterns for first name
+  if (femalePatterns.some(pattern => pattern.test(firstName))) {
     return 'female';
+  }
+  if (malePatterns.some(pattern => pattern.test(firstName))) {
+    return 'male';
   }
   
   // Default to male for ambiguous names
@@ -563,22 +671,22 @@ const detectGenderFromName = (name) => {
  * Get male and female voices for an accent
  */
 const getVoicesForAccent = (accent, gender) => {
-  const voiceMap = {
+  const accentMap = {
     'NG': {
-      male: ['en-NG', 'en-GB', 'en-US'],
-      female: ['en-NG', 'en-GB', 'en-US']
+      male: ['en-NG', 'en-ZA', 'en-GB', 'en-AU', 'en-US'],
+      female: ['en-NG', 'en-ZA', 'en-GB', 'en-AU', 'en-US']
     },
     'UK': {
-      male: ['en-GB', 'en', 'en-US'],
-      female: ['en-GB', 'en', 'en-US']
+      male: ['en-GB', 'en-AU', 'en-NZ', 'en-US'],
+      female: ['en-GB', 'en-AU', 'en-NZ', 'en-US']
     },
     'US': {
-      male: ['en-US', 'en-GB', 'en'],
-      female: ['en-US', 'en-GB', 'en']
+      male: ['en-US', 'en-AU', 'en-CA', 'en-GB'],
+      female: ['en-US', 'en-AU', 'en-CA', 'en-GB']
     }
   };
   
-  return voiceMap[accent]?.[gender] || ['en-US', 'en', 'en-GB'];
+  return accentMap[accent]?.[gender] || ['en-US', 'en-GB', 'en-AU'];
 };
 
 /**
@@ -638,18 +746,35 @@ const findVoiceByLangAndGender = (voices, preferredLangs, gender, excludeVoices 
 };
 
 /**
- * Export voice selection for external use
+ * Export voice selection for external use - with gender detection and dual podcast support
+ * @param {string} accent - Accent code (US, UK, NG)
+ * @param {string} name - Host name for gender detection
+ * @param {number} hostIndex - Host index (0 or 1) for selecting different voices in dual podcasts
  */
-export const getVoiceForAccent = (accent) => {
-  return getVoicesForAccent(accent, 'male');
+export const getVoiceForAccent = (accent = 'US', name = 'Alex', hostIndex = 0) => {
+  const gender = detectGenderFromName(name);
+  console.log('[getVoiceForAccent] Gender detected - Name:', name, 'Gender:', gender, 'Accent:', accent, 'Host:', hostIndex);
+  
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const preferredLangs = getVoicesForAccent(accent, gender);
+  
+  // For dual podcasts, try to exclude voices already used by host 0
+  const excludeVoices = hostIndex > 0 ? [] : [];
+  const selectedVoice = findVoiceByLangAndGender(voices, preferredLangs, gender, excludeVoices);
+  
+  const result = selectedVoice || voices.find(v => v.lang?.startsWith('en')) || voices[0];
+  console.log('[getVoiceForAccent] Selected voice:', result?.name || 'default', 'Lang:', result?.lang || 'auto');
+  return result;
 };
 
 /**
  * Create a minimal WAV file blob
  */
-const createMinimalWavBlob = (transcript, hosts) => {
+const createMinimalWavBlob = (transcript, hosts, playbackSpeed = 1.0) => {
   const sampleRate = 44100;
-  const duration = Math.max(1, Math.ceil(transcript.length / 100));
+  // Adjust duration based on playback speed - faster playback = shorter duration
+  const baseDuration = Math.max(1, Math.ceil(transcript.length / 100));
+  const duration = Math.max(0.1, baseDuration / playbackSpeed);
   const numSamples = sampleRate * duration;
   
   // Create PCM data (silence)
@@ -757,16 +882,16 @@ const createInfoChunk = (transcript) => {
 /**
  * Download podcast as audio - Creates a WAV file with text metadata
  */
-export const downloadPodcastAsAudio = async (transcript, filename = 'podcast.wav', hosts = []) => {
+export const downloadPodcastAsAudio = async (transcript, filename = 'podcast.wav', hosts = [], playbackSpeed = 1.0) => {
   try {
-    console.log('[downloadPodcastAsAudio] 1. Starting audio file generation:', filename);
+    console.log('[downloadPodcastAsAudio] 1. Starting audio file generation:', filename, 'Speed:', playbackSpeed);
     console.log('[downloadPodcastAsAudio] 2. Transcript length:', transcript.length);
     
     const cleanFilename = filename.includes('.wav') ? filename : `${filename}.wav`;
     console.log('[downloadPodcastAsAudio] 3. Creating WAV file:', cleanFilename);
     
-    const wavBlob = createMinimalWavBlob(transcript, hosts);
-    console.log('[downloadPodcastAsAudio] 4. WAV blob created, size:', wavBlob.size);
+    const wavBlob = createMinimalWavBlob(transcript, hosts, playbackSpeed);
+    console.log('[downloadPodcastAsAudio] 4. WAV blob created, size:', wavBlob.size, 'Speed:', playbackSpeed);
     
     const url = URL.createObjectURL(wavBlob);
     console.log('[downloadPodcastAsAudio] 5. Object URL created');

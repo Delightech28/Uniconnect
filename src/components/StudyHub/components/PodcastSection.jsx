@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Headphones, Download, ChevronDown, Mic2, UserPlus, RotateCcw, RotateCw, Settings2, User, MessageCircle, Share2 } from 'lucide-react';
-import { generatePodcastContent, speakText, downloadPodcastAsAudio, getVoiceForAccent } from '../services/geminiService';
+import { Play, Pause, Headphones, Download, ChevronDown, Mic2, UserPlus, RotateCcw, RotateCw, Settings2, User, MessageCircle, Share2, Volume2 } from 'lucide-react';
+import { generatePodcastContent, speakText, downloadPodcastAsAudio, getVoiceForAccent, detectGenderFromName } from '../services/geminiService';
 
 const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaused }) => {
   const [selectedTopic, setSelectedTopic] = useState(null);
@@ -21,7 +21,10 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
   const [activePodcast, setActivePodcast] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const [showSpeedDropdown, setShowSpeedDropdown] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -47,6 +50,24 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
 
   const areHostsValid = hosts.slice(0, hostCount).every(h => h.name?.trim().length > 0);
 
+  const calculateDurationFromSegments = (segments) => {
+    // Estimate duration: average 150 words per minute, 4.5 characters per word
+    let totalChars = 0;
+    segments.forEach(seg => {
+      totalChars += (seg.text || '').length;
+    });
+    // Rough estimate: 600 chars = 1 minute at normal speech rate
+    const baseSeconds = (totalChars / 600) * 60;
+    return Math.round(baseSeconds);
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const createPodcast = async () => {
     console.log('[PodcastSection] createPodcast', { selectedTopic, hostCount, duration, hosts });
     if (!selectedTopic) return;
@@ -71,9 +92,15 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
       
       console.log('[PodcastSection] Podcast content generated:', result);
       
-      // Build transcript from segments
+      // Build transcript from segments with speaker names
       const transcript = result.segments && result.segments.length > 0 
-        ? result.segments.map(seg => seg.text || '').join('\n\n')
+        ? result.segments.map(seg => {
+            let speaker = seg.speaker || 'Host';
+            if (speaker.toLowerCase().includes('all') || speaker.toLowerCase().includes('hosts')) {
+              speaker = 'All Hosts';
+            }
+            return `[${speaker}]\n${seg.text}`;
+          }).join('\n\n')
         : 'No content available';
       
       console.log('[PodcastSection] Segments count:', result.segments?.length, 'Transcript length:', transcript.length);
@@ -89,7 +116,13 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
         segments: result.segments || []
       });
       
-      console.log('[PodcastSection] Podcast activated successfully');
+      // Calculate and set total duration
+      const podcastDuration = calculateDurationFromSegments(result.segments || []);
+      setTotalDuration(podcastDuration);
+      setCurrentTime(0);
+      setPlaybackSpeed(1.0);
+      
+      console.log('[PodcastSection] Podcast activated successfully, duration:', podcastDuration, 'seconds');
     } catch (e) {
       console.error('[PodcastSection] Error generating podcast:', e);
       alert("Failed to generate podcast: " + (e.message || "Unknown error"));
@@ -98,60 +131,148 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     }
   };
 
+  const [currentSpeaker, setCurrentSpeaker] = useState(null);
+  const [segmentIndex, setSegmentIndex] = useState(0);
+
+  const getVoiceForHostName = (hostName) => {
+    if (!hostName || !activePodcast?.hosts) return null;
+    
+    // Find host by name
+    const host = activePodcast.hosts.find(h => h.name?.toLowerCase() === hostName.toLowerCase());
+    if (!host) return null;
+    
+    const voices = window.speechSynthesis.getVoices();
+    const accentMap = { 'US': 'en-US', 'UK': 'en-GB', 'NG': 'en-NG' };
+    const targetLang = accentMap[host.accent] || 'en-US';
+    
+    // Detect gender from host name using the imported function
+    const gender = detectGenderFromName(hostName);
+    const genderKeywords = gender === 'female' ? ['female', 'woman', 'girl', 'eva', 'victoria', 'zira'] : ['male', 'man', 'boy', 'david', 'james'];
+    
+    console.log('[getVoiceForHostName] Host:', hostName, 'Gender:', gender, 'Accent:', host.accent, 'Target lang:', targetLang);
+    
+    // Try to find gender-specific voice
+    let voice = voices.find(v => 
+      v.lang === targetLang && 
+      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword))
+    );
+    
+    if (!voice) {
+      voice = voices.find(v => v.lang === targetLang) || voices.find(v => v.lang?.startsWith(targetLang.split('-')[0])) || voices.find(v => v.lang?.includes('en')) || voices[0];
+    }
+    
+    console.log('[getVoiceForHostName] Selected voice:', voice?.name);
+    return voice;
+  };
+
+  const playNextSegment = (index) => {
+    if (!activePodcast?.segments || index >= activePodcast.segments.length) {
+      // Podcast finished
+      setIsPlaying(false);
+      setCurrentSpeaker(null);
+      setCurrentTime(totalDuration);
+      console.log('[PodcastSection] Podcast playback completed');
+      return;
+    }
+    
+    const segment = activePodcast.segments[index];
+    let speaker = segment.speaker || 'Host';
+    
+    // For "All Hosts", use the first host's voice
+    if (speaker.toLowerCase().includes('all') || speaker.toLowerCase().includes('hosts')) {
+      speaker = activePodcast.hosts[0]?.name || 'Alex';
+    }
+    
+    setCurrentSpeaker(speaker);
+    setSegmentIndex(index);
+    
+    // Estimate segment duration: ~600 chars = 1 minute at normal speech
+    const segmentDurationBase = (segment.text.length / 600) * 60;
+    const segmentDuration = segmentDurationBase / playbackSpeed;
+    
+    const utterance = new SpeechSynthesisUtterance(segment.text);
+    // Apply playback speed to speech rate (0.9 is base rate)
+    utterance.rate = Math.max(0.1, Math.min(10, 0.9 * playbackSpeed));
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Get appropriate voice for this segment's speaker
+    const voice = getVoiceForHostName(speaker);
+    if (voice) {
+      utterance.voice = voice;
+      console.log('[PodcastSection] Playing segment', index, 'with speaker:', speaker, 'speed:', playbackSpeed, 'rate:', utterance.rate);
+    } else {
+      console.warn('[PodcastSection] No voice found for speaker:', speaker);
+    }
+    
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      console.log('[PodcastSection] Started segment', index, '/', activePodcast.segments.length, 'Speaker:', speaker, 'Duration:', segmentDuration);
+    };
+    
+    // Track time progress during segment
+    let timeUpdateInterval;
+    utterance.onend = () => {
+      clearInterval(timeUpdateInterval);
+      // Update current time to end of this segment
+      const currentTimeValue = activePodcast.segments.slice(0, index + 1)
+        .reduce((sum, seg) => sum + ((seg.text.length / 600) * 60) / playbackSpeed, 0);
+      setCurrentTime(Math.min(currentTimeValue, totalDuration));
+      
+      console.log('[PodcastSection] Finished segment', index, 'Current time:', currentTimeValue);
+      // Play next segment after brief pause
+      setTimeout(() => playNextSegment(index + 1), 300);
+    };
+    
+    utterance.onerror = (e) => {
+      clearInterval(timeUpdateInterval);
+      console.error('[PodcastSection] Speech error on segment', index, ':', e);
+      setIsPlaying(false);
+    };
+    
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
   const togglePlay = async () => {
     if (isPlaying) {
       window.speechSynthesis.pause();
       setIsPlaying(false);
+      console.log('[PodcastSection] Playback paused at segment:', segmentIndex);
     } else {
-      // Use Web Speech API to synthesize and speak the transcript with proper accent
-      const cleanTranscript = activePodcast.transcript.replace(/\[PAUSE\]/g, '...');
-      const utterance = new SpeechSynthesisUtterance(cleanTranscript);
-      utterance.rate = 0.9; // Slightly slower for better comprehension
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      // Get voices and apply first host's accent
-      if (activePodcast.hosts && activePodcast.hosts.length > 0) {
-        const firstHostAccent = activePodcast.hosts[0].accent || 'US';
-        const voices = window.speechSynthesis.getVoices();
-        
-        // Map accents to language codes for voice selection - proper support for all accents
-        const accentMap = {
-          'US': 'en-US',
-          'UK': 'en-GB',
-          'NG': 'en-NG' // Proper Nigerian English support
-        };
-        
-        const targetLang = accentMap[firstHostAccent] || 'en-US';
-        // Try exact match first, then partial match, then fallback
-        const selectedVoice = voices.find(v => v.lang === targetLang) || 
-                             voices.find(v => v.lang?.startsWith(targetLang.split('-')[0])) || 
-                             voices.find(v => v.lang?.includes('en')) ||
-                             voices[0];
-        
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
-          console.log('[PodcastSection] Using voice:', { lang: selectedVoice.lang, name: selectedVoice.name, accent: firstHostAccent, targetLang });
-        }
+      // Start playing from beginning or from current position
+      if (segmentIndex === 0) {
+        console.log('[PodcastSection] Starting playback from beginning');
+        playNextSegment(0);
+      } else {
+        console.log('[PodcastSection] Resuming playback from segment:', segmentIndex);
+        playNextSegment(segmentIndex);
       }
-      
-      utterance.onstart = () => {
-        setIsPlaying(true);
-        console.log('[PodcastSection] starting speech synthesis');
-      };
-      utterance.onend = () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        console.log('[PodcastSection] speech synthesis ended');
-      };
-      utterance.onerror = (e) => {
-        console.error('[PodcastSection] speech synthesis error:', e);
-        setIsPlaying(false);
-      };
-      
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
     }
+  };
+
+  const handleSeek = (newValue) => {
+    const seekPercent = parseFloat(newValue) / 100;
+    const seekTime = seekPercent * totalDuration;
+    
+    // Find which segment to start from based on seek time
+    let cumulativeTime = 0;
+    let targetSegmentIndex = 0;
+    
+    for (let i = 0; i < activePodcast.segments.length; i++) {
+      const segmentDuration = (activePodcast.segments[i].text.length / 600) * 60 / playbackSpeed;
+      if (cumulativeTime + segmentDuration > seekTime) {
+        targetSegmentIndex = i;
+        break;
+      }
+      cumulativeTime += segmentDuration;
+    }
+    
+    setCurrentTime(seekTime);
+    window.speechSynthesis.cancel();
+    setIsPlaying(false);
+    
+    console.log('[PodcastSection] Seeking to time:', seekTime, 'segment:', targetSegmentIndex);
   };
 
   const toneOptions = ['FUNNY', 'PROFESSIONAL', 'TEACHER', 'FRIEND'];
@@ -178,13 +299,78 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
             </div>
 
             <div className="space-y-6 sm:space-y-8 px-2 sm:px-6">
-              <input type="range" min="0" max={100} value={currentTime} onChange={(e) => console.log('seek not yet implemented')} className="w-full h-1.5 sm:h-2 bg-gray-100 dark:bg-zinc-800 rounded-full appearance-none accent-[#07bc0c] cursor-pointer" />
-              <div className="flex items-center justify-center gap-6 sm:gap-10">
-                <button onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); }} className="text-gray-500 dark:text-gray-300 active:text-[#07bc0c] transition-colors" title="Reset"><RotateCcw size={28} /></button>
-                <button onClick={togglePlay} className="w-20 h-20 sm:w-24 sm:h-24 bg-[#07bc0c] text-white rounded-[32px] sm:rounded-[40px] flex items-center justify-center shadow-2xl shadow-[#07bc0c]/20 active:scale-90 transition-transform" title={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? <Pause size={32} /> : <Play size={32} className="ml-1.5" />}</button>
-                <button onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); }} className="text-gray-500 dark:text-gray-300 active:text-[#07bc0c] transition-colors" title="Stop"><RotateCw size={28} /></button>
+              {/* Progress bar with time display */}
+              <div className="space-y-2">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max={totalDuration || 100}
+                  value={Math.min(currentTime, totalDuration)} 
+                  onChange={(e) => {
+                    const newTime = parseFloat(e.target.value);
+                    setCurrentTime(newTime);
+                    let cumulativeTime = 0;
+                    for (let i = 0; i < (activePodcast.segments || []).length; i++) {
+                      const segDuration = (activePodcast.segments[i].text.length / 600) * 60 / playbackSpeed;
+                      if (cumulativeTime + segDuration > newTime) {
+                        setSegmentIndex(i);
+                        break;
+                      }
+                      cumulativeTime += segDuration;
+                    }
+                    window.speechSynthesis.cancel();
+                    setIsPlaying(false);
+                    console.log('[PodcastSection] Seeked to:', newTime, 'seconds');
+                  }}
+                  className="w-full h-1.5 sm:h-2 bg-gray-100 dark:bg-zinc-800 rounded-full appearance-none accent-[#07bc0c] cursor-pointer" 
+                />
+                <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+                  <span>{formatTime(Math.min(currentTime, totalDuration))}</span>
+                  <span>{formatTime(totalDuration)}</span>
+                </div>
               </div>
+
+              <div className="flex items-center justify-center gap-6 sm:gap-10">
+                <button onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setSegmentIndex(0); setCurrentSpeaker(null); setCurrentTime(0); console.log('[PodcastSection] Podcast reset'); }} className="text-gray-500 dark:text-gray-300 active:text-[#07bc0c] transition-colors" title="Reset"><RotateCcw size={28} /></button>
+                <button onClick={togglePlay} className="w-20 h-20 sm:w-24 sm:h-24 bg-[#07bc0c] text-white rounded-[32px] sm:rounded-[40px] flex items-center justify-center shadow-2xl shadow-[#07bc0c]/20 active:scale-90 transition-transform" title={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? <Pause size={32} /> : <Play size={32} className="ml-1.5" />}</button>
+                <button onClick={() => { window.speechSynthesis.cancel(); setIsPlaying(false); setSegmentIndex(0); setCurrentSpeaker(null); setCurrentTime(0); console.log('[PodcastSection] Podcast stopped'); }} className="text-gray-500 dark:text-gray-300 active:text-[#07bc0c] transition-colors" title="Stop"><RotateCw size={28} /></button>
+              </div>
+
+              {/* Speed Control */}
               <div className="flex gap-3 sm:gap-4 relative">
+                <div className="flex-1 relative">
+                  <button 
+                    onClick={() => setShowSpeedDropdown(!showSpeedDropdown)}
+                    className="w-full py-3 sm:py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                    title="Playback speed"
+                  >
+                    <Volume2 size={18} /> <span>{playbackSpeed.toFixed(2)}x</span> <ChevronDown size={16} />
+                  </button>
+                  
+                  {showSpeedDropdown && (
+                    <div className="absolute top-full mt-2 left-0 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg shadow-lg z-50 w-full">
+                      {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                        <button
+                          key={speed}
+                          onClick={() => {
+                            setPlaybackSpeed(speed);
+                            setShowSpeedDropdown(false);
+                            console.log('[PodcastSection] Playback speed set to:', speed);
+                          }}
+                          className={`w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-zinc-700 font-semibold text-sm transition-colors flex items-center justify-between ${
+                            playbackSpeed === speed 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                              : 'text-gray-800 dark:text-gray-100'
+                          } ${speed !== 2.0 ? 'border-b border-gray-200 dark:border-zinc-700' : ''}`}
+                        >
+                          {speed}x
+                          {playbackSpeed === speed && <span>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <div className="flex-1 relative">
                   <button 
                     onClick={() => setShowDownloadDropdown(!showDownloadDropdown)}
@@ -198,13 +384,13 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
                     <div className="absolute top-full mt-2 left-0 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg shadow-lg z-50 w-full">
                       <button
                         onClick={() => {
-                          console.log('[PodcastSection] User selected: Download Audio');
-                          downloadPodcastAsAudio(activePodcast.transcript, `podcast-${activePodcast.topicTitle.replace(/\s+/g, '-')}.wav`, activePodcast.hosts);
+                          console.log('[PodcastSection] User selected: Download Audio with speed:', playbackSpeed);
+                          downloadPodcastAsAudio(activePodcast.transcript, `podcast-${activePodcast.topicTitle.replace(/\s+/g, '-')}.wav`, activePodcast.hosts, playbackSpeed);
                           setShowDownloadDropdown(false);
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-emerald-50 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-100 font-semibold text-sm border-b border-gray-200 dark:border-zinc-700 transition-colors flex items-center gap-2"
                       >
-                        <Download size={18} className="text-emerald-500" /> Audio (.wav)
+                        <Download size={18} className="text-emerald-500" /> Audio (.wav) @ {playbackSpeed}x
                       </button>
                       <button
                         onClick={() => {
@@ -235,11 +421,39 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
           <div className="lg:w-96 flex flex-col gap-4">
             <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 sm:p-8 border border-gray-100 dark:border-zinc-800 flex-1 overflow-hidden flex flex-col shadow-sm">
                 <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest mb-4 text-gray-600 dark:text-gray-300"><MessageCircle size={16} className="text-[#07bc0c]" /> Transcript</div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar text-xs sm:text-sm leading-relaxed whitespace-pre-wrap text-gray-600 dark:text-zinc-400 font-semibold">
-                {activePodcast.transcript && activePodcast.transcript.length > 0 
-                  ? activePodcast.transcript 
-                  : <span className="text-gray-400 italic">Transcript will appear here once podcast is generated...</span>
-                }
+              <div className="flex-1 overflow-y-auto custom-scrollbar text-xs sm:text-sm leading-relaxed text-gray-600 dark:text-zinc-400 font-semibold">
+                {activePodcast.segments && activePodcast.segments.length > 0 ? (
+                  <div className="space-y-3">
+                    {activePodcast.segments.map((segment, idx) => {
+                      let speakerName = segment.speaker || 'Host';
+                      if (speakerName.toLowerCase().includes('all') || speakerName.toLowerCase().includes('hosts')) {
+                        speakerName = 'All Hosts';
+                      }
+                      const isCurrentSegment = idx === segmentIndex && isPlaying;
+                      return (
+                        <div key={idx} className={`p-3 rounded-lg transition-all ${
+                          isCurrentSegment 
+                            ? 'bg-[#07bc0c]/10 border border-[#07bc0c]/50' 
+                            : 'bg-gray-50 dark:bg-zinc-800/50'
+                        }`}>
+                          <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                            isCurrentSegment ? 'text-[#07bc0c]' : 'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {speakerName}
+                            {isCurrentSegment && <span className="ml-2">🎤</span>}
+                          </div>
+                          <p className={`text-xs leading-relaxed ${
+                            isCurrentSegment ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-600 dark:text-zinc-400'
+                          }`}>
+                            {segment.text}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic">Transcript will appear here once podcast is generated...</span>
+                )}
               </div>
             </div>
             <button onClick={() => setActivePodcast(null)} className="w-full py-4 sm:py-5 bg-gray-900 text-white font-bold rounded-2xl text-[10px] uppercase tracking-widest active:scale-95 transition-all">New Recording</button>
