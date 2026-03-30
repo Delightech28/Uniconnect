@@ -30,7 +30,6 @@ import {
   untrackConversationView,
 } from "../services/notificationService";
 import { getConnections } from "../services/profileService";
-import { searchGifs } from "../services/giphyService";
 
 const MY_AVATAR_URL = null;
 
@@ -107,11 +106,59 @@ const MessageBubble = ({
   senderName,
 }) => {
   const [showReactions, setShowReactions] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
   const reactions = message.reactions || {};
   const reactionCounts = Object.values(reactions).reduce(
     (acc, uids) => acc + (uids?.length || 0),
     0,
   );
+
+  const handleCopyMessage = async () => {
+    if (message.text) {
+      try {
+        await navigator.clipboard.writeText(message.text);
+        setShowCopy(false);
+        // Optional: show a toast or feedback
+      } catch (err) {
+        console.error("Failed to copy message:", err);
+      }
+    }
+  };
+
+  const handleRightClick = (e) => {
+    if (message.text) {
+      e.preventDefault();
+      setShowCopy(true);
+    }
+  };
+
+  const handleTouchStart = () => {
+    if (message.text) {
+      const timer = setTimeout(() => {
+        setShowCopy(true);
+      }, 500); // 500ms for long press
+      const handleTouchEnd = () => {
+        clearTimeout(timer);
+        document.removeEventListener("touchend", handleTouchEnd);
+      };
+      document.addEventListener("touchend", handleTouchEnd);
+    }
+  };
+
+  const handleClickOutside = () => {
+    setShowCopy(false);
+  };
+
+  useEffect(() => {
+    if (showCopy) {
+      document.addEventListener("click", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+      return () => {
+        document.removeEventListener("click", handleClickOutside);
+        document.removeEventListener("touchstart", handleClickOutside);
+      };
+    }
+  }, [showCopy]);
 
   return (
     <div
@@ -136,11 +183,13 @@ const MessageBubble = ({
           </p>
         )}
         <div
-          className={`p-2 sm:p-3 rounded-2xl break-words transition-all duration-200 hover:shadow-md ${
+          className={`p-2 sm:p-3 rounded-2xl break-words transition-all duration-200 hover:shadow-md relative ${
             isMe
               ? "rounded-br-none bg-primary text-white"
               : "rounded-bl-none bg-gray-200 dark:bg-gray-700 text-text-primary-light dark:text-text-primary-dark"
           }`}
+          onContextMenu={handleRightClick}
+          onTouchStart={handleTouchStart}
         >
           {message.text && <p className="text-xs sm:text-sm">{message.text}</p>}
           {message.gifUrl && (
@@ -173,6 +222,18 @@ const MessageBubble = ({
                   {message.fileName || "File"}
                 </a>
               )}
+            </div>
+          )}
+
+          {/* Copy Option Overlay */}
+          {showCopy && (
+            <div className="absolute top-0 right-0 bg-black/75 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1 animate-fade-in">
+              <span className="material-symbols-outlined text-sm">
+                content_copy
+              </span>
+              <button onClick={handleCopyMessage} className="hover:underline">
+                Copy
+              </button>
             </div>
           )}
         </div>
@@ -253,10 +314,6 @@ function InboxPage() {
   const messagesRef = useRef(null);
   const fileInputRef = useRef(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [gifOpen, setGifOpen] = useState(false);
-  const [gifQuery, setGifQuery] = useState("");
-  const [gifResults, setGifResults] = useState([]);
-  const [gifLoading, setGifLoading] = useState(false);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
@@ -926,66 +983,6 @@ function InboxPage() {
     };
   }, [activeConvoId, user]);
 
-  // Send a GIF message (selected from GIPHY results)
-  const handleSendGif = async (url) => {
-    if (!user || !activeConvoId) return;
-    setGifOpen(false);
-    setGifQuery("");
-    setGifResults([]);
-    setNewMessage("");
-    if (user && activeConvoId) {
-      deleteDoc(
-        doc(db, "conversations", activeConvoId, "typing", user.uid),
-      ).catch(() => {});
-    }
-    setSelectedFile(null);
-    setIsUploading(true);
-    try {
-      await addDoc(collection(db, `conversations/${activeConvoId}/messages`), {
-        text: "",
-        gifUrl: url,
-        senderId: user.uid,
-        createdAt: serverTimestamp(),
-      });
-
-      // Update conversation metadata and increment unread
-      try {
-        const convoDoc = await getDoc(doc(db, "conversations", activeConvoId));
-        if (convoDoc.exists()) {
-          const participants = convoDoc.data().participants || [];
-          const recipientId = participants.find((p) => p !== user.uid);
-          await updateDoc(doc(db, "conversations", activeConvoId), {
-            lastMessage: "📷 GIF",
-            lastTimestamp: serverTimestamp(),
-            lastSenderId: user.uid,
-            unreadCount: increment(1),
-          });
-
-          if (recipientId) {
-            try {
-              await notifyNewMessage(recipientId, {
-                conversationId: activeConvoId,
-                senderId: user.uid,
-                senderName:
-                  user.displayName || user.email?.split("@")?.[0] || "User",
-                senderAvatar: null,
-                messagePreview: "📷 GIF",
-              });
-            } catch (notifErr) {
-              console.warn("Failed to send notification for GIF", notifErr);
-            }
-          }
-        }
-      } catch (metaErr) {
-        console.warn("Failed to update conversation metadata for GIF", metaErr);
-      }
-    } catch (err) {
-      console.error("Failed to send GIF", err);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   // derive activeConversation object
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeConvoId) || null,
@@ -1245,14 +1242,6 @@ function InboxPage() {
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setGifOpen(!gifOpen)}
-                    className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark shrink-0 text-xs sm:text-sm font-bold"
-                  >
-                    GIF
-                  </button>
-
-                  <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex h-8 sm:h-9 md:h-10 lg:h-11 w-8 sm:w-9 md:w-10 lg:w-11 items-center justify-center rounded-full hover:bg-primary/10 transition-colors text-text-secondary-light dark:text-text-secondary-dark disabled:opacity-50 shrink-0"
                     disabled={isUploading}
@@ -1328,54 +1317,6 @@ function InboxPage() {
                         {em}
                       </button>
                     ))}
-                  </div>
-                )}
-
-                {/* GIF Picker (GIPHY search) */}
-                {gifOpen && (
-                  <div className="absolute bottom-20 left-2 right-2 sm:left-20 sm:w-96 bg-panel-light dark:bg-panel-dark p-3 rounded-lg shadow-lg max-h-80 overflow-auto z-50 animate-fade-in">
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        value={gifQuery}
-                        onChange={(e) => setGifQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            runGifSearch();
-                          }
-                        }}
-                        placeholder="Search GIFs"
-                        className="flex-1 rounded px-3 py-2 text-sm bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark"
-                      />
-                      <button
-                        onClick={runGifSearch}
-                        className="px-3 py-2 rounded bg-primary text-white text-sm hover:bg-primary/90 transition-all"
-                      >
-                        Search
-                      </button>
-                    </div>
-                    {gifLoading ? (
-                      <div className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center py-4">
-                        Searching...
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        {gifResults.length > 0 ? (
-                          gifResults.map((g) => (
-                            <img
-                              key={g.id}
-                              src={g.preview || g.url}
-                              className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity animate-fade-in"
-                              onClick={() => handleSendGif(g.url)}
-                            />
-                          ))
-                        ) : (
-                          <div className="col-span-3 text-sm text-text-secondary-light dark:text-text-secondary-dark text-center">
-                            No GIFs found. Try another search.
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
