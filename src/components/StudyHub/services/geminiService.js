@@ -95,9 +95,9 @@ const getAccentInstruction = (accent) => {
 
 const getToneInstruction = (tone) => {
   switch ((tone || '').toUpperCase()) {
-    case 'FUNNY': return "Be highly entertaining and witty. Use educational jokes and keep the energy high.";
-    case 'PROFESSIONAL': return "Be formal, objective, and precise. Use professional academic terminology.";
-    case 'TEACHER': return "Be encouraging and pedagogical. Explain complex ideas with simple analogies.";
+    case 'FUNNY': return "Be highly entertaining and witty. Use educational jokes and keep the energy high. Keep responses conversational and engaging.";
+    case 'PROFESSIONAL': return "Be formal, objective, and precise. Use professional academic terminology while remaining clear and accessible.";
+    case 'TEACHER': return "Be warm, encouraging, and approachable. Explain complex ideas with simple analogies. Use a conversational tone like a friend helping you learn.";
     case 'FRIEND': return "Be casual and supportive. Talk like a friendly study buddy.";
     default: return "Be clear and helpful.";
   }
@@ -320,6 +320,11 @@ export const speakText = async (text, accent = 'US', hostName = 'Alex', hostInde
           console.log('[speakText] Using fallback voice:', fallbackVoice.name);
         }
       }
+      
+      // Optimize speech for natural-sounding tutor voice
+      utterance.rate = 0.95;        // Slight slow-down for clarity (normal is 1.0, max is 2.0)
+      utterance.pitch = 1.0;        // Natural pitch (range: 0.1 to 2.0)
+      utterance.volume = 1.0;       // Full volume
       
       utterance.onend = () => resolve('spoken');
       utterance.onerror = (e) => reject(e);
@@ -545,7 +550,7 @@ export const askTutor = async (docText, chatHistory, question, tone = 'Teacher',
       }
       
       // Build systemInstruction (separate from user message for Cloud Function)
-      const systemInstruction = `You are UniSpace AI Tutor (${tone} mode). Your role is to ANSWER student questions, not ask them. Provide clear, direct answers using ONLY the provided document. Do NOT ask follow-up questions, do NOT ask for clarification, and do NOT ask suggestions back to the student. Simply answer their question directly and comprehensively. If a question cannot be answered from the document, respond: "This cannot be answered from the document you provided. Please ask about the document content."`;
+      const systemInstruction = `You are a helpful, friendly AI tutor. Your role is to ANSWER student questions clearly and directly - never ask counter-questions or ask for clarification. Provide natural, conversational responses that help students understand the material. Use the document provided as your sole source of knowledge. If something cannot be found in the document, simply say: "I don't have that information in the provided document. Try asking about something else in the material." Keep responses friendly and encouraging, like a patient tutor who genuinely wants to help.`;
       
       // Build user message with document context
       const docContext = docText ? `\n\nDOCUMENT CONTENT:\n${docText.substring(0,18000)}\n\nEND DOCUMENT` : '';
