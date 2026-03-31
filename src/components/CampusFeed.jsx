@@ -212,7 +212,7 @@ export default function CampusFeed() {
   }, [location?.hash, posts]);
   return (
     <div>
-      <div className="w-full h-screen flex flex-col">
+      <div className="w-full h-screen flex flex-col bg-background-light dark:bg-background-dark">
         <AppHeader darkMode={darkMode} toggleDarkMode={toggleTheme} />
 
         <main className="flex-1 overflow-y-auto px-4 sm:px-10 py-8">
@@ -542,6 +542,19 @@ function PostItem({ post }) {
     try {
       const commentDocRef = doc(db, "posts", postId, "comments", commentId);
       await deleteDoc(commentDocRef);
+
+      // Update comment count in post document
+      const postDocRef = doc(db, "posts", postId);
+      await runTransaction(db, async (transaction) => {
+        const postSnap = await transaction.get(postDocRef);
+        if (postSnap.exists()) {
+          const currentCount = postSnap.data().commentsCount || 0;
+          transaction.update(postDocRef, {
+            commentsCount: Math.max(0, currentCount - 1),
+          });
+        }
+      });
+
       toast.success("Comment deleted", { duration: 2000 });
     } catch (err) {
       console.error("Failed to delete comment", err);
@@ -601,6 +614,16 @@ function PostItem({ post }) {
         likesCount: 0,
       });
 
+      // Update comment count in post document
+      const postDocRef = doc(db, "posts", post.id);
+      await runTransaction(db, async (transaction) => {
+        const postSnap = await transaction.get(postDocRef);
+        if (postSnap.exists()) {
+          const currentCount = postSnap.data().commentsCount || 0;
+          transaction.update(postDocRef, { commentsCount: currentCount + 1 });
+        }
+      });
+
       // Send notification to post author (only if not author commenting on their own post)
       if (post.authorId && post.authorId !== user.uid) {
         try {
@@ -628,7 +651,7 @@ function PostItem({ post }) {
   };
 
   const handleSharePost = async () => {
-    const shareUrl = `${window.location.origin}/campus-feed`;
+    const shareUrl = `${window.location.origin}/campusfeed#post-${post.id}`;
     const shareText = `Check out this post: "${post.title}" on UniSpace!`;
 
     if (navigator.share) {
@@ -702,7 +725,7 @@ function PostItem({ post }) {
   return (
     <article
       id={`post-${post.id}`}
-      className="bg-white dark:bg-secondary rounded-xl shadow-md p-4 sm:p-6"
+      className="bg-white dark:bg-black rounded-xl shadow-md p-4 sm:p-6"
     >
       {/* Profile and author info in top row */}
       <div className="flex items-start gap-3 mb-4">

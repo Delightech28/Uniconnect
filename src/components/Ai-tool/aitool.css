@@ -17,7 +17,7 @@
 
 /* Ensure no other bg classes override */
 .aitool-container.dark header[class] {
-  background-color: rgba(15, 23, 42, 0.9)  !important;
+  background-color: rgba(15, 23, 42, 0.9) !important;
 }
 /* ROOT CONTAINER */
 .aitool-container {
@@ -27,7 +27,14 @@
 
 .aitool-container.dark {
   /* Gradient background for the entire page */
-  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%, #1a2412 50%, #0a2e0a 75%, #1e4004 100%);
+  background: linear-gradient(
+    135deg,
+    #050805 0%,
+    #0d1a0f 25%,
+    #1a2412 50%,
+    #0a2e0a 75%,
+    #1e4004 100%
+  );
   background-attachment: fixed;
   color: #e8edf0;
 }
@@ -66,7 +73,7 @@
 .aitool-container.dark [role="article"],
 .aitool-container.dark .modal,
 .aitool-container.dark .dialog {
-  background-color: #0A3D62 !important;
+  background-color: #000000 !important;
   border-color: #2a4070 !important;
 }
 
@@ -111,7 +118,3 @@
   background-color: #07bc0c;
   color: white;
 }
-
-
-
-

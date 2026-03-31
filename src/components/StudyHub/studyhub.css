@@ -27,7 +27,14 @@
 
 .studyhub-container.dark {
   /* Use the same dark gradient as main app for consistency */
-  background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%,#1a2412 50%,#0a2e0a 75%,#1e4004 100%);
+  background: linear-gradient(
+    135deg,
+    #050805 0%,
+    #0d1a0f 25%,
+    #1a2412 50%,
+    #0a2e0a 75%,
+    #1e4004 100%
+  );
   background-attachment: fixed;
   color: #061b08;
   min-height: 100vh;
@@ -77,7 +84,7 @@
 .studyhub-container.dark [role="article"],
 .studyhub-container.dark .modal,
 .studyhub-container.dark .dialog {
-  background-color: #0A3D62 !important;
+  background-color: #000000 !important;
   border-color: #2a4070 !important;
 }
 
@@ -122,7 +129,3 @@
   background-color: #07bc0c;
   color: white;
 }
-
-
-
-

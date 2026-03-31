@@ -1,26 +1,36 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import Footer from './Footer';
-import { useTheme } from '../hooks/useTheme';
-import toast from 'react-hot-toast';
-import { notifyVerificationSubmitted } from '../services/notificationService';
+import React, { useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, db, storage } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import Footer from "./Footer";
+import { useTheme } from "../hooks/useTheme";
+import toast from "react-hot-toast";
+import { notifyVerificationSubmitted } from "../services/notificationService";
 
-const progressSteps = ['Upload Document', 'Review Pending', 'Verification Complete'];
+const progressSteps = [
+  "Upload Document",
+  "Review Pending",
+  "Verification Complete",
+];
 
 const infoBoxes = [
   {
-    title: 'Accepted Documents',
-    content: 'Please upload a clear, legible copy of your',
-    details: 'University ID Card',
-    details2: 'School Fees Receipt',
-    note: 'Accepted formats: JPG, PNG, PDF. Maximum file size: 5MB.',
+    title: "Accepted Documents",
+    content: "Please upload a clear, legible copy of your",
+    details: "University ID Card",
+    details2: "School Fees Receipt",
+    note: "Accepted formats: JPG, PNG, PDF. Maximum file size: 5MB.",
   },
   {
-    title: 'Review Process',
-    content: 'Our team will review your submission within 24-48 hours. You will receive an email notification once your account is verified.',
+    title: "Review Process",
+    content:
+      "Our team will review your submission within 24-48 hours. You will receive an email notification once your account is verified.",
   },
 ];
 
@@ -36,20 +46,24 @@ const ProgressBar = ({ currentStep }) => {
               <div className="flex flex-col items-center relative flex-1">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300 ${
-                    isActive ? 'bg-clientPrimary text-white' : 'bg-border text-muted-foreground'
+                    isActive
+                      ? "bg-clientPrimary text-white"
+                      : "bg-border text-muted-foreground"
                   }`}
                 >
                   {stepNumber}
                 </div>
                 <p
                   className={`text-xs sm:text-sm font-medium mt-2 text-center transition-colors duration-300 ${
-                    isActive ? 'text-clientPrimary' : 'text-muted-foreground'
+                    isActive ? "text-clientPrimary" : "text-muted-foreground"
                   }`}
                 >
                   {step}
                 </p>
               </div>
-              {index < progressSteps.length - 1 && <div className="flex-1 h-0.5 bg-border"></div>}
+              {index < progressSteps.length - 1 && (
+                <div className="flex-1 h-0.5 bg-border"></div>
+              )}
             </React.Fragment>
           );
         })}
@@ -81,7 +95,7 @@ const FileUpload = ({ onFileSelect }) => {
         onFileSelect(files[0]);
       }
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
   const handleFileChange = (e) => {
@@ -98,7 +112,7 @@ const FileUpload = ({ onFileSelect }) => {
   return (
     <div
       className={`flex flex-col items-center gap-6 rounded-lg border-2 border-dashed border-clientBackground px-6 py-14 transition-colors ${
-        isDragging ? 'bg-clientPrimary/10' : 'bg-clientBackground'
+        isDragging ? "bg-clientPrimary/10" : "bg-clientBackground"
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -106,13 +120,15 @@ const FileUpload = ({ onFileSelect }) => {
     >
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="w-16 h-16 text-clientPrimary flex items-center justify-center rounded-full mb-2">
-          <span className="material-symbols-outlined text-5xl">upload_file</span>
+          <span className="material-symbols-outlined text-5xl">
+            upload_file
+          </span>
         </div>
         <p className="text-clientPrimary text-lg font-medium tracking-tight">
           Drag & drop your document here
         </p>
         <p className="text-muted-foreground text-sm font-normal">
-          or{' '}
+          or{" "}
           <button
             type="button"
             onClick={handleBrowseClick}
@@ -147,7 +163,7 @@ const StudentVerificationPage = () => {
       if (u) {
         setUser(u);
       } else {
-        navigate('/login');
+        navigate("/login");
       }
     });
     return () => unsubscribe();
@@ -159,45 +175,54 @@ const StudentVerificationPage = () => {
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      toast.error('Please select a document to submit.');
+      toast.error("Please select a document to submit.");
       return;
     }
 
     if (!user) {
-      toast.error('You must be logged in');
+      toast.error("You must be logged in");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      toast.loading('Uploading verification document...', { id: 'verify' });
+      toast.loading("Uploading verification document...", { id: "verify" });
+
+      // Upload file to Firebase Storage
+      const fileRef = storageRef(
+        storage,
+        `verification-documents/${user.uid}/${selectedFile.name}`,
+      );
+      await uploadBytes(fileRef, selectedFile);
+      const downloadURL = await getDownloadURL(fileRef);
 
       // Store verification submission in Firestore
       await setDoc(
-        doc(db, 'users', user.uid),
+        doc(db, "users", user.uid),
         {
-          verificationStatus: 'pending',
+          verificationStatus: "pending",
           verificationSubmittedAt: serverTimestamp(),
           verificationFileName: selectedFile.name,
+          verificationDocumentURL: downloadURL,
         },
-        { merge: true }
+        { merge: true },
       );
 
       // Create notification
       await notifyVerificationSubmitted(user.uid);
 
-      toast.dismiss('verify');
-      toast.success('Verification submitted! Check your notifications.');
+      toast.dismiss("verify");
+      toast.success("Verification submitted! Check your notifications.");
       setCurrentStep(2);
-      
+
       // Redirect to pending page after 2 seconds
       setTimeout(() => {
-        navigate('/verification-pending');
+        navigate("/verification-pending");
       }, 2000);
     } catch (err) {
-      console.error('Error submitting verification:', err);
-      toast.dismiss('verify');
-      toast.error('Failed to submit verification. Please try again.');
+      console.error("Error submitting verification:", err);
+      toast.dismiss("verify");
+      toast.error("Failed to submit verification. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -212,14 +237,17 @@ const StudentVerificationPage = () => {
                 UniSpace Student Verification
               </h1>
               <p className="text-muted-foreground text-base font-normal max-w-2xl">
-                To complete your profile and access all features of UniSpace, please upload a document to verify your student status.
+                To complete your profile and access all features of UniSpace,
+                please upload a document to verify your student status.
               </p>
             </div>
 
             <ProgressBar currentStep={currentStep} />
 
             <div className="flex flex-col p-4 border border-clientBackground rounded-lg">
-              {currentStep === 1 && <FileUpload onFileSelect={handleFileSelect} />}
+              {currentStep === 1 && (
+                <FileUpload onFileSelect={handleFileSelect} />
+              )}
               {selectedFile && currentStep === 1 && (
                 <div className="mt-4 text-center text-sm font-medium text-clientPrimary">
                   File selected: {selectedFile.name}
@@ -229,32 +257,54 @@ const StudentVerificationPage = () => {
               {currentStep > 1 && (
                 <div className="text-center py-14">
                   <span className="material-symbols-outlined text-6xl text-clientPrimary animate-pulse">
-                    {currentStep === 2 ? 'hourglass_top' : 'verified_user'}
+                    {currentStep === 2 ? "hourglass_top" : "verified_user"}
                   </span>
                   <p className="mt-4 text-lg font-medium text-clientPrimary">
-                    {currentStep === 2 ? 'Your document is under review.' : 'Verification Complete!'}
+                    {currentStep === 2
+                      ? "Your document is under review."
+                      : "Verification Complete!"}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    {currentStep === 2 ? 'This may take 24-48 hours.' : 'Welcome to the full UniSpace experience.'}
+                    {currentStep === 2
+                      ? "This may take 24-48 hours."
+                      : "Welcome to the full UniSpace experience."}
                   </p>
                 </div>
               )}
 
               <div className="flex flex-col gap-4 mt-6">
                 {infoBoxes.map((box) => (
-                  <div key={box.title} className="flex flex-col bg-clientPrimary/5 p-4 rounded-lg">
-                    <p className="text-clientPrimary text-sm font-medium mb-2">{box.title}</p>
+                  <div
+                    key={box.title}
+                    className="flex flex-col bg-clientPrimary/5 p-4 rounded-lg"
+                  >
+                    <p className="text-clientPrimary text-sm font-medium mb-2">
+                      {box.title}
+                    </p>
                     <p className="text-muted-foreground text-sm font-normal">
                       {box.content}
-                      {box.details && <span className="font-medium text-clientPrimary"> {box.details}</span>}
+                      {box.details && (
+                        <span className="font-medium text-clientPrimary">
+                          {" "}
+                          {box.details}
+                        </span>
+                      )}
                       {box.details2 && (
                         <>
-                          {' '}
-                          or your most recent <span className="font-medium text-clientPrimary">{box.details2}</span>.
+                          {" "}
+                          or your most recent{" "}
+                          <span className="font-medium text-clientPrimary">
+                            {box.details2}
+                          </span>
+                          .
                         </>
                       )}
                     </p>
-                    {box.note && <p className="text-muted-foreground text-xs mt-1">{box.note}</p>}
+                    {box.note && (
+                      <p className="text-muted-foreground text-xs mt-1">
+                        {box.note}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -267,11 +317,14 @@ const StudentVerificationPage = () => {
                       disabled={!selectedFile || isSubmitting}
                       className="flex w-full cursor-pointer items-center justify-center rounded-lg h-10 sm:h-11 px-3 sm:px-4 bg-clientPrimary text-white text-xs sm:text-sm font-medium hover:bg-opacity-90 active:scale-95 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
-                      {isSubmitting ? 'Submitting...' : 'Submit Document'}
+                      {isSubmitting ? "Submitting..." : "Submit Document"}
                     </button>
                     <p className="text-center text-xs text-muted-foreground flex items-center justify-center">
-                      <span className="material-symbols-outlined text-sm align-middle mr-1">lock</span>
-                      Your documents are encrypted and used for verification purposes only.
+                      <span className="material-symbols-outlined text-sm align-middle mr-1">
+                        lock
+                      </span>
+                      Your documents are encrypted and used for verification
+                      purposes only.
                     </p>
                   </>
                 )}
@@ -281,18 +334,26 @@ const StudentVerificationPage = () => {
 
           <footer className="mt-auto px-10 py-6 border-t border-solid border-clientBackground">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground">© 2024 UniSpace. All rights reserved.</p>
+              <p className="text-sm text-muted-foreground">
+                © 2024 UniSpace. All rights reserved.
+              </p>
               <div className="flex items-center gap-6 text-sm">
-                <a className="text-muted-foreground hover:text-clientPrimary transition-colors" href="#">
+                <a
+                  className="text-muted-foreground hover:text-clientPrimary transition-colors"
+                  href="#"
+                >
                   Privacy Policy
                 </a>
-                <a className="text-muted-foreground hover:text-clientPrimary transition-colors" href="#">
+                <a
+                  className="text-muted-foreground hover:text-clientPrimary transition-colors"
+                  href="#"
+                >
                   Terms of Service
                 </a>
               </div>
             </div>
           </footer>
-        <Footer darkMode={darkMode} />
+          <Footer darkMode={darkMode} />
         </div>
       </div>
     </div>
@@ -300,5 +361,3 @@ const StudentVerificationPage = () => {
 };
 
 export default StudentVerificationPage;
-
-

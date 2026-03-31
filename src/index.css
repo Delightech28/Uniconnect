@@ -2,23 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for colors */
+:root {
+  --color-secondary: #0a3d62;
+}
+
+.dark {
+  --color-secondary: #000000;
+}
 
 /* Add this part 👇 */
 @layer base {
   html {
     @apply font-display text-text-light dark:text-text-dark;
   }
-  
+
   body {
     background-color: #f5f8f6;
   }
-  
+
   html.dark {
     /* Dark mode gradient: black-dominant with subtle green accent */
-    background: linear-gradient(135deg, #050805 0%, #0d1a0f 25%,#1a2412 50%,#0a2e0a 75%,#1e4004 100%);
+    background: linear-gradient(
+      135deg,
+      #050805 0%,
+      #0d1a0f 25%,
+      #1a2412 50%,
+      #0a2e0a 75%,
+      #1e4004 100%
+    );
     /* background-attachment: fixed; mobile browsers can disable scrolling when this is used — avoid to keep smooth scrolling on phones */
   }
-  
+
   html.dark body,
   html.dark #root {
     background: transparent;
@@ -27,17 +42,23 @@
 
 /* Light mode: add subtle shadows to cards and elements for depth */
 @layer components {
-  .card, .bg-white, [class*="bg-white"] {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(7, 188, 12, 0.15);
+  .card,
+  .bg-white,
+  [class*="bg-white"] {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      0 0 1px rgba(7, 188, 12, 0.15);
   }
 }
 
-::-webkit-scrollbar{
+::-webkit-scrollbar {
   display: none;
 }
 
 /* Prevent page panning/shake on touchpad / touch devices */
-html, body, #root {
+html,
+body,
+#root {
   overflow-x: hidden;
   overscroll-behavior: none; /* disable scroll chaining / bounce globally */
   touch-action: pan-y;
@@ -47,7 +68,9 @@ html, body, #root {
 
 /* Ensure the app root allows natural scrolling on small screens */
 @media (max-width: 640px) {
-  html, body, #root {
+  html,
+  body,
+  #root {
     overscroll-behavior: none;
   }
 }

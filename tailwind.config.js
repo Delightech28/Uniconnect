@@ -9,7 +9,7 @@ export default {
       colors: {
         // Your original colors
         primary: "#07bc0c",
-        secondary: "#0A3D62",
+        secondary: "var(--color-secondary)",
         accent: "#FFD700",
         "background-light": "#a1e0a1",
         "background-dark": "#1a1a1a",
