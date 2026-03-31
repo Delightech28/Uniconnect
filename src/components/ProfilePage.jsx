@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { useTheme } from '../hooks/useTheme';
-import AppHeader from './AppHeader';
-import Footer from './Footer';
-import GenderBadge from './GenderBadge';
-import { ExternalLink, MessageSquare, Heart, Users } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { getDefaultAvatar } from '../services/avatarService';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { auth, db } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { useTheme } from "../hooks/useTheme";
+import AppHeader from "./AppHeader";
+import Footer from "./Footer";
+import GenderBadge from "./GenderBadge";
+import { ExternalLink, MessageSquare, Heart, Users } from "lucide-react";
+import toast from "react-hot-toast";
+import { getDefaultAvatar } from "../services/avatarService";
 import {
   toggleFollow,
   checkIsFollowing,
@@ -31,9 +39,9 @@ import {
   checkPendingRequest,
   getPendingRequests,
   getConnections,
-} from '../services/profileService';
-import { getProfileStats } from '../services/profileStatsService';
-import { notifyUserLiked } from '../services/notificationService';
+} from "../services/profileService";
+import { getProfileStats } from "../services/profileStatsService";
+import { notifyUserLiked } from "../services/notificationService";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -66,9 +74,9 @@ const ProfilePage = () => {
         // If userId param exists, fetch that user's profile (public view)
         if (userId && userId !== user?.uid) {
           // Check if viewing user can see this profile
-          const canViewProfile_ = user 
+          const canViewProfile_ = user
             ? await canViewProfile(user.uid, userId)
-            : await canViewProfile('guest', userId);
+            : await canViewProfile("guest", userId);
 
           if (!canViewProfile_) {
             setCanView(false);
@@ -76,7 +84,7 @@ const ProfilePage = () => {
             return;
           }
 
-          const snapshot = await getDoc(doc(db, 'users', userId));
+          const snapshot = await getDoc(doc(db, "users", userId));
           if (snapshot.exists()) {
             setUserDoc(snapshot.data());
             setIsOwnProfile(false);
@@ -92,36 +100,52 @@ const ProfilePage = () => {
             setPosts(userPosts);
             // Also compute total posts count from Firestore each time the profile loads
             try {
-              const postsQ = query(collection(db, 'posts'), where('authorId', '==', userId));
+              const postsQ = query(
+                collection(db, "posts"),
+                where("authorId", "==", userId),
+              );
               const postsSnap = await getDocs(postsQ);
               const totalPosts = postsSnap.size;
-              setStats(prev => ({ ...(prev || {}), postsCreated: totalPosts }));
+              setStats((prev) => ({
+                ...(prev || {}),
+                postsCreated: totalPosts,
+              }));
             } catch (err) {
-              console.warn('Failed to count posts for profile:', err);
+              console.warn("Failed to count posts for profile:", err);
             }
 
             // Fetch computed stats (itemsSold, reviews, sellerRating, followers) from service
             try {
               const computed = await getProfileStats(userId);
-              setStats(prev => ({ ...(prev || {}), ...computed }));
+              setStats((prev) => ({ ...(prev || {}), ...computed }));
             } catch (err) {
-              console.warn('Failed to fetch computed profile stats:', err);
+              console.warn("Failed to fetch computed profile stats:", err);
             }
 
             // Compute connections count from subcollection or legacy array
             try {
-              const connSnap = await getDocs(collection(db, 'users', userId, 'connections'));
+              const connSnap = await getDocs(
+                collection(db, "users", userId, "connections"),
+              );
               if (connSnap && connSnap.size >= 0) {
-                setStats(prev => ({ ...(prev || {}), connectionsCount: connSnap.size }));
+                setStats((prev) => ({
+                  ...(prev || {}),
+                  connectionsCount: connSnap.size,
+                }));
               }
             } catch (err) {
               // fallback to legacy array length if available
               try {
-                const uDoc = await getDoc(doc(db, 'users', userId));
-                const legacy = uDoc.exists() ? (uDoc.data().connections || []) : [];
-                setStats(prev => ({ ...(prev || {}), connectionsCount: legacy.length }));
+                const uDoc = await getDoc(doc(db, "users", userId));
+                const legacy = uDoc.exists()
+                  ? uDoc.data().connections || []
+                  : [];
+                setStats((prev) => ({
+                  ...(prev || {}),
+                  connectionsCount: legacy.length,
+                }));
               } catch (e) {
-                console.warn('Failed to compute connections count:', e);
+                console.warn("Failed to compute connections count:", e);
               }
             }
 
@@ -152,11 +176,11 @@ const ProfilePage = () => {
 
         // Otherwise, fetch current user's profile
         if (!user) {
-          navigate('/login');
+          navigate("/login");
           return;
         }
 
-        const snapshot = await getDoc(doc(db, 'users', user.uid));
+        const snapshot = await getDoc(doc(db, "users", user.uid));
         if (snapshot.exists()) {
           setUserDoc(snapshot.data());
           setIsOwnProfile(true);
@@ -170,35 +194,52 @@ const ProfilePage = () => {
 
           const userPosts = await getUserPosts(user.uid, 5);
           setPosts(userPosts);
-            // Also compute total posts count for the current user
+          // Also compute total posts count for the current user
           try {
-            const postsQ = query(collection(db, 'posts'), where('authorId', '==', user.uid));
+            const postsQ = query(
+              collection(db, "posts"),
+              where("authorId", "==", user.uid),
+            );
             const postsSnap = await getDocs(postsQ);
             const totalPosts = postsSnap.size;
-            setStats(prev => ({ ...(prev || {}), postsCreated: totalPosts }));
+            setStats((prev) => ({ ...(prev || {}), postsCreated: totalPosts }));
           } catch (err) {
-            console.warn('Failed to count posts for current user:', err);
+            console.warn("Failed to count posts for current user:", err);
           }
 
           // Fetch computed stats and connections count for current user
           try {
             const computed = await getProfileStats(user.uid);
-            setStats(prev => ({ ...(prev || {}), ...computed }));
+            setStats((prev) => ({ ...(prev || {}), ...computed }));
           } catch (err) {
-            console.warn('Failed to fetch computed profile stats for current user:', err);
+            console.warn(
+              "Failed to fetch computed profile stats for current user:",
+              err,
+            );
           }
           try {
-            const connSnap = await getDocs(collection(db, 'users', user.uid, 'connections'));
+            const connSnap = await getDocs(
+              collection(db, "users", user.uid, "connections"),
+            );
             if (connSnap && connSnap.size >= 0) {
-              setStats(prev => ({ ...(prev || {}), connectionsCount: connSnap.size }));
+              setStats((prev) => ({
+                ...(prev || {}),
+                connectionsCount: connSnap.size,
+              }));
             }
           } catch (err) {
             try {
-              const uDoc = await getDoc(doc(db, 'users', user.uid));
-              const legacy = uDoc.exists() ? (uDoc.data().connections || []) : [];
-              setStats(prev => ({ ...(prev || {}), connectionsCount: legacy.length }));
+              const uDoc = await getDoc(doc(db, "users", user.uid));
+              const legacy = uDoc.exists() ? uDoc.data().connections || [] : [];
+              setStats((prev) => ({
+                ...(prev || {}),
+                connectionsCount: legacy.length,
+              }));
             } catch (e) {
-              console.warn('Failed to compute connections count for current user:', e);
+              console.warn(
+                "Failed to compute connections count for current user:",
+                e,
+              );
             }
           }
 
@@ -213,8 +254,8 @@ const ProfilePage = () => {
           setPrivacySettings(settings);
         }
       } catch (err) {
-        console.error('Error loading profile:', err);
-        toast.error('Failed to load profile');
+        console.error("Error loading profile:", err);
+        toast.error("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -229,14 +270,18 @@ const ProfilePage = () => {
     const targetUserId = userId || currentUser?.uid;
     if (!targetUserId) return;
 
-    const userRef = doc(db, 'users', targetUserId);
-    const unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setUserDoc(snapshot.data());
-      }
-    }, (err) => {
-      console.error('Error listening to user profile updates:', err);
-    });
+    const userRef = doc(db, "users", targetUserId);
+    const unsubscribeProfile = onSnapshot(
+      userRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setUserDoc(snapshot.data());
+        }
+      },
+      (err) => {
+        console.error("Error listening to user profile updates:", err);
+      },
+    );
 
     return () => unsubscribeProfile();
   }, [userId, currentUser]);
@@ -251,31 +296,37 @@ const ProfilePage = () => {
     let isMounted = true;
     let postsCountCache = null;
 
-    const userRef = doc(db, 'users', targetUserId);
+    const userRef = doc(db, "users", targetUserId);
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {
       if (!isMounted) return;
-      
+
       if (snapshot.exists()) {
         const data = snapshot.data();
-        
+
         // If we don't have a cached posts count, query for it
         if (postsCountCache === null) {
           try {
-            const postsQ = query(collection(db, 'posts'), where('authorId', '==', targetUserId));
+            const postsQ = query(
+              collection(db, "posts"),
+              where("authorId", "==", targetUserId),
+            );
             const postsSnap = await getDocs(postsQ);
             postsCountCache = postsSnap.size;
           } catch (err) {
-            console.warn('Failed to count posts:', err);
+            console.warn("Failed to count posts:", err);
             postsCountCache = 0;
           }
         }
-        
+
         const derived = {
           itemsSold: data.itemsSold || 0,
           itemsListed: data.itemsListed || 0,
           sellerRating: data.sellerRating || 0,
           reviews: data.reviews || 0,
-          postsCreated: data.postsCreated !== undefined ? data.postsCreated : postsCountCache,
+          postsCreated:
+            data.postsCreated !== undefined
+              ? data.postsCreated
+              : postsCountCache,
           followerCount: data.followerCount || 0,
           followingCount: data.followingCount || 0,
           joinDate: data.createdAt || data.joinDate || null,
@@ -286,16 +337,24 @@ const ProfilePage = () => {
         }
 
         // If the user doc doesn't have precomputed stats, compute from collections as a fallback
-        const needsFallback = (derived.postsCreated === 0 && derived.itemsSold === 0 && derived.reviews === 0);
+        const needsFallback =
+          derived.postsCreated === 0 &&
+          derived.itemsSold === 0 &&
+          derived.reviews === 0;
         if (needsFallback) {
           try {
             const computed = await getProfileStats(targetUserId);
             // Merge computed stats (prefer computed non-zero values)
             if (isMounted) {
-              setStats(prev => ({ ...derived, ...Object.fromEntries(Object.entries(computed).map(([k,v]) => [k, v ?? prev[k]])) }));
+              setStats((prev) => ({
+                ...derived,
+                ...Object.fromEntries(
+                  Object.entries(computed).map(([k, v]) => [k, v ?? prev[k]]),
+                ),
+              }));
             }
           } catch (err) {
-            console.warn('Fallback getProfileStats failed', err);
+            console.warn("Fallback getProfileStats failed", err);
           }
         }
       }
@@ -310,27 +369,45 @@ const ProfilePage = () => {
   // Real-time listeners for current user's connections and pending requests (when viewing own profile)
   useEffect(() => {
     if (!currentUser) return;
-    const connsCol = collection(db, 'users', currentUser.uid, 'connections');
-    const reqCol = collection(db, 'users', currentUser.uid, 'connectionRequests');
+    const connsCol = collection(db, "users", currentUser.uid, "connections");
+    const reqCol = collection(
+      db,
+      "users",
+      currentUser.uid,
+      "connectionRequests",
+    );
 
-    const unsubConns = onSnapshot(connsCol, async (snap) => {
-      try {
-        const ids = snap.docs.map(d => d.id);
-        const list = await Promise.all(ids.map(async (id) => {
-          const s = await getDoc(doc(db, 'users', id));
-          return s.exists() ? { id, ...s.data() } : null;
-        }));
-        const filtered = list.filter(Boolean);
-        setConnections(filtered);
-        setStats(prev => ({ ...(prev || {}), connectionsCount: snap.size }));
-      } catch (err) {
-        console.warn('Failed to refresh connections realtime:', err);
-      }
-    }, (err) => console.warn('Connections realtime error', err));
+    const unsubConns = onSnapshot(
+      connsCol,
+      async (snap) => {
+        try {
+          const ids = snap.docs.map((d) => d.id);
+          const list = await Promise.all(
+            ids.map(async (id) => {
+              const s = await getDoc(doc(db, "users", id));
+              return s.exists() ? { id, ...s.data() } : null;
+            }),
+          );
+          const filtered = list.filter(Boolean);
+          setConnections(filtered);
+          setStats((prev) => ({
+            ...(prev || {}),
+            connectionsCount: snap.size,
+          }));
+        } catch (err) {
+          console.warn("Failed to refresh connections realtime:", err);
+        }
+      },
+      (err) => console.warn("Connections realtime error", err),
+    );
 
-    const unsubReq = onSnapshot(reqCol, (snap) => {
-      setHasReceivedRequest(snap.size > 0);
-    }, (err) => console.warn('ConnectionRequests realtime error', err));
+    const unsubReq = onSnapshot(
+      reqCol,
+      (snap) => {
+        setHasReceivedRequest(snap.size > 0);
+      },
+      (err) => console.warn("ConnectionRequests realtime error", err),
+    );
 
     return () => {
       unsubConns();
@@ -340,24 +417,24 @@ const ProfilePage = () => {
 
   const handleSendConnectionRequest = async () => {
     if (!currentUser) {
-      toast.error('Please log in to connect');
+      toast.error("Please log in to connect");
       return;
     }
 
     setConnectLoading(true);
     try {
       const result = await sendConnectionRequest(currentUser.uid, userId);
-      if (result === 'sent') {
+      if (result === "sent") {
         setHasPendingRequest(true);
-        toast.success('Connection request sent!');
-      } else if (result === 'already_connected') {
-        toast.info('You are already connected');
-      } else if (result === 'already_pending') {
-        toast.info('Connection request already pending');
+        toast.success("Connection request sent!");
+      } else if (result === "already_connected") {
+        toast.info("You are already connected");
+      } else if (result === "already_pending") {
+        toast.info("Connection request already pending");
       }
     } catch (err) {
-      console.error('Connection request error:', err);
-      toast.error('Error sending connection request: ' + (err.message || err));
+      console.error("Connection request error:", err);
+      toast.error("Error sending connection request: " + (err.message || err));
     } finally {
       setConnectLoading(false);
     }
@@ -365,7 +442,7 @@ const ProfilePage = () => {
 
   const handleAcceptConnection = async () => {
     if (!currentUser) {
-      toast.error('Please log in');
+      toast.error("Please log in");
       return;
     }
 
@@ -377,10 +454,13 @@ const ProfilePage = () => {
       const updatedConnections = await getConnections(currentUser.uid);
       setConnections(updatedConnections);
       // update stats.connectionsCount so UI reflects new count immediately
-      setStats(prev => ({ ...(prev || {}), connectionsCount: updatedConnections.length }));
-      toast.success('Connection accepted!');
+      setStats((prev) => ({
+        ...(prev || {}),
+        connectionsCount: updatedConnections.length,
+      }));
+      toast.success("Connection accepted!");
     } catch (err) {
-      toast.error('Error accepting connection');
+      toast.error("Error accepting connection");
     } finally {
       setConnectLoading(false);
     }
@@ -388,7 +468,7 @@ const ProfilePage = () => {
 
   const handleRejectConnection = async () => {
     if (!currentUser) {
-      toast.error('Please log in');
+      toast.error("Please log in");
       return;
     }
 
@@ -396,9 +476,9 @@ const ProfilePage = () => {
     try {
       await rejectConnectionRequest(currentUser.uid, userId);
       setHasReceivedRequest(false);
-      toast.success('Connection request rejected');
+      toast.success("Connection request rejected");
     } catch (err) {
-      toast.error('Error rejecting connection');
+      toast.error("Error rejecting connection");
     } finally {
       setConnectLoading(false);
     }
@@ -406,7 +486,7 @@ const ProfilePage = () => {
 
   const handleToggleLike = async () => {
     if (!currentUser) {
-      toast.error('Please log in to like');
+      toast.error("Please log in to like");
       return;
     }
 
@@ -414,27 +494,31 @@ const ProfilePage = () => {
     try {
       const newLiked = await toggleUserLike(currentUser.uid, userId);
       setIsLiked(newLiked);
-      
+
       if (newLiked) {
-        toast.success('Profile liked!');
+        toast.success("Profile liked!");
         // Send notification
         try {
-          console.log('Sending like notification to user:', userId);
+          console.log("Sending like notification to user:", userId);
           await notifyUserLiked(userId, {
             likerId: currentUser.uid,
-            likerName: currentUser.displayName || currentUser.email || 'Someone',
-            likerAvatar: currentUser.photoURL || userDoc?.avatarUrl || '/default_avatar.png',
+            likerName:
+              currentUser.displayName || currentUser.email || "Someone",
+            likerAvatar:
+              currentUser.photoURL ||
+              userDoc?.avatarUrl ||
+              "/default_avatar.png",
           });
-          console.log('Like notification sent successfully');
+          console.log("Like notification sent successfully");
         } catch (err) {
-          console.error('Failed to send like notification:', err);
+          console.error("Failed to send like notification:", err);
         }
       } else {
-        toast.success('Profile unliked');
+        toast.success("Profile unliked");
       }
     } catch (err) {
-      console.error('Like toggle error:', err);
-      toast.error('Error updating like status: ' + (err.message || err));
+      console.error("Like toggle error:", err);
+      toast.error("Error updating like status: " + (err.message || err));
     } finally {
       setLikeLoading(false);
     }
@@ -442,27 +526,28 @@ const ProfilePage = () => {
 
   const handleMessage = async () => {
     if (!currentUser) {
-      toast.error('Please log in to message');
+      toast.error("Please log in to message");
       return;
     }
 
-    const canMsg = await canInteract(currentUser.uid, userId, 'message');
+    const canMsg = await canInteract(currentUser.uid, userId, "message");
     if (!canMsg) {
-      toast.error('This user is not accepting messages');
+      toast.error("This user is not accepting messages");
       return;
     }
 
     navigate(`/inbox?recipientId=${userId}`);
   };
 
-  const avatar = userDoc?.avatarUrl || getDefaultAvatar(userDoc?.gender || 'male');
-  const name = userDoc?.displayName || 'Anonymous';
-  const email = isOwnProfile ? (currentUser?.email || userDoc?.email || '') : '';
-  const bio = userDoc?.bio || '';
+  const avatar =
+    userDoc?.avatarUrl || getDefaultAvatar(userDoc?.gender || "male");
+  const name = userDoc?.displayName || "Anonymous";
+  const email = isOwnProfile ? currentUser?.email || userDoc?.email || "" : "";
+  const bio = userDoc?.bio || "";
   const interests = userDoc?.interests || [];
-  const linkedinUrl = userDoc?.linkedinUrl || '';
-  const githubUrl = userDoc?.githubUrl || '';
-  const instagramUrl = userDoc?.instagramUrl || '';
+  const linkedinUrl = userDoc?.linkedinUrl || "";
+  const githubUrl = userDoc?.githubUrl || "";
+  const instagramUrl = userDoc?.instagramUrl || "";
 
   return (
     <div className="min-h-screen flex flex-col bg-background-light dark:bg-background-dark">
@@ -470,7 +555,7 @@ const ProfilePage = () => {
       <main className="flex-1 py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Card */}
-          <div className="bg-white dark:bg-secondary rounded-2xl shadow-md p-8 mb-8">
+          <div className="bg-white dark:bg-black rounded-2xl shadow-md p-8 mb-8">
             <div className="flex flex-col md:flex-row gap-8">
               {/* Avatar & Basic Info */}
               <div className="flex flex-col items-center md:items-start md:w-1/3">
@@ -478,14 +563,18 @@ const ProfilePage = () => {
                   className="w-40 h-40 rounded-full overflow-hidden border-4 border-white dark:border-slate-700 shadow-lg mb-4"
                   style={{
                     backgroundImage: `url(${avatar})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
                   }}
                 />
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary dark:text-white">
                   {name}
                   {userDoc?.gender && (
-                    <GenderBadge gender={userDoc.gender} size="lg" className="ml-2" />
+                    <GenderBadge
+                      gender={userDoc.gender}
+                      size="lg"
+                      className="ml-2"
+                    />
                   )}
                 </h1>
                 {email && (
@@ -493,7 +582,7 @@ const ProfilePage = () => {
                     {email}
                   </p>
                 )}
-                {userDoc?.verificationStatus === 'verified' && (
+                {userDoc?.verificationStatus === "verified" && (
                   <span className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-semibold">
                     ✓ Verified Student
                   </span>
@@ -508,8 +597,7 @@ const ProfilePage = () => {
                       <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {stats?.connectionsCount ?? connections.length ?? 0}
                       </p>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                      </p>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400"></p>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 sm:p-4">
                       <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
@@ -529,7 +617,10 @@ const ProfilePage = () => {
                     </div>
                     <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4">
                       <p className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
-                        {typeof stats.sellerRating === 'number' ? stats.sellerRating.toFixed(1) : Number(stats.sellerRating || 0).toFixed(1)}⭐
+                        {typeof stats.sellerRating === "number"
+                          ? stats.sellerRating.toFixed(1)
+                          : Number(stats.sellerRating || 0).toFixed(1)}
+                        ⭐
                       </p>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         Seller Rating
@@ -605,7 +696,11 @@ const ProfilePage = () => {
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v 3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                       GitHub
@@ -618,7 +713,11 @@ const ProfilePage = () => {
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors"
                     >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <svg
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
                         <path d="M7.75 2h8.5A5.75 5.75 0 0122 7.75v8.5A5.75 5.75 0 0116.25 22h-8.5A5.75 5.75 0 012 16.25v-8.5A5.75 5.75 0 017.75 2zm0 1.5A4.25 4.25 0 003.5 7.75v8.5A4.25 4.25 0 007.75 20.5h8.5a4.25 4.25 0 004.25-4.25v-8.5A4.25 4.25 0 0016.25 3.5h-8.5zM12 7.25a4.75 4.75 0 110 9.5 4.75 4.75 0 010-9.5zm0 1.5a3.25 3.25 0 100 6.5 3.25 3.25 0 000-6.5zM17.5 6.25a.75.75 0 110 1.5.75.75 0 010-1.5z" />
                       </svg>
                       Instagram
@@ -653,13 +752,13 @@ const ProfilePage = () => {
                 {isOwnProfile ? (
                   <>
                     <button
-                      onClick={() => navigate('/edit-profile')}
+                      onClick={() => navigate("/edit-profile")}
                       className="px-6 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
                     >
                       Edit Profile
                     </button>
                     <button
-                      onClick={() => navigate('/dashboard')}
+                      onClick={() => navigate("/dashboard")}
                       className="px-6 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                     >
                       Dashboard
@@ -723,12 +822,14 @@ const ProfilePage = () => {
                       disabled={likeLoading}
                       className={`px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
                         isLiked
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
-                      } ${likeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                          : "bg-slate-200 dark:bg-slate-700 text-secondary dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600"
+                      } ${likeLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                      {isLiked ? 'Liked' : 'Like'}
+                      <Heart
+                        className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`}
+                      />
+                      {isLiked ? "Liked" : "Like"}
                     </button>
                   </>
                 )}
@@ -739,8 +840,8 @@ const ProfilePage = () => {
           {/* Connections Modal */}
           {showConnections && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-secondary rounded-2xl max-w-md w-full max-h-96 overflow-y-auto">
-                <div className="sticky top-0 bg-white dark:bg-secondary p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <div className="bg-white dark:bg-black rounded-2xl max-w-md w-full max-h-96 overflow-y-auto">
+                <div className="sticky top-0 bg-white dark:bg-black p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                   <h3 className="font-bold text-secondary dark:text-white">
                     Connections ({connections.length})
                   </h3>
@@ -770,7 +871,10 @@ const ProfilePage = () => {
                           <img
                             alt={connection.displayName}
                             className="w-10 h-10 rounded-full object-cover"
-                            src={connection.avatarUrl || getDefaultAvatar(connection.gender || 'male')}
+                            src={
+                              connection.avatarUrl ||
+                              getDefaultAvatar(connection.gender || "male")
+                            }
                           />
                           <div>
                             <p className="font-semibold text-secondary dark:text-white">
@@ -794,7 +898,7 @@ const ProfilePage = () => {
           <div className="flex gap-4 mb-8">
             <button
               onClick={() => setShowConnections(true)}
-              className="px-6 py-2 rounded-lg bg-white dark:bg-secondary text-secondary dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold flex items-center gap-2"
+              className="px-6 py-2 rounded-lg bg-white dark:bg-black text-secondary dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-semibold flex items-center gap-2"
             >
               <Users className="w-5 h-5" />
               {connections.length} Connections
@@ -812,7 +916,7 @@ const ProfilePage = () => {
                   <div
                     key={post.id}
                     onClick={() => navigate(`/campusfeed#post-${post.id}`)}
-                    className="bg-white dark:bg-secondary rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                    className="bg-white dark:bg-black rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                   >
                     <h3 className="font-bold text-secondary dark:text-white mb-2">
                       {post.title}
@@ -836,7 +940,7 @@ const ProfilePage = () => {
                 {soldItems.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white dark:bg-secondary rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                    className="bg-white dark:bg-black rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                   >
                     <h3 className="font-bold text-secondary dark:text-white mb-2">
                       {item.name}

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import useVerified from "../hooks/useVerified";
+import toast from "react-hot-toast";
 import {
   collection,
   query,
@@ -314,6 +315,8 @@ function InboxPage() {
   const messagesRef = useRef(null);
   const fileInputRef = useRef(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [mutedUsers, setMutedUsers] = useState(new Set());
+  const [blockedUsers, setBlockedUsers] = useState(new Set());
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
@@ -778,6 +781,66 @@ function InboxPage() {
       });
     } catch (err) {
       console.warn("Failed to mark conversation as read:", err);
+    }
+  };
+
+  const handleViewProfile = () => {
+    if (activeConversation?.otherParticipantId) {
+      setShowConvoInfo(false);
+      navigate(`/profile/${activeConversation.otherParticipantId}`);
+    }
+  };
+
+  const handleMuteUser = () => {
+    if (activeConversation?.otherParticipantId) {
+      setMutedUsers((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(activeConversation.otherParticipantId)) {
+          newSet.delete(activeConversation.otherParticipantId);
+          toast.success("Notifications unmuted");
+        } else {
+          newSet.add(activeConversation.otherParticipantId);
+          toast.success("Notifications muted");
+        }
+        return newSet;
+      });
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!activeConversation?.otherParticipantId || !user) return;
+
+    try {
+      const blockRef = doc(
+        db,
+        "users",
+        user.uid,
+        "blockedUsers",
+        activeConversation.otherParticipantId,
+      );
+
+      setBlockedUsers((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(activeConversation.otherParticipantId)) {
+          newSet.delete(activeConversation.otherParticipantId);
+          deleteDoc(blockRef).catch((err) =>
+            console.warn("Failed to unblock user:", err),
+          );
+          toast.success("User unblocked");
+        } else {
+          newSet.add(activeConversation.otherParticipantId);
+          setDoc(blockRef, { blockedAt: serverTimestamp() }).catch((err) =>
+            console.warn("Failed to block user:", err),
+          );
+          toast.success("User blocked");
+        }
+        return newSet;
+      });
+
+      setShowConvoInfo(false);
+    } catch (err) {
+      console.error("Error blocking user:", err);
+      toast.error("Failed to block user");
     }
   };
 
@@ -1374,17 +1437,42 @@ function InboxPage() {
 
             {/* Actions */}
             <div className="space-y-2">
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark">
+              <button
+                onClick={handleViewProfile}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+              >
                 <span className="material-symbols-outlined">person</span>
                 <span className="text-sm font-medium">View Profile</span>
               </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark">
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="text-sm font-medium">Mute</span>
+              <button
+                onClick={handleMuteUser}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+              >
+                <span className="material-symbols-outlined">
+                  {mutedUsers.has(activeConversation?.otherParticipantId)
+                    ? "notifications_active"
+                    : "notifications"}
+                </span>
+                <span className="text-sm font-medium">
+                  {mutedUsers.has(activeConversation?.otherParticipantId)
+                    ? "Unmute"
+                    : "Mute"}
+                </span>
               </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-red-500">
-                <span className="material-symbols-outlined">block</span>
-                <span className="text-sm font-medium">Block</span>
+              <button
+                onClick={handleBlockUser}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-red-500"
+              >
+                <span className="material-symbols-outlined">
+                  {blockedUsers.has(activeConversation?.otherParticipantId)
+                    ? "person_add"
+                    : "block"}
+                </span>
+                <span className="text-sm font-medium">
+                  {blockedUsers.has(activeConversation?.otherParticipantId)
+                    ? "Unblock"
+                    : "Block"}
+                </span>
               </button>
             </div>
           </div>

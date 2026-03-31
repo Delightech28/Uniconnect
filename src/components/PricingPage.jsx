@@ -163,7 +163,7 @@ const PricingPage = () => {
 
         <main className="flex-1 overflow-y-auto">
           {/* Hero Section */}
-          <section className="bg-[#f5f8f6] dark:bg-gradient-to-b dark:from-[#050805] dark:to-[#1e4004] py-8 md:py-16 px-4 sm:px-6">
+          <section className="bg-[#f5f8f6] dark:bg-black py-8 md:py-16 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto">
               <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 justify-between items-start lg:items-center mb-8">
                 <div className="flex flex-col gap-3 max-w-2xl w-full">
@@ -187,7 +187,7 @@ const PricingPage = () => {
                 </div>
 
                 {/* Wallet Widget */}
-                <div className="w-full lg:w-auto lg:min-w-[300px] bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-[#dbe6db] dark:border-gray-700 shadow-sm">
+                <div className="w-full lg:w-auto lg:min-w-[300px] bg-white dark:bg-black rounded-xl p-4 sm:p-6 border border-[#dbe6db] dark:border-gray-700 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-2 bg-[#07bb0d]/10 rounded-lg text-[#07bb0d]">
                       <span className="material-symbols-outlined">
@@ -252,7 +252,7 @@ const PricingPage = () => {
                   {/* Left Card */}
                   <div
                     onClick={handlePrevious}
-                    className="absolute rounded-3xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                    className="absolute rounded-3xl p-4 sm:p-5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
                     style={{
                       width: "180px",
                       height: "360px",
@@ -289,7 +289,7 @@ const PricingPage = () => {
 
                   {/* Center Card */}
                   <div
-                    className="absolute rounded-3xl p-5 sm:p-6 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl cursor-pointer transition-all duration-500 ease-out"
+                    className="absolute rounded-3xl p-5 sm:p-6 border-2 border-primary bg-white dark:bg-black shadow-2xl cursor-pointer transition-all duration-500 ease-out"
                     style={{
                       width: "240px",
                       height: "400px",
@@ -350,7 +350,7 @@ const PricingPage = () => {
                   {/* Right Card */}
                   <div
                     onClick={handleNext}
-                    className="absolute rounded-3xl p-4 sm:p-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
+                    className="absolute rounded-3xl p-4 sm:p-5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-500 ease-out opacity-60 hover:opacity-70"
                     style={{
                       width: "180px",
                       height: "360px",
@@ -392,7 +392,7 @@ const PricingPage = () => {
                     {/* Left Card */}
                     <div
                       onClick={handlePrevious}
-                      className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative"
+                      className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative"
                     >
                       <div
                         className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${left.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}
@@ -446,7 +446,7 @@ const PricingPage = () => {
                     </div>
 
                     {/* Center Card */}
-                    <div className="rounded-3xl p-6 lg:p-8 border-2 border-primary bg-white dark:bg-gray-900 shadow-2xl lg:transform lg:scale-105 relative transition-all duration-500 ease-out">
+                    <div className="rounded-3xl p-6 lg:p-8 border-2 border-primary bg-white dark:bg-black shadow-2xl lg:transform lg:scale-105 relative transition-all duration-500 ease-out">
                       <div
                         className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${center.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}
                       >
@@ -502,7 +502,7 @@ const PricingPage = () => {
                     {/* Right Card */}
                     <div
                       onClick={handleNext}
-                      className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative"
+                      className="rounded-3xl p-6 lg:p-8 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 shadow-lg opacity-70 scale-95 transition-all duration-500 ease-out cursor-pointer hover:opacity-90 hover:scale-100 relative"
                     >
                       <div
                         className={`absolute -top-4 left-1/2 transform -translate-x-1/2 ${right.badgeColor} text-white px-4 py-1 rounded-full text-xs lg:text-sm font-semibold`}
@@ -568,7 +568,7 @@ const PricingPage = () => {
               </div>
 
               {/* Policy Section */}
-              <section className="bg-white dark:bg-gray-900 rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
+              <section className="bg-white dark:bg-black rounded-xl p-8 border border-gray-200 dark:border-gray-700 mt-6 max-w-7xl mx-auto">
                 <h3 className="text-xl font-bold text-secondary dark:text-white mb-4">
                   Payment & Subscription Policy
                 </h3>

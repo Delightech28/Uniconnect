@@ -60,7 +60,7 @@ const AdminPanel = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // Listen for pending users
+    // Listen for pending users (exclude declined ones)
     const q = query(
       collection(db, "users"),
       where("verified", "==", false),
@@ -72,7 +72,11 @@ const AdminPanel = () => {
       (querySnapshot) => {
         const users = [];
         querySnapshot.forEach((doc) => {
-          users.push({ id: doc.id, ...doc.data() });
+          const userData = doc.data();
+          // Only include if not declined
+          if (userData.verificationStatus !== "declined") {
+            users.push({ id: doc.id, ...userData });
+          }
         });
         setPendingUsers(users);
         setLoading(false);
@@ -105,11 +109,11 @@ const AdminPanel = () => {
     try {
       await updateDoc(doc(db, "users", userId), {
         verified: false,
+        verificationStatus: "declined",
         declinedAt: new Date(),
         declinedBy: auth.currentUser.uid,
-        status: "declined",
       });
-      toast.success("User declined.");
+      toast.success("User declined successfully!");
     } catch (error) {
       console.error("Error declining user:", error);
       toast.error("Error declining user.");
@@ -254,14 +258,27 @@ const AdminPanel = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {user.verificationDocumentURL ? (
+                          {user.fileDataUrl ? (
+                            <a
+                              href={user.fileDataUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                              title="View document"
+                            >
+                              <Eye className="h-5 w-5" />
+                              View
+                            </a>
+                          ) : user.verificationDocumentURL ? (
                             <a
                               href={user.verificationDocumentURL}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                              title="View document"
                             >
                               <Eye className="h-5 w-5" />
+                              View
                             </a>
                           ) : (
                             <span className="text-gray-400">No document</span>
