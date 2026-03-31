@@ -176,11 +176,13 @@ const extractTextFromResponse = (json) => {
 };
 
 const callGenerate = async (modelName, body, signal) => {
-  // Format the request for Cloud Function
+  // Format the request for Cloud Function - properly extract systemInstruction
   const cloudFunctionRequest = {
     contentsParts: body.contents?.[0]?.parts || [],
     systemInstruction: body.systemInstruction || undefined
   };
+  
+  console.log('[callGenerate] Sending to Cloud Function with systemInstruction:', !!body.systemInstruction);
   
   try {
     const json = await callCloudFunction(cloudFunctionRequest, signal);
@@ -542,14 +544,16 @@ export const askTutor = async (docText, chatHistory, question, tone = 'Teacher',
         contents.push({ role, parts: [{ text: m.text }] });
       }
       
-      // Embed system rules and document in user message (avoids API limits on systemInstruction)
-      const instruction = `You are UniSpace AI Tutor (${tone} mode). Answer ONLY using the document provided. If a question cannot be answered from the document, respond: "This cannot be answered from the document you provided. Please ask about the document content."`;
+      // Build systemInstruction (separate from user message for Cloud Function)
+      const systemInstruction = `You are UniSpace AI Tutor (${tone} mode). Your role is to ANSWER student questions, not ask them. Provide clear, direct answers using ONLY the provided document. Do NOT ask follow-up questions, do NOT ask for clarification, and do NOT ask suggestions back to the student. Simply answer their question directly and comprehensively. If a question cannot be answered from the document, respond: "This cannot be answered from the document you provided. Please ask about the document content."`;
+      
+      // Build user message with document context
       const docContext = docText ? `\n\nDOCUMENT CONTENT:\n${docText.substring(0,18000)}\n\nEND DOCUMENT` : '';
-      const userMsg = `${instruction}${docContext}\n\nUser Question: ${question}`;
+      const userMsg = `${docContext}\n\nUser Question: ${question}`;
       contents.push({ role: 'user', parts: [{ text: userMsg }] });
 
-      console.log('[askTutor] Sending REST request...');
-      const json = await callGenerate(MODEL_FLASH, { contents }, signal);
+      console.log('[askTutor] Sending request with systemInstruction...');
+      const json = await callGenerate(MODEL_FLASH, { contents, systemInstruction }, signal);
       const textOut = extractTextFromResponse(json);
       console.log('[askTutor] Response received');
       return textOut;
