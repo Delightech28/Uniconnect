@@ -599,18 +599,26 @@ const UniConnectRegistration = () => {
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
       if (userDoc.exists()) {
-        // User exists, check if profile is complete
         const userData = userDoc.data();
-        if (userData.gender && userData.institution) {
-          // Profile complete, go to dashboard
+
+        // If the user has already verified, send them to the dashboard.
+        if (userData.verified || userData.verificationStatus === "approved") {
           toast.success("Welcome back!");
           navigate("/dashboard");
-        } else {
-          // Profile incomplete, show form
-          setShowCompleteProfile(true);
+          return;
         }
+
+        // If the user has a complete profile but is not verified, send them to document upload.
+        if (userData.gender && userData.institution) {
+          toast.success("Welcome back! Please complete verification.");
+          navigate("/verify-student");
+          return;
+        }
+
+        // Existing user with incomplete profile
+        setShowCompleteProfile(true);
       } else {
-        // New user, show profile completion form
+        // New user, show profile completion form then verification.
         setShowCompleteProfile(true);
       }
     } catch (err) {
@@ -788,9 +796,11 @@ const UniConnectRegistration = () => {
       } catch (notifErr) {
         console.warn("Failed to create welcome notification:", notifErr);
       }
-      // Navigate based on registerAs value (students no longer blocked on verification)
+      // Navigate based on registerAs value
       const destination =
-        profileData?.registerAs === "student" ? "/dashboard" : "/dashboard";
+        profileData?.registerAs === "student"
+          ? "/verify-student"
+          : "/dashboard";
       navigate(destination);
     }
   };
