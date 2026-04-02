@@ -2,20 +2,19 @@ import { ResultMode } from "../types";
 
 // Helper to prepare files for the backend
 const fileToPart = (file) => {
-  const base64Data = file.data.includes(',') ? file.data.split(',')[1] : file.data;
+  const base64Data = file.data.includes(",")
+    ? file.data.split(",")[1]
+    : file.data;
   return {
     inlineData: {
       data: base64Data,
-      mimeType: file.type
-    }
+      mimeType: file.type,
+    },
   };
 };
 
-export async function* generateContentStream(filesA, filesB, mode, signal) {
-  // 1. Prepare the payload exactly as your backend expects
-  const partsA = filesA.map(fileToPart);
-  const partsB = filesB.map(fileToPart);
-
+export async function* generateContentStream(text, question, mode, signal) {
+  // Prepare the system instruction
   const systemInstruction = `CRITICAL ACADEMIC INSTRUCTIONS:
 1. FULL DOCUMENT ANALYSIS: Comprehensively analyze all text, explanations, diagrams, drawings, formulas, equations, and calculations.
 2. VISUAL DATA INTERPRETATION (DEEP ANALYSIS): If the document contains visuals (diagrams, charts, graphs, or drawings):
@@ -35,40 +34,20 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
 6. STRUCTURE: Use hierarchical numbering (1.0, 1.1). Write in full, flowing academic paragraphs. Complete sentences line-by-line. Let text wrap naturally unless starting a new sub-topic.
 7. NO ASTERISKS: Do not use asterisks (*) for lists. Use numbers (1., 2.). Only use double asterisks (**) for the required bolding.`;
 
-
-  let contentsParts = [];
-  if (mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW) {
-    contentsParts = [
-      { text: "--- SOURCE MATERIAL ---" },
-      ...partsA,
-      { text: "Synthesize an EXHAUSTIVE ACADEMIC SUMMARY. Bold terms strictly before colons." }
-    ];
-  } else {
-    contentsParts = [
-      { text: "--- COURSE MATERIAL ---" },
-      ...partsA,
-      { text: "--- QUESTIONS ---" },
-      ...partsB,
-      { text: "Solve with academic rigor. Bold concepts before colons." }
-    ];
-  }
-
   try {
-
-    const FUNCTION_URL = "https://streamgemini-e37xi73mhq-uc.a.run.app";
+    const FUNCTION_URL = "https://streamgemiwithtext-e37xi73mhq-uc.a.run.app"; // Update with actual URL
 
     const response = await fetch(FUNCTION_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentsParts, systemInstruction }),
-      signal
+      body: JSON.stringify({ text, question, systemInstruction }),
+      signal,
     });
 
     if (!response.ok) {
       const errorDetail = await response.text();
       throw new Error(`Server Error: ${response.status} - ${errorDetail}`);
     }
-
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
@@ -78,15 +57,15 @@ export async function* generateContentStream(filesA, filesB, mode, signal) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
+
       const chunkText = decoder.decode(value, { stream: true });
       if (chunkText) {
         yield chunkText;
       }
     }
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.log('Stream aborted by user');
+    if (error.name === "AbortError") {
+      console.log("Stream aborted by user");
       return;
     }
     console.error("Cloud Function Error:", error);

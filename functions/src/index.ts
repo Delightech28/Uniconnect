@@ -5,13 +5,11 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
-import { createHmac } from "crypto";
-
-
+import { createHmac, createHash } from "crypto";
+import * as pdf from "pdf-parse";
 
 const app = initializeApp();
 const db = getFirestore(app);
-
 
 const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
 
@@ -447,7 +445,6 @@ export const transferMoney = onRequest(
   },
 );
 
-
 export const verifyAccount = onRequest(
   {
     secrets: [PAYSTACK_SECRET_KEY],
@@ -455,7 +452,6 @@ export const verifyAccount = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
-
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
       return;
@@ -469,9 +465,8 @@ export const verifyAccount = onRequest(
         return;
       }
 
-
       const PAYSTACK_SECRET = PAYSTACK_SECRET_KEY.value();
-      
+
       if (!PAYSTACK_SECRET) {
         logger.error("PAYSTACK_SECRET_KEY is missing from Secret Manager");
         res.status(500).json({ error: "Server configuration error" });
@@ -483,30 +478,30 @@ export const verifyAccount = onRequest(
         {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${PAYSTACK_SECRET}`,
+            Authorization: `Bearer ${PAYSTACK_SECRET}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const verifyData = await verifyResp.json();
 
       if (!verifyResp.ok || !verifyData.status) {
-        res.status(400).json({ 
-          error: "Account verification failed", 
-          details: verifyData.message || "Invalid account details" 
+        res.status(400).json({
+          error: "Account verification failed",
+          details: verifyData.message || "Invalid account details",
         });
         return;
       }
 
-
       res.status(200).json({ success: true, data: verifyData.data });
-
     } catch (err: any) {
       logger.error("Verify account error:", err);
-      res.status(500).json({ error: "Internal Server Error", message: err.message });
+      res
+        .status(500)
+        .json({ error: "Internal Server Error", message: err.message });
     }
-  }
+  },
 );
 
 export const paystackWebhook = onRequest(
@@ -529,7 +524,6 @@ export const paystackWebhook = onRequest(
         return;
       }
 
-
       const hash = createHmac("sha512", paystackSecret)
         .update(JSON.stringify(req.body))
         .digest("hex");
@@ -544,7 +538,6 @@ export const paystackWebhook = onRequest(
 
       logger.log(`Webhook event: ${event}`, data);
 
-
       if (event === "transfer.success") {
         const { recipient, amount, reference, status } = data;
 
@@ -555,9 +548,7 @@ export const paystackWebhook = onRequest(
           return;
         }
 
-
         const usersRef = db.collection("users");
-
 
         let snapshot = await usersRef
           .where("paystackDedicatedAccountId", "==", recipient?.toString())
@@ -584,11 +575,9 @@ export const paystackWebhook = onRequest(
         const userId = userDoc.id;
         const amountInNaira = amount / 100; // Paystack sends amount in kobo
 
-
         await userDoc.ref.update({
           walletBalance: FieldValue.increment(amountInNaira),
         });
-
 
         await db
           .collection("users")
@@ -680,13 +669,12 @@ const getPaystackSecret = () => {
 };
 
 export const fetchPaystackBanks = onCall(
-  { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     try {
-
       const PAYSTACK_SECRET = PAYSTACK_SECRET_KEY.value();
 
       if (!PAYSTACK_SECRET) {
@@ -697,7 +685,7 @@ export const fetchPaystackBanks = onCall(
       const response = await fetch("https://api.paystack.co/bank", {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${PAYSTACK_SECRET}`,
+          Authorization: `Bearer ${PAYSTACK_SECRET}`,
           "Content-Type": "application/json",
         },
       });
@@ -709,16 +697,15 @@ export const fetchPaystackBanks = onCall(
       }
 
       const data = await response.json();
-      
+
       // Paystack returns { status: true, message: "...", data: [...] }
       return data.data || [];
-      
     } catch (error: any) {
       logger.error("Fetch banks error:", error);
-      
+
       // If it's already an HttpsError, rethrow it
       if (error instanceof HttpsError) throw error;
-      
+
       // Otherwise, wrap it
       throw new HttpsError("internal", error.message || "Unknown error");
     }
@@ -726,9 +713,9 @@ export const fetchPaystackBanks = onCall(
 );
 
 export const verifyPaystackAccount = onCall(
-   { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     const { accountNumber, bankCode } = request.data;
@@ -767,9 +754,9 @@ export const verifyPaystackAccount = onCall(
 );
 
 export const initializePaystackPayment = onCall(
-   { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     const { email, amount, reference, callbackUrl, channels } = request.data;
@@ -822,9 +809,9 @@ export const initializePaystackPayment = onCall(
 );
 
 export const verifyPaystackPayment = onCall(
-   { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     const { reference } = request.data;
@@ -860,9 +847,9 @@ export const verifyPaystackPayment = onCall(
 );
 
 export const createPaystackRecipient = onCall(
-   { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     const { accountNumber, bankCode, recipientName } = request.data;
@@ -905,9 +892,9 @@ export const createPaystackRecipient = onCall(
 );
 
 export const initiatePaystackTransfer = onCall(
-  { 
+  {
     secrets: [PAYSTACK_SECRET_KEY],
-    cors: true
+    cors: true,
   },
   async (request) => {
     const { recipient, amount, reference } = request.data;
@@ -942,6 +929,215 @@ export const initiatePaystackTransfer = onCall(
     } catch (error: any) {
       logger.error("Initiate transfer error:", error);
       throw new HttpsError("internal", error.message);
+    }
+  },
+);
+
+// AI PDF processing and quota optimization functions
+
+/**
+ * Processes a PDF once per user and caches the result.
+ * Extracts text, generates a summary, and stores in Firestore.
+ * Keyed by userId + pdfHash to avoid reprocessing.
+ * @param pdf - Base64 encoded PDF content
+ * @param userId - User's unique identifier
+ * @returns Processed PDF data: { text, summary, pdfHash }
+ */
+export const processPDFOnce = onCall(
+  {
+    secrets: ["GEMINI_API_KEY"],
+    memory: "512MiB", // Increased for PDF processing
+  },
+  async (request) => {
+    const { pdf, userId } = request.data;
+
+    if (!pdf || !userId) {
+      throw new HttpsError("invalid-argument", "PDF and userId are required");
+    }
+
+    try {
+      logger.info(`Processing PDF for user: ${userId}`);
+
+      // Decode base64 PDF to buffer
+      const pdfBuffer = Buffer.from(pdf, "base64");
+
+      // Generate unique hash for the PDF content
+      const pdfHash = createHash("sha256").update(pdfBuffer).digest("hex");
+      logger.info(`Generated PDF hash: ${pdfHash}`);
+
+      // Check cache in Firestore
+      const docRef = db.collection("processedPdfs").doc(`${userId}_${pdfHash}`);
+      const doc = await docRef.get();
+
+      if (doc.exists) {
+        logger.info(`Cached PDF found for user ${userId}, hash ${pdfHash}`);
+        return doc.data();
+      }
+
+      // Extract text from PDF
+      logger.info("Extracting text from PDF");
+      const pdfData = await pdf(pdfBuffer);
+      const extractedText = pdfData.text;
+      logger.info(`Extracted text length: ${extractedText.length}`);
+
+      // Generate summary using Gemini API
+      logger.info("Generating summary via Gemini");
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new HttpsError("internal", "GEMINI_API_KEY not configured");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const summaryPrompt = `Summarize the following document concisely:\n\n${extractedText}`;
+      const summaryResult = await model.generateContent(summaryPrompt);
+      const summary = summaryResult.response.text();
+
+      // Note: Embeddings generation would require additional setup (e.g., using a vector service like Pinecone or OpenAI embeddings).
+      // For now, storing text and summary. Embeddings can be generated on-demand or added later.
+
+      // Store processed data in Firestore
+      const processedData = {
+        text: extractedText,
+        summary,
+        pdfHash,
+        userId,
+        createdAt: FieldValue.serverTimestamp(),
+      };
+
+      await docRef.set(processedData);
+      logger.info(`Stored processed PDF for user ${userId}, hash ${pdfHash}`);
+
+      return processedData;
+    } catch (error: any) {
+      logger.error("Error processing PDF:", error);
+      throw new HttpsError(
+        "internal",
+        error.message || "Failed to process PDF",
+      );
+    }
+  },
+);
+
+/**
+ * Retrieves cached processed PDF data for a user.
+ * @param userId - User's unique identifier
+ * @param pdfHash - Hash of the PDF content
+ * @returns Processed PDF data or null if not found
+ */
+export const getProcessedPDF = onCall(async (request) => {
+  const { userId, pdfHash } = request.data;
+
+  if (!userId || !pdfHash) {
+    throw new HttpsError("invalid-argument", "userId and pdfHash are required");
+  }
+
+  try {
+    logger.info(
+      `Retrieving processed PDF for user: ${userId}, hash: ${pdfHash}`,
+    );
+
+    const docRef = db.collection("processedPdfs").doc(`${userId}_${pdfHash}`);
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+      logger.info("Cached PDF data found");
+      return doc.data();
+    } else {
+      logger.info("No cached PDF data found");
+      return null;
+    }
+  } catch (error: any) {
+    logger.error("Error retrieving processed PDF:", error);
+    throw new HttpsError(
+      "internal",
+      error.message || "Failed to retrieve processed PDF",
+    );
+  }
+});
+
+// Stream Gemini with cached text instead of files
+export const streamGeminiWithText = onRequest(
+  {
+    secrets: ["GEMINI_API_KEY"],
+    maxInstances: 10,
+    concurrency: 80,
+    memory: "256MiB",
+  },
+  async (req, res) => {
+    const origin = req.headers.origin || "";
+
+    if (ALLOWED_ORIGINS.includes(origin) || origin.includes("localhost")) {
+      res.set("Access-Control-Allow-Origin", origin);
+    } else {
+      res.set("Access-Control-Allow-Origin", "*");
+    }
+
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    res.set("Vary", "Origin");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { text, question, systemInstruction } = req.body;
+
+      if (!text || typeof text !== "string") {
+        res.status(400).json({ error: "Missing or invalid 'text'" });
+        return;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        logger.error("GEMINI_API_KEY not configured");
+        res.status(500).json({ error: "Server configuration error" });
+        return;
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: systemInstruction || "You are a helpful assistant.",
+      });
+
+      const prompt = question
+        ? `${text}\n\nQuestion: ${question}`
+        : `Analyze this document: ${text}`;
+      const result = await model.generateContentStream(prompt);
+
+      // Set streaming headers
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.status(200);
+
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        if (chunkText) {
+          res.write(chunkText);
+        }
+      }
+
+      res.end();
+    } catch (error: any) {
+      logger.error("Stream with text error:", error);
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ error: error.message || "Internal server error" });
+      } else {
+        res.end();
+      }
     }
   },
 );
