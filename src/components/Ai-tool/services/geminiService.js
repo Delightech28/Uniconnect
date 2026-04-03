@@ -35,7 +35,8 @@ export async function* generateContentStream(text, question, mode, signal) {
 7. NO ASTERISKS: Do not use asterisks (*) for lists. Use numbers (1., 2.). Only use double asterisks (**) for the required bolding.`;
 
   try {
-    const FUNCTION_URL = "https://streamgemiwithtext-e37xi73mhq-uc.a.run.app"; // Update with actual URL
+    const FUNCTION_URL =
+      "https://us-central1-unispacee-cee.cloudfunctions.net/streamGeminiWithText";
 
     const response = await fetch(FUNCTION_URL, {
       method: "POST",

@@ -6,7 +6,6 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { createHmac, createHash } from "crypto";
-import * as pdf from "pdf-parse";
 
 const app = initializeApp();
 const db = getFirestore(app);
@@ -976,7 +975,8 @@ export const processPDFOnce = onCall(
 
       // Extract text from PDF
       logger.info("Extracting text from PDF");
-      const pdfData = await pdf(pdfBuffer);
+      const pdfParse = require("pdf-parse");
+      const pdfData = await pdfParse(pdfBuffer);
       const extractedText = pdfData.text;
       logger.info(`Extracted text length: ${extractedText.length}`);
 
