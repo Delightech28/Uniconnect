@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Upload, FileText, Brain, Zap, AlertTriangle } from 'lucide-react';
 
-const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const LOGO_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 500'%3E%3Crect x='50' y='50' width='300' height='400' rx='80' fill='%2307bc0c'/%3E%3Cpath d='M110 150h50v140c0 30 20 50 40 50s40-20 40-50V150h50v140c0 60-40 100-90 100s-90-40-90-100V150z' fill='black'/%3E%3C/svg%3E";
 

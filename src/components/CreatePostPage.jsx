@@ -17,12 +17,8 @@ import { getDefaultAvatar } from '../services/avatarService';
 // Toolbar for the rich text editor — adds simple markdown/HTML formatting
 const EditorToolbar = ({ content, setContent }) => {
     const buttons = [
-        'format_h1', 'format_h2', 'format_bold', 'format_italic',
-        'format_underlined', 'format_strikethrough',
-        { type: 'divider' },
-        'format_list_bulleted', 'format_list_numbered', 'format_quote',
-        { type: 'divider' },
-        'link', 'image', 'play_circle'
+        'text_fields', 'title', 'format_bold', 'format_italic',
+        'format_underlined', 'strikethrough_s', 'format_list_bulleted', 'format_list_numbered', 'format_quote', 'link', 'image', 'mood'
     ];
 
     const getTextarea = () => document.getElementById('post-content-textarea');
@@ -98,13 +94,20 @@ const EditorToolbar = ({ content, setContent }) => {
             return;
         }
 
-        // image or video: open file picker and upload to Firebase Storage
+        // image only: open file picker and upload to Firebase Storage (videos disabled)
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = type === 'image' ? 'image/*' : 'video/*';
+        input.accept = 'image/*';
         input.onchange = async (e) => {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
+
+            // Prevent video uploads
+            if (file.type.startsWith('video/')) {
+                toast.error('Video uploads are not allowed. Please upload images only.');
+                return;
+            }
+
             try {
                 const uid = auth.currentUser?.uid || 'anonymous';
                 const path = `posts_media/${uid}/${Date.now()}_${file.name}`;
@@ -116,35 +119,23 @@ const EditorToolbar = ({ content, setContent }) => {
                 }, async (err) => {
                     console.error('Upload error', err);
                     toast.dismiss(toastId);
-                    toast.error('Upload failed — you can paste a public URL instead.');
+                    toast.error('Upload failed — you can paste a public image URL instead.');
                     // fallback: prompt user to paste a public URL
-                    const fallback = window.prompt('Upload failed. Paste a public URL for the media (or Cancel to abort)');
+                    const fallback = window.prompt('Upload failed. Paste a public image URL (or Cancel to abort)');
                     if (fallback) {
-                        if (type === 'image') {
-                            replaceSelection(`![${selected}](${fallback})`);
-                        } else {
-                            replaceSelection(`[video](${fallback})`);
-                        }
+                        replaceSelection(`![${selected}](${fallback})`);
                     }
                 }, async () => {
                     try {
                         const url = await getDownloadURL(uploadTask.snapshot.ref);
-                        if (type === 'image') {
-                            replaceSelection(`![${selected}](${url})`);
-                        } else {
-                            replaceSelection(`[video](${url})`);
-                        }
+                        replaceSelection(`![${selected}](${url})`);
                         toast.success('Upload complete');
                     } catch (err) {
                         console.error('Failed to get download URL', err);
-                        toast.error('Upload succeeded but failed to retrieve URL. Paste a public URL instead.');
-                        const fallback = window.prompt('Paste a public URL for the media (or Cancel to abort)');
+                        toast.error('Upload succeeded but failed to retrieve URL. Paste a public image URL instead.');
+                        const fallback = window.prompt('Paste a public image URL (or Cancel to abort)');
                         if (fallback) {
-                            if (type === 'image') {
-                                replaceSelection(`![${selected}](${fallback})`);
-                            } else {
-                                replaceSelection(`[video](${fallback})`);
-                            }
+                            replaceSelection(`![${selected}](${fallback})`);
                         }
                     } finally {
                         toast.dismiss(toastId);
@@ -152,35 +143,40 @@ const EditorToolbar = ({ content, setContent }) => {
                 });
             } catch (err) {
                 console.error('Media upload failed', err);
-                toast.error('Media upload failed — you can paste a public URL instead.');
-                const fallback = window.prompt('Upload failed. Paste a public URL for the media (or Cancel to abort)');
+                toast.error('Media upload failed — you can paste a public image URL instead.');
+                const fallback = window.prompt('Upload failed. Paste a public image URL (or Cancel to abort)');
                 if (fallback) {
-                    if (type === 'image') {
-                        replaceSelection(`![${selected}](${fallback})`);
-                    } else {
-                        replaceSelection(`[video](${fallback})`);
-                    }
+                    replaceSelection(`![${selected}](${fallback})`);
                 }
             }
         };
         input.click();
     };
 
+    const insertEmoji = () => {
+        const ta = getTextarea();
+        if (!ta) return;
+        // For simplicity, insert a few common emojis at cursor
+        const emojis = ['😀', '😂', '❤️', '👍', '🔥', '👏', '🙌', '💯'];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+        replaceSelection(randomEmoji);
+    };
+
     const handleClick = (btn) => {
         if (btn.type === 'divider') return;
         switch (btn) {
-            case 'format_h1': return formatBlock('# ');
-            case 'format_h2': return formatBlock('## ');
+            case 'text_fields': return formatBlock('# ');
+            case 'title': return formatBlock('## ');
             case 'format_bold': return formatInline('**');
             case 'format_italic': return formatInline('*');
             case 'format_underlined': return formatInline('<u>', '</u>');
-            case 'format_strikethrough': return formatInline('~~');
+            case 'strikethrough_s': return formatInline('~~');
             case 'format_list_bulleted': return formatBlock('- ');
             case 'format_list_numbered': return formatNumberedList();
             case 'format_quote': return formatBlock('> ');
             case 'link': return insertLinkOrMedia('link');
             case 'image': return insertLinkOrMedia('image');
-            case 'play_circle': return insertLinkOrMedia('play_circle');
+            case 'mood': return insertEmoji();
             default: return;
         }
     };
@@ -259,8 +255,48 @@ placeholder:text-slate-400 dark:placeholder:text-slate-500"
         </div> 
     ); 
 }; 
- 
-// --- Main Page Component --- 
+
+// Background selector component
+const BackgroundSelector = ({ selectedBackground, onBackgroundChange }) => {
+    const backgrounds = [
+        { id: 'default', name: 'Default', class: 'bg-white dark:bg-black' },
+        { id: 'blue', name: 'Blue', class: 'bg-blue-50 dark:bg-blue-950' },
+        { id: 'green', name: 'Green', class: 'bg-green-50 dark:bg-green-950' },
+        { id: 'purple', name: 'Purple', class: 'bg-purple-50 dark:bg-purple-950' },
+        { id: 'pink', name: 'Pink', class: 'bg-pink-50 dark:bg-pink-950' },
+        { id: 'yellow', name: 'Yellow', class: 'bg-yellow-50 dark:bg-yellow-950' },
+        { id: 'gradient-blue', name: 'Blue Gradient', class: 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800' },
+        { id: 'gradient-purple', name: 'Purple Gradient', class: 'bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800' },
+    ];
+
+    return (
+        <div className="space-y-3">
+            <p className="text-text-light dark:text-text-dark text-base font-medium leading-normal">
+                Choose Background (Optional)
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+                {backgrounds.map((bg) => (
+                    <button
+                        key={bg.id}
+                        onClick={() => onBackgroundChange(bg.id)}
+                        className={`h-16 rounded-lg border-2 transition-all ${
+                            selectedBackground === bg.id
+                                ? 'border-primary ring-2 ring-primary/20'
+                                : 'border-border-light dark:border-border-dark hover:border-primary/50'
+                        } ${bg.class} flex items-center justify-center`}
+                        title={bg.name}
+                    >
+                        {selectedBackground === bg.id && (
+                            <span className="material-symbols-outlined text-primary text-lg">check</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- Main Page Component ---
 function CreatePostPage() { 
     const { postId } = useParams();
     const isEditMode = !!postId;
@@ -269,6 +305,10 @@ function CreatePostPage() {
         title: '', 
         content: '', 
         tags: [],
+        background: 'default',
+        hasPoll: false,
+        pollQuestion: '',
+        pollOptions: ['', ''],
     }); 
     const [isPublishing, setIsPublishing] = useState(false);
     const [isLoadingPost, setIsLoadingPost] = useState(isEditMode);
@@ -298,7 +338,11 @@ function CreatePostPage() {
                         setPost({
                             title: postData.title,
                             content: postData.content,
-                            tags: postData.tags || []
+                            tags: postData.tags || [],
+                            background: postData.background || 'default',
+                            hasPoll: postData.hasPoll || false,
+                            pollQuestion: postData.pollQuestion || '',
+                            pollOptions: postData.pollOptions || ['', ''],
                         });
                     } else {
                         toast.error('Post not found');
@@ -357,6 +401,7 @@ function CreatePostPage() {
                     title: post.title,
                     content: post.content,
                     tags: post.tags || [],
+                    background: post.background || 'default',
                     updatedAt: serverTimestamp(),
                 });
                 toast.success('Post updated');
@@ -391,6 +436,7 @@ function CreatePostPage() {
                     title: post.title,
                     content: post.content,
                     tags: post.tags || [],
+                    background: post.background || 'default',
                     authorId: author.id,
                     authorName: author.name,
                     authorAvatar: author.avatarUrl,
@@ -503,7 +549,11 @@ text-base"
                             </div> 
                              
                             <TagInput tags={post.tags} setTags={setTags} /> 
-                        </div> 
+                            
+                            <BackgroundSelector 
+                                selectedBackground={post.background} 
+                                onBackgroundChange={(bg) => setPost(prev => ({ ...prev, background: bg }))} 
+                            />
  
                         <div className="flex flex-wrap items-center 
                                 justify-between gap-4 pt-6 border-t border-border-light 

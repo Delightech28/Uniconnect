@@ -37,8 +37,8 @@ async function executeWithRetry(fn, signal, maxRetries = 3, initialDelay = 8000)
 const SYSTEM_CONSTRAINTS = `
 STRICT SYSTEM RULES FOR STUDYHUB:
 1. DOCUMENT GROUNDING: Your knowledge is strictly and exclusively limited to the provided document. Answer ONLY using the uploaded document. Do not use external knowledge, internet data, or general context.
-2. TOPIC EXTRACTION: List only the topics explicitly found in the document. Do not add, infer, or invent additional topics. Topics must reflect clear structural elements (headings, key sections) within the text.
-3. QUIZ GENERATION: Questions must reflect core ideas and subject matter from the document only. Do not ask about authorship, publishing history, or background unrelated to the learning content.
+2. NO EXTERNAL TOPICS: Do not list topics, provide overviews, or suggest additional content. Stick only to what's in the document.
+3. NO QUIZZES IN CHAT: Never generate quiz questions during casual tutoring conversation. Quizzes are only for dedicated quiz sessions.
 4. NO MARKDOWN: Never use symbols like #, *, _, -, or bullet points with symbols.
 5. NO HTML: NEVER use <b>, <i>, <strong>, or any other HTML tags.
 6. NO ASTERISKS: Never use asterisks for bolding, lists, or emphasis.
@@ -537,7 +537,7 @@ export const analyzeDocument = async (docText, signal) => {
 export const askTutor = async (docText, chatHistory, question, tone = 'Teacher', signal) => {
   return executeWithRetry(async () => {
     try {
-      console.log('[askTutor] Preparing request...');
+      console.log('[askTutor] Preparing request with tone:', tone);
       
       // Build contents with proper role formatting for Gemini API
       const contents = [];
@@ -549,12 +549,35 @@ export const askTutor = async (docText, chatHistory, question, tone = 'Teacher',
         contents.push({ role, parts: [{ text: m.text }] });
       }
       
-      // Build systemInstruction (separate from user message for Cloud Function)
-      const systemInstruction = `You are a helpful, friendly AI tutor. Your role is to ANSWER student questions clearly and directly - never ask counter-questions or ask for clarification. Provide natural, conversational responses that help students understand the material. Use the document provided as your sole source of knowledge. If something cannot be found in the document, simply say: "I don't have that information in the provided document. Try asking about something else in the material." Keep responses friendly and encouraging, like a patient tutor who genuinely wants to help.`;
+      // Build systemInstruction with natural tutoring behavior
+      const toneInstructions = getToneInstruction(tone);
+      const systemInstruction = `${SYSTEM_CONSTRAINTS}
+
+TUTOR BEHAVIOR:
+1. YOUR PRIMARY JOB: Answer student questions about the document. When a student asks something, immediately answer it directly from the document content.
+
+2. DETECT INTENT: 
+   - If the message is JUST a greeting (hi, hello, hey) with no actual question → respond briefly with a greeting
+   - If the message contains ANY topic, question, or concept to explain → answer the question immediately
+
+3. NEVER respond with "What would you like to know?" if the student has already told you what they want to know. Only use that phrase for pure greetings.
+
+4. ANSWERING STYLE:
+   - Be ${toneInstructions.toLowerCase()}
+   - Answer ONE focused topic at a time
+   - Include [Page X] references when citing the document
+   - Keep responses natural and conversational
+   - Use examples and analogies to explain concepts
+
+5. OUT OF SCOPE: If a question cannot be answered from the document, respond: "I don't have that information in the provided document. Try asking about something else."
+
+6. NO QUIZZES: Don't offer quiz questions unless the student explicitly asks to be quizzed.
+
+Remember: You're having a conversation with a student. They ask questions, you answer them. Be helpful, natural, and focused.`;
       
-      // Build user message with document context
-      const docContext = docText ? `\n\nDOCUMENT CONTENT:\n${docText.substring(0,18000)}\n\nEND DOCUMENT` : '';
-      const userMsg = `${docContext}\n\nUser Question: ${question}`;
+      // Build user message with document context (limit to avoid token overflow)
+      const docContext = docText ? `\n\nDOCUMENT CONTENT:\n${docText.substring(0, 18000)}\n\nEND DOCUMENT` : '';
+      const userMsg = `${docContext}\n\nStudent Question: ${question}`;
       contents.push({ role: 'user', parts: [{ text: userMsg }] });
 
       console.log('[askTutor] Sending request with systemInstruction...');

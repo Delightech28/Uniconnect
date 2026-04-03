@@ -25,13 +25,72 @@ import {
 } from "../services/notificationService";
 import { getDefaultAvatar } from "../services/avatarService";
 
+// U Burst Animation Component
+const UBurstAnimation = ({ show, onComplete }) => {
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    if (show) {
+      // Create 8 particles in a circle
+      const newParticles = [];
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const distance = 60 + Math.random() * 40;
+        newParticles.push({
+          id: i,
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance,
+          rotation: Math.random() * 360,
+        });
+      }
+      setParticles(newParticles);
+
+      // Remove animation after 1 second
+      const timer = setTimeout(() => {
+        setParticles([]);
+        onComplete?.();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [show, onComplete]);
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+      <div className="relative">
+        {/* Center U */}
+        <div className="text-6xl font-bold text-primary animate-pulse">
+          U
+        </div>
+
+        {/* Burst particles */}
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="absolute text-2xl font-bold text-primary animate-bounce"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              transform: `rotate(${particle.rotation}deg)`,
+              animationDelay: `${particle.id * 0.1}s`,
+            }}
+          >
+            U
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const PostStats = ({
   likes,
   comments,
   onToggleLike,
   liked,
   onToggleComments,
-  onShare,
 }) => (
   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-slate-600 dark:text-slate-400">
     <div className="flex items-center gap-4">
@@ -50,13 +109,6 @@ const PostStats = ({
         <span className="text-sm font-medium">{comments}</span>
       </button>
     </div>
-    <button
-      onClick={onShare}
-      className="flex items-center gap-1.5 hover:text-primary dark:text-slate-400 dark:hover:text-primary"
-    >
-      <span className="material-symbols-outlined text-xl">share</span>
-      <span className="text-sm font-medium">Share</span>
-    </button>
   </div>
 );
 
@@ -85,11 +137,11 @@ const Comment = ({
       <img
         alt={`${name}'s profile picture`}
         onClick={onAvatarClick}
-        className="w-9 h-9 rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+        className="w-10 h-10 rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity ring-2 ring-slate-200 dark:ring-slate-700"
         src={img && img.length > 0 ? img : getDefaultAvatar("male")}
       />
       <div className="flex-grow min-w-0">
-        <div className="bg-background-light dark:bg-slate-800 rounded-2xl p-3">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <div>
               <p
@@ -265,6 +317,7 @@ function PostItem({ post }) {
   const [authorName, setAuthorName] = useState(post.authorName || "Anonymous");
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAuthor, setIsAuthor] = useState(false);
+  const [showUBurst, setShowUBurst] = useState(false);
 
   useEffect(() => {
     if (!post?.id) return;
@@ -481,6 +534,12 @@ function PostItem({ post }) {
 
       setLiked(!wasLiked);
       setLikesCount((prev) => (wasLiked ? Math.max(0, prev - 1) : prev + 1));
+      
+      // Trigger "U" burst animation on like (not unlike)
+      if (!wasLiked) {
+        setShowUBurst(true);
+        setTimeout(() => setShowUBurst(false), 2000);
+      }
     } catch (err) {
       console.error("Like toggle failed", err);
     }
@@ -650,28 +709,6 @@ function PostItem({ post }) {
     }
   };
 
-  const handleSharePost = async () => {
-    const shareUrl = `${window.location.origin}/campusfeed#post-${post.id}`;
-    const shareText = `Check out this post: "${post.title}" on UniSpace!`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "UniSpace Post",
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Share failed", err);
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert("Link copied to clipboard!");
-    }
-  };
-
   const handleDeletePost = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) {
       return;
@@ -722,11 +759,26 @@ function PostItem({ post }) {
     setMenuOpen(false);
   };
 
+  const getBackgroundClass = (background) => {
+    const backgrounds = {
+      'default': 'bg-white dark:bg-black',
+      'blue': 'bg-blue-50 dark:bg-blue-950',
+      'green': 'bg-green-50 dark:bg-green-950',
+      'purple': 'bg-purple-50 dark:bg-purple-950',
+      'pink': 'bg-pink-50 dark:bg-pink-950',
+      'yellow': 'bg-yellow-50 dark:bg-yellow-950',
+      'gradient-blue': 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800',
+      'gradient-purple': 'bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800',
+    };
+    return backgrounds[background] || backgrounds['default'];
+  };
+
   return (
-    <article
-      id={`post-${post.id}`}
-      className="bg-white dark:bg-black rounded-xl shadow-md p-4 sm:p-6"
-    >
+    <div>
+      <article
+        id={`post-${post.id}`}
+        className={`${getBackgroundClass(post.background)} rounded-xl shadow-md p-4 sm:p-6`}
+      >
       {/* Profile and author info in top row */}
       <div className="flex items-start gap-3 mb-4">
         {/* Profile picture */}
@@ -813,7 +865,6 @@ function PostItem({ post }) {
         onToggleLike={toggleLike}
         liked={liked}
         onToggleComments={() => setShowComments(!showComments)}
-        onShare={handleSharePost}
       />
 
       {/* Comments Section */}
@@ -892,5 +943,12 @@ function PostItem({ post }) {
         </div>
       )}
     </article>
-  );
+
+    {/* U Burst Animation */}
+    <UBurstAnimation 
+      show={showUBurst} 
+      onComplete={() => setShowUBurst(false)} 
+    />
+  </div>
+);
 }
