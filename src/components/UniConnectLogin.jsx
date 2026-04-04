@@ -27,8 +27,6 @@ const UniConnectLogin = () => {
   const navigate = useNavigate();
   const [showCompleteProfile, setShowCompleteProfile] = useState(false);
   const [googleUser, setGoogleUser] = useState(null);
-  // logo target: landing for anonymous, dashboard for logged-in
-  const logoTarget = auth && auth.currentUser ? "/dashboard" : "/";
   // If user is already authenticated, redirect to appropriate dashboard
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
