@@ -168,7 +168,8 @@ service cloud.firestore {
 
       allow update: if request.auth != null && (
         (resource.data.authorId == request.auth.uid) || 
-        ('likesCount' in request.resource.data.diff(resource.data).affectedKeys())
+        ('likesCount' in request.resource.data.diff(resource.data).affectedKeys()) ||
+        ('poll' in request.resource.data.diff(resource.data).affectedKeys())
       );
       
       allow delete: if request.auth != null

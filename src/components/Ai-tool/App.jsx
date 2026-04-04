@@ -464,7 +464,7 @@ const App = () => {
                 <div className="min-h-[120px] md:min-h-[220px]">
                   <FileUpload
                     title="Upload Academic Material"
-                    subtitle="PDF, Text, or Images"
+                    subtitle="PDF, Text, or Images (max 10MB each)"
                     files={summaryFiles}
                     onFilesAdded={(newFiles) => setSummaryFiles([...newFiles])}
                     onFileRemove={(id) =>
@@ -490,7 +490,7 @@ const App = () => {
                   <div className="min-h-[160px] md:min-h-[240px]">
                     <FileUpload
                       title="1. Course Material"
-                      subtitle="Notes, Slides, References"
+                      subtitle="Notes, Slides, References (max 10MB each)"
                       files={courseFiles}
                       onFilesAdded={(newFiles) =>
                         setCourseFiles((prev) => [...prev, ...newFiles])
@@ -506,7 +506,7 @@ const App = () => {
                   <div className="min-h-[160px] md:min-h-[240px]">
                     <FileUpload
                       title="2. Past Questions"
-                      subtitle="Exams to be solved"
+                      subtitle="Exams to be solved (max 10MB each)"
                       files={questionFiles}
                       onFilesAdded={(newFiles) =>
                         setQuestionFiles((prev) => [...prev, ...newFiles])

@@ -172,8 +172,8 @@ const PollComponent = ({ post, postId, userId }) => {
       return;
     }
 
-    // If clicking the same option, remove the vote (unvote)
-    const isUnvoting = userVote === optionIndex;
+    const previousVote = userVote;
+    const isUnvoting = previousVote === optionIndex;
     const newVote = isUnvoting ? null : optionIndex;
 
     // Optimistic UI update
@@ -181,15 +181,13 @@ const PollComponent = ({ post, postId, userId }) => {
 
     // Create optimistic poll data
     const optimisticPollData = { ...currentPollData };
-    if (userVote !== null) {
-      // Remove previous vote
-      optimisticPollData.options[userVote].votes = Math.max(
+    if (previousVote !== null) {
+      optimisticPollData.options[previousVote].votes = Math.max(
         0,
-        optimisticPollData.options[userVote].votes - 1,
+        optimisticPollData.options[previousVote].votes - 1,
       );
     }
     if (!isUnvoting) {
-      // Add new vote
       optimisticPollData.options[optionIndex].votes =
         (optimisticPollData.options[optionIndex].votes || 0) + 1;
     }
@@ -212,8 +210,8 @@ const PollComponent = ({ post, postId, userId }) => {
         }
 
         // Remove previous vote if exists
-        if (userVote !== null) {
-          const oldOption = pollData.options[userVote];
+        if (previousVote !== null) {
+          const oldOption = pollData.options[previousVote];
           oldOption.votes = Math.max(0, oldOption.votes - 1);
         }
 
@@ -243,7 +241,7 @@ const PollComponent = ({ post, postId, userId }) => {
     } catch (err) {
       console.error("Voting failed:", err);
       // Revert optimistic updates on failure
-      setUserVote(userVote);
+      setUserVote(previousVote);
       setOptimisticVotes(null);
       toast.error("Failed to record vote");
     }
