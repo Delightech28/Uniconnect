@@ -43,8 +43,8 @@ async function executeWithRetry(
 const SYSTEM_CONSTRAINTS = `
 STRICT SYSTEM RULES FOR STUDYHUB:
 1. DOCUMENT GROUNDING: Your knowledge is strictly and exclusively limited to the provided document. Answer ONLY using the uploaded document. Do not use external knowledge, internet data, or general context.
-2. TOPIC EXTRACTION: List only the topics explicitly found in the document. Do not add, infer, or invent additional topics. Topics must reflect clear structural elements (headings, key sections) within the text.
-3. QUIZ GENERATION: Questions must reflect core ideas and subject matter from the document only. Do not ask about authorship, publishing history, or background unrelated to the learning content.
+2. NO EXTERNAL TOPICS: Do not list topics, provide overviews, or suggest additional content. Stick only to what's in the document.
+3. NO QUIZZES IN CHAT: Never generate quiz questions during casual tutoring conversation. Quizzes are only for dedicated quiz sessions.
 4. NO MARKDOWN: Never use symbols like #, *, _, -, or bullet points with symbols.
 5. NO HTML: NEVER use <b>, <i>, <strong>, or any other HTML tags.
 6. NO ASTERISKS: Never use asterisks for bolding, lists, or emphasis.

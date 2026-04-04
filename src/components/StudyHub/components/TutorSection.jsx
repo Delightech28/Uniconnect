@@ -5,7 +5,7 @@ import { askTutor, speakText } from '../services/geminiService';
 /**
  * FormattedText component for rendering rich text with markdown support
  */
-const FormattedText = ({ text, isDarkMode }) => {
+const FormattedText = ({ text, isDarkMode, onCitationClick }) => {
   const elements = [];
   const lines = text.split('\n');
   
@@ -13,7 +13,8 @@ const FormattedText = ({ text, isDarkMode }) => {
     const trimmed = line.trim();
     if (!trimmed) return;
     
-    const parts = line.split(/(\*\*.*?\*\*)/g);
+    // Split by bold markers and page references
+    const parts = line.split(/(\*\*.*?\*\*|\[Page\s+\d+\])/g);
     const children = parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return (
@@ -23,6 +24,24 @@ const FormattedText = ({ text, isDarkMode }) => {
           >
             {part.slice(2, -2)}
           </strong>
+        );
+      }
+      // Format page references as clickable buttons
+      if (part.match(/\[Page\s+\d+\]/)) {
+        const pageNum = parseInt(part.match(/\d+/)[0]);
+        return (
+          <button
+            key={i}
+            onClick={() => onCitationClick?.(pageNum)}
+            className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mx-1 transition-colors ${
+              isDarkMode 
+                ? 'bg-[#07bc0c]/20 text-[#07bc0c] hover:bg-[#07bc0c]/30' 
+                : 'bg-[#07bc0c]/20 text-[#07bc0c] hover:bg-[#07bc0c]/30'
+            }`}
+            title={`Jump to page ${pageNum}`}
+          >
+            {part}
+          </button>
         );
       }
       return part;
@@ -91,7 +110,7 @@ const TutorSection = ({
       const initialMsg = {
         id: Date.now(),
         sender: 'ai',
-        text: `Hello! I'm your AI tutor. I've reviewed the material on ${topics.join(', ')}. Ask me anything about these topics!`,
+        text: `I'm here to help you understand ${topics.length > 0 ? `${topics.join(', ')}.` : 'the material.'} What would you like to know?`,
         timestamp: new Date(),
         role: 'assistant'
       };
@@ -297,7 +316,14 @@ const TutorSection = ({
                     : 'bg-slate-100 text-slate-900'
                 }`}
               >
-                <FormattedText text={msg.text} isDarkMode={isDarkMode} />
+                <FormattedText 
+                  text={msg.text} 
+                  isDarkMode={isDarkMode}
+                  onCitationClick={(pageNum) => {
+                    console.log('Citation clicked - Page:', pageNum);
+                    // Could integrate with document viewer if needed
+                  }}
+                />
                 {msg.sender === 'ai' && (
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-opacity-20">
                     <button
