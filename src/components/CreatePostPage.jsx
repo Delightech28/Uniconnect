@@ -18,7 +18,10 @@ import toast from "react-hot-toast";
 import { useTheme } from "../hooks/useTheme";
 import AppHeader from "./AppHeader";
 import Footer from "./Footer";
-import { notifyPostCreated } from "../services/notificationService";
+import {
+  notifyPostCreated,
+  notifyAllUsersPostCreated,
+} from "../services/notificationService";
 import { getDefaultAvatar } from "../services/avatarService";
 
 // --- Helper Components ---
@@ -346,6 +349,132 @@ placeholder:text-slate-400 dark:placeholder:text-slate-500"
   );
 };
 
+// Component for handling poll creation
+const PollInput = ({ poll, setPoll }) => {
+  const [newOption, setNewOption] = useState("");
+
+  const addOption = () => {
+    if (newOption.trim() && poll.options.length < 6) {
+      setPoll((prev) => ({
+        ...prev,
+        options: [...prev.options, newOption.trim()],
+      }));
+      setNewOption("");
+    }
+  };
+
+  const removeOption = (index) => {
+    setPoll((prev) => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index),
+    }));
+  };
+
+  const togglePoll = () => {
+    setPoll((prev) => ({
+      ...prev,
+      enabled: !prev.enabled,
+      options: !prev.enabled ? [] : prev.options,
+    }));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="enable-poll"
+          checked={poll.enabled}
+          onChange={togglePoll}
+          className="w-5 h-5 rounded accent-primary"
+        />
+        <label
+          htmlFor="enable-poll"
+          className="text-text-light dark:text-text-dark text-base font-medium leading-normal"
+        >
+          Add a Poll
+        </label>
+      </div>
+
+      {poll.enabled && (
+        <div className="space-y-3 p-4 border border-border-light dark:border-border-dark rounded-lg bg-background-light dark:bg-background-dark">
+          <div>
+            <label className="text-text-light dark:text-text-dark text-sm font-medium block mb-2">
+              Poll Question
+            </label>
+            <input
+              type="text"
+              placeholder="What's your question?"
+              value={poll.question}
+              onChange={(e) =>
+                setPoll((prev) => ({ ...prev, question: e.target.value }))
+              }
+              className="form-input w-full rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3"
+            />
+          </div>
+
+          <div>
+            <label className="text-text-light dark:text-text-dark text-sm font-medium block mb-2">
+              Poll Options ({poll.options.length}/6)
+            </label>
+            <div className="space-y-2">
+              {poll.options.map((option, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-border-light dark:border-border-dark"
+                >
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400 min-w-[20px]">
+                    {index + 1}.
+                  </span>
+                  <span className="flex-1 text-text-light dark:text-text-dark text-sm">
+                    {option}
+                  </span>
+                  <button
+                    onClick={() => removeOption(index)}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 mt-3">
+              <input
+                type="text"
+                placeholder="Enter option..."
+                value={newOption}
+                onChange={(e) => setNewOption(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addOption();
+                  }
+                }}
+                disabled={poll.options.length >= 6}
+                className="form-input flex-1 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 disabled:opacity-50"
+              />
+              <button
+                onClick={addOption}
+                disabled={!newOption.trim() || poll.options.length >= 6}
+                className="px-4 py-2 bg-primary hover:bg-primary-accent text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {poll.options.length < 2 && poll.enabled && (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              ⚠️ Please add at least 2 options
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Background selector component
 const BackgroundSelector = ({ selectedBackground, onBackgroundChange }) => {
   const backgrounds = [
@@ -408,9 +537,11 @@ function CreatePostPage() {
     content: "",
     tags: [],
     background: "default",
-    hasPoll: false,
-    pollQuestion: "",
-    pollOptions: ["", ""],
+  });
+  const [poll, setPoll] = useState({
+    enabled: false,
+    question: "",
+    options: [],
   });
   const [isPublishing, setIsPublishing] = useState(false);
   const [isLoadingPost, setIsLoadingPost] = useState(isEditMode);
@@ -492,8 +623,15 @@ function CreatePostPage() {
   }, []);
 
   const handlePublish = async () => {
-    if (!post.title || !post.content) {
-      toast.error("Please add a title and content before publishing.");
+    // Allow publishing if: (title and content exist) OR (poll is enabled with at least 2 options)
+    const hasValidContent =
+      (post.title && post.content) ||
+      (poll.enabled && poll.options.length >= 2);
+
+    if (!hasValidContent) {
+      toast.error(
+        "Please add a title and content, or create a poll with at least 2 options.",
+      );
       return;
     }
     setIsPublishing(true);
@@ -551,6 +689,15 @@ function CreatePostPage() {
           authorAvatar: author.avatarUrl,
           likesCount: 0,
           commentsCount: 0,
+          poll: poll.enabled
+            ? {
+                question: poll.question,
+                options: poll.options.map((option) => ({
+                  text: option,
+                  votes: 0,
+                })),
+              }
+            : null,
           createdAt: serverTimestamp(),
         };
 
@@ -583,7 +730,8 @@ function CreatePostPage() {
         toast.success("Post published");
       }
 
-      setPost({ title: "", content: "", tags: [] });
+      setPost({ title: "", content: "", tags: [], background: "default" });
+      setPoll({ enabled: false, question: "", options: [] });
       setIsPublishing(false);
       navigate("/campusfeed");
     } catch (err) {
@@ -684,6 +832,8 @@ text-base"
               </div>
 
               <TagInput tags={post.tags} setTags={setTags} />
+
+              <PollInput poll={poll} setPoll={setPoll} />
 
               <BackgroundSelector
                 selectedBackground={post.background}

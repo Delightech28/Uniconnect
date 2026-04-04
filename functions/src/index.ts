@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as logger from "firebase-functions/logger";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
@@ -655,6 +656,69 @@ export const paystackWebhook = onRequest(
       logger.error("Webhook error:", err);
       res.status(500).json({ error: "Server error", details: err.message });
       return;
+    }
+  },
+);
+
+// Referral attribution function
+export const onUserCreated = onDocumentCreated(
+  {
+    document: "users/{userId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const userId = event.params.userId;
+    const userData = event.data?.data();
+
+    if (!userData) {
+      logger.warn(`No data for user ${userId}`);
+      return;
+    }
+
+    const referredByCode = userData.referredByCode;
+
+    if (!referredByCode) {
+      logger.info(`User ${userId} has no referral code`);
+      return;
+    }
+
+    try {
+      // Find the referrer by their referral code
+      const usersRef = db.collection("users");
+      const referrerQuery = await usersRef
+        .where("referralCode", "==", referredByCode)
+        .limit(1)
+        .get();
+
+      if (referrerQuery.empty) {
+        logger.warn(`No referrer found for code: ${referredByCode}`);
+        return;
+      }
+
+      const referrerDoc = referrerQuery.docs[0];
+      const referrerId = referrerDoc.id;
+
+      // Increment the referrer's referrals count
+      await referrerDoc.ref.update({
+        referralsCount: FieldValue.increment(1),
+      });
+
+      // Create a referral notification for the referrer
+      await db
+        .collection("users")
+        .doc(referrerId)
+        .collection("notifications")
+        .add({
+          type: "referral_success",
+          title: "New Referral!",
+          message: `Someone signed up using your referral link! You now have ${userData.referralsCount + 1} referrals.`,
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+      logger.log(`✅ Referral attributed: ${userId} referred by ${referrerId}`);
+    } catch (error: any) {
+      logger.error("Error processing referral:", error);
     }
   },
 );

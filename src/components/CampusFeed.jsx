@@ -142,6 +142,164 @@ const UBurstAnimation = ({ show, onComplete }) => {
   );
 };
 
+const PollComponent = ({ post, postId, userId }) => {
+  const [userVote, setUserVote] = useState(null);
+  const [optimisticVotes, setOptimisticVotes] = useState(null);
+
+  // Use optimistic votes if available, otherwise use post data
+  const currentPollData = optimisticVotes || post.poll;
+
+  useEffect(() => {
+    // Check if user has already voted
+    const checkVote = async () => {
+      if (!userId) return;
+      try {
+        const voteRef = doc(db, "posts", postId, "pollVotes", userId);
+        const voteDoc = await getDoc(voteRef);
+        if (voteDoc.exists()) {
+          setUserVote(voteDoc.data().optionIndex);
+        }
+      } catch (err) {
+        console.error("Error checking vote:", err);
+      }
+    };
+    checkVote();
+  }, [postId, userId]);
+
+  const handleVote = async (optionIndex) => {
+    if (!userId) {
+      toast.error("Please log in to vote");
+      return;
+    }
+
+    // If clicking the same option, remove the vote (unvote)
+    const isUnvoting = userVote === optionIndex;
+    const newVote = isUnvoting ? null : optionIndex;
+
+    // Optimistic UI update
+    setUserVote(newVote);
+
+    // Create optimistic poll data
+    const optimisticPollData = { ...currentPollData };
+    if (userVote !== null) {
+      // Remove previous vote
+      optimisticPollData.options[userVote].votes = Math.max(
+        0,
+        optimisticPollData.options[userVote].votes - 1,
+      );
+    }
+    if (!isUnvoting) {
+      // Add new vote
+      optimisticPollData.options[optionIndex].votes =
+        (optimisticPollData.options[optionIndex].votes || 0) + 1;
+    }
+    setOptimisticVotes(optimisticPollData);
+
+    try {
+      // Store vote and update poll count
+      await runTransaction(db, async (transaction) => {
+        const votesRef = doc(db, "posts", postId, "pollVotes", userId);
+        const pollRef = doc(db, "posts", postId);
+        const pollDoc = await transaction.get(pollRef);
+
+        if (!pollDoc.exists()) {
+          throw new Error("Post not found");
+        }
+
+        const pollData = pollDoc.data().poll;
+        if (!pollData) {
+          throw new Error("Poll not found");
+        }
+
+        // Remove previous vote if exists
+        if (userVote !== null) {
+          const oldOption = pollData.options[userVote];
+          oldOption.votes = Math.max(0, oldOption.votes - 1);
+        }
+
+        // Add new vote if not unvoting
+        if (!isUnvoting) {
+          const newOption = pollData.options[optionIndex];
+          newOption.votes = (newOption.votes || 0) + 1;
+        }
+
+        // Update poll
+        transaction.update(pollRef, { poll: pollData });
+
+        // Record or remove vote
+        if (isUnvoting) {
+          transaction.delete(votesRef);
+        } else {
+          transaction.set(votesRef, {
+            optionIndex,
+            votedAt: serverTimestamp(),
+          });
+        }
+      });
+
+      // Clear optimistic updates on success
+      setOptimisticVotes(null);
+      toast.success(isUnvoting ? "Vote removed!" : "Vote recorded!");
+    } catch (err) {
+      console.error("Voting failed:", err);
+      // Revert optimistic updates on failure
+      setUserVote(userVote);
+      setOptimisticVotes(null);
+      toast.error("Failed to record vote");
+    }
+  };
+
+  const totalVotes = post.poll.options.reduce(
+    (sum, opt) => sum + (opt.votes || 0),
+    0,
+  );
+
+  return (
+    <div className="mt-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700">
+      <h4 className="font-bold text-slate-900 dark:text-white mb-3">
+        {post.poll.question}
+      </h4>
+      <div className="space-y-2">
+        {post.poll.options.map((option, index) => {
+          const percentage =
+            totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+          const hasVoted = userVote === index;
+          return (
+            <button
+              key={index}
+              onClick={() => handleVote(index)}
+              disabled={userVote !== null && userVote !== index}
+              className={`w-full text-left p-3 rounded-lg border transition-all ${
+                hasVoted
+                  ? "bg-primary/20 border-primary dark:bg-primary/30"
+                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary"
+              } disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-slate-900 dark:text-white text-sm">
+                  {option.text}
+                </span>
+                <span className="text-xs text-slate-600 dark:text-slate-400">
+                  {percentage}% ({option.votes || 0})
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${percentage}%` }}
+                ></div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+        Total votes: {totalVotes}
+      </p>
+    </div>
+  );
+};
+
 const PostStats = ({
   likes,
   comments,
@@ -462,7 +620,7 @@ function PostItem({ post }) {
     setIsAuthor(currentUser && currentUser.uid === post.authorId);
 
     return () => unsubscribe();
-  }, [post.authorId]);
+  }, [post.authorId, post.authorName]);
 
   useEffect(() => {
     const likesCol = collection(db, "posts", post.id, "likes");
@@ -939,6 +1097,16 @@ function PostItem({ post }) {
             {renderFormattedContent(post.content || "")}
           </div>
         </div>
+
+        {/* Poll Component */}
+        {post.poll && post.poll.options && post.poll.options.length > 0 && (
+          <PollComponent
+            post={post}
+            postId={post.id}
+            userId={auth.currentUser?.uid}
+          />
+        )}
+
         <PostStats
           likes={likesCount}
           comments={comments.length || 0}

@@ -161,8 +161,10 @@ service cloud.firestore {
 
       allow create: if request.auth != null
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.title is string
-        && request.resource.data.content is string;
+        && (
+          (request.resource.data.title is string && request.resource.data.content is string) ||
+          (request.resource.data.poll is map && request.resource.data.poll.options is list && request.resource.data.poll.options.size() >= 2)
+        );
 
       allow update: if request.auth != null && (
         (resource.data.authorId == request.auth.uid) || 
@@ -180,6 +182,16 @@ service cloud.firestore {
       // Only authenticated user may create/delete their own like doc
       allow create, delete: if request.auth != null && request.auth.uid == likeId;
       allow update: if false;
+    }
+
+    // Poll votes subcollection under posts: one doc per user who voted on the poll
+    match /posts/{postId}/pollVotes/{userId} {
+      // Anyone can read poll votes (used for counts and preventing double voting)
+      allow read: if true;
+      // Only authenticated user may create/update their own vote doc
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      // Users can delete their own vote (change vote)
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Comments subcollection under posts
@@ -207,6 +219,16 @@ service cloud.firestore {
         allow create: if request.auth != null && request.auth.uid == likeId;
         allow delete: if request.auth != null && request.auth.uid == likeId;
         allow update: if false;
+      }
+
+      // Poll votes subcollection under posts: one doc per user who voted on the poll
+      match /pollVotes/{userId} {
+        // Anyone can read poll votes (used for counts and preventing double voting)
+        allow read: if true;
+        // Only authenticated user may create/update their own vote doc
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        // Users can delete their own vote (change vote)
+        allow delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
