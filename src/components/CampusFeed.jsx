@@ -19,6 +19,11 @@ import { db, auth } from "../firebase";
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+  notifyPostLiked,
+  notifyPostCommented,
+} from "../services/notificationService";
+import { getDefaultAvatar } from "../services/avatarService";
 
 // Function to render content with mixed markdown and HTML underline support
 const renderFormattedContent = (content) => {
@@ -29,21 +34,20 @@ const renderFormattedContent = (content) => {
   const parts = [];
   let lastIndex = 0;
   let match;
-  let placeholderIndex = 0;
 
   while ((match = underlineRegex.exec(content)) !== null) {
     // Add text before the underline
     if (match.index > lastIndex) {
       parts.push({
-        type: 'markdown',
-        content: content.slice(lastIndex, match.index)
+        type: "markdown",
+        content: content.slice(lastIndex, match.index),
       });
     }
 
     // Add the underlined text
     parts.push({
-      type: 'underline',
-      content: match[1]
+      type: "underline",
+      content: match[1],
     });
 
     lastIndex = match.index + match[0].length;
@@ -52,24 +56,24 @@ const renderFormattedContent = (content) => {
   // Add remaining text
   if (lastIndex < content.length) {
     parts.push({
-      type: 'markdown',
-      content: content.slice(lastIndex)
+      type: "markdown",
+      content: content.slice(lastIndex),
     });
   }
 
   // If no underlines found, just render as markdown
-  if (parts.length === 1 && parts[0].type === 'markdown') {
-    return (
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
-      </ReactMarkdown>
-    );
+  if (parts.length === 1 && parts[0].type === "markdown") {
+    return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
   }
 
   // Render mixed content
   return parts.map((part, index) => {
-    if (part.type === 'underline') {
-      return <u key={index} className="underline decoration-2 decoration-current">{part.content}</u>;
+    if (part.type === "underline") {
+      return (
+        <u key={index} className="underline decoration-2 decoration-current">
+          {part.content}
+        </u>
+      );
     } else {
       return (
         <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
@@ -79,11 +83,6 @@ const renderFormattedContent = (content) => {
     }
   });
 };
-import {
-  notifyPostLiked,
-  notifyPostCommented,
-} from "../services/notificationService";
-import { getDefaultAvatar } from "../services/avatarService";
 
 // U Burst Animation Component
 const UBurstAnimation = ({ show, onComplete }) => {
@@ -121,9 +120,7 @@ const UBurstAnimation = ({ show, onComplete }) => {
     <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
       <div className="relative">
         {/* Center U */}
-        <div className="text-6xl font-bold text-primary animate-pulse">
-          U
-        </div>
+        <div className="text-6xl font-bold text-primary animate-pulse">U</div>
 
         {/* Burst particles */}
         {particles.map((particle) => (
@@ -554,6 +551,18 @@ function PostItem({ post }) {
     const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
     const postDocRef = doc(db, "posts", post.id);
     const wasLiked = liked;
+    const optimisticLikes = wasLiked
+      ? Math.max(0, likesCount - 1)
+      : likesCount + 1;
+
+    // Optimistic UI update for instant activation
+    setLiked(!wasLiked);
+    setLikesCount(optimisticLikes);
+
+    if (!wasLiked) {
+      setShowUBurst(true);
+      setTimeout(() => setShowUBurst(false), 2000);
+    }
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -591,17 +600,11 @@ function PostItem({ post }) {
           }
         }
       });
-
-      setLiked(!wasLiked);
-      setLikesCount((prev) => (wasLiked ? Math.max(0, prev - 1) : prev + 1));
-      
-      // Trigger "U" burst animation on like (not unlike)
-      if (!wasLiked) {
-        setShowUBurst(true);
-        setTimeout(() => setShowUBurst(false), 2000);
-      }
     } catch (err) {
       console.error("Like toggle failed", err);
+      // Roll back optimistic UI if the update fails
+      setLiked(wasLiked);
+      setLikesCount(likesCount);
     }
   };
 
@@ -611,6 +614,7 @@ function PostItem({ post }) {
       navigate("/uni-connect-login");
       return;
     }
+
     const commentLikeDocRef = doc(
       db,
       "posts",
@@ -621,6 +625,17 @@ function PostItem({ post }) {
       user.uid,
     );
     const commentDocRef = doc(db, "posts", postId, "comments", commentId);
+
+    const currentLiked = commentLikes[`${commentId}_liked`] || false;
+    const currentCount = commentLikes[commentId] || 0;
+
+    setCommentLikes((prev) => ({
+      ...prev,
+      [commentId]: currentLiked
+        ? Math.max(0, currentCount - 1)
+        : currentCount + 1,
+      [`${commentId}_liked`]: !currentLiked,
+    }));
 
     try {
       await runTransaction(db, async (transaction) => {
@@ -644,6 +659,11 @@ function PostItem({ post }) {
       });
     } catch (err) {
       console.error("Comment like toggle failed", err);
+      setCommentLikes((prev) => ({
+        ...prev,
+        [commentId]: currentCount,
+        [`${commentId}_liked`]: currentLiked,
+      }));
     }
   };
 
@@ -681,7 +701,7 @@ function PostItem({ post }) {
     }
   };
 
-  const handleReplyComment = (name, commentId) => {
+  const handleReplyComment = (name) => {
     const replyText = `@${name} `;
     setNewComment(replyText);
     // Focus the input field
@@ -821,16 +841,18 @@ function PostItem({ post }) {
 
   const getBackgroundClass = (background) => {
     const backgrounds = {
-      'default': 'bg-white dark:bg-black',
-      'blue': 'bg-blue-50 dark:bg-blue-950',
-      'green': 'bg-green-50 dark:bg-green-950',
-      'purple': 'bg-purple-50 dark:bg-purple-950',
-      'pink': 'bg-pink-50 dark:bg-pink-950',
-      'yellow': 'bg-yellow-50 dark:bg-yellow-950',
-      'gradient-blue': 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800',
-      'gradient-purple': 'bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800',
+      default: "bg-white dark:bg-black",
+      blue: "bg-blue-50 dark:bg-blue-950",
+      green: "bg-green-50 dark:bg-green-950",
+      purple: "bg-purple-50 dark:bg-purple-950",
+      pink: "bg-pink-50 dark:bg-pink-950",
+      yellow: "bg-yellow-50 dark:bg-yellow-950",
+      "gradient-blue":
+        "bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800",
+      "gradient-purple":
+        "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800",
     };
-    return backgrounds[background] || backgrounds['default'];
+    return backgrounds[background] || backgrounds["default"];
   };
 
   return (
@@ -839,174 +861,176 @@ function PostItem({ post }) {
         id={`post-${post.id}`}
         className={`${getBackgroundClass(post.background)} rounded-xl shadow-md p-4 sm:p-6`}
       >
-      {/* Profile and author info in top row */}
-      <div className="flex items-start gap-3 mb-4">
-        {/* Profile picture */}
-        <button
-          onClick={() => navigate(`/profile/${post.authorId}`)}
-          className="shrink-0"
-        >
-          <img
-            alt={`${authorName}'s profile`}
-            className="w-12 h-12 rounded-full object-cover cursor-pointer"
-            src={authorAvatar || getDefaultAvatar("male")}
-            onError={(e) => {
-              e.target.src = getDefaultAvatar("male");
-            }}
-          />
-        </button>
-
-        {/* Author info and menu */}
-        <div className="flex-grow flex items-start justify-between">
-          <div className="flex flex-col">
-            <p
-              className="text-sm sm:text-base font-bold text-secondary dark:text-white cursor-pointer"
-              onClick={() => navigate(`/profile/${post.authorId}`)}
-            >
-              {authorName}
-            </p>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              {post.createdAt?.toDate
-                ? new Date(post.createdAt.toDate()).toLocaleString()
-                : ""}
-            </p>
-          </div>
-          {isAuthor && (
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1"
-              >
-                <span className="material-symbols-outlined">more_horiz</span>
-              </button>
-
-              {/* Dropdown Menu */}
-              {menuOpen && (
-                <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 shadow-lg rounded-lg z-50 min-w-[150px] border border-slate-200 dark:border-slate-700">
-                  <button
-                    onClick={handleEditPost}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      edit
-                    </span>
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDeletePost}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      delete
-                    </span>
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Title and content below - full width */}
-      <div className="text-slate-700 dark:text-slate-300 space-y-2 sm:space-y-3">
-        <h2 className="text-lg sm:text-xl font-bold text-secondary dark:text-white">
-          {post.title}
-        </h2>
-        <div className="prose prose-sm sm:prose max-w-none dark:prose-invert text-sm sm:text-base">
-          {renderFormattedContent(post.content || "")}
-        </div>
-      </div>
-      <PostStats
-        likes={likesCount}
-        comments={comments.length || 0}
-        onToggleLike={toggleLike}
-        liked={liked}
-        onToggleComments={() => setShowComments(!showComments)}
-      />
-
-      {/* Comments Section */}
-      {showComments && (
-        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-bold text-secondary dark:text-white mb-4">
-            Comments ({comments.length})
-          </h3>
-
-          {/* Add Comment Input */}
-          <form
-            onSubmit={handlePostComment}
-            className="flex items-start gap-3 mb-6"
+        {/* Profile and author info in top row */}
+        <div className="flex items-start gap-3 mb-4">
+          {/* Profile picture */}
+          <button
+            onClick={() => navigate(`/profile/${post.authorId}`)}
+            className="shrink-0"
           >
-            <div
-              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0"
-              style={{
-                backgroundImage: `url("${auth.currentUser?.photoURL || "/default_avatar.png"}")`,
+            <img
+              alt={`${authorName}'s profile`}
+              className="w-12 h-12 rounded-full object-cover cursor-pointer"
+              src={authorAvatar || getDefaultAvatar("male")}
+              onError={(e) => {
+                e.target.src = getDefaultAvatar("male");
               }}
-            ></div>
-            <div className="relative flex-grow">
-              <textarea
-                data-comment-input={post.id}
-                className="form-textarea w-full rounded-lg bg-background-light dark:bg-slate-800 border border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary text-secondary dark:text-white placeholder:text-slate-500"
-                placeholder="Add a comment..."
-                rows="2"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              ></textarea>
-              <button
-                type="submit"
-                disabled={posting || !newComment.trim()}
-                className="absolute bottom-2 right-2 flex items-center justify-center h-8 px-3 text-sm font-bold text-white bg-primary rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </button>
+
+          {/* Author info and menu */}
+          <div className="flex-grow flex items-start justify-between">
+            <div className="flex flex-col">
+              <p
+                className="text-sm sm:text-base font-bold text-secondary dark:text-white cursor-pointer"
+                onClick={() => navigate(`/profile/${post.authorId}`)}
               >
-                {posting ? "Posting..." : "Post"}
-              </button>
+                {authorName}
+              </p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {post.createdAt?.toDate
+                  ? new Date(post.createdAt.toDate()).toLocaleString()
+                  : ""}
+              </p>
             </div>
-          </form>
+            {isAuthor && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1"
+                >
+                  <span className="material-symbols-outlined">more_horiz</span>
+                </button>
 
-          {/* Comments List */}
-          {commentsLoading ? (
-            <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-              Loading comments...
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="text-center py-4 text-slate-500 dark:text-slate-400">
-              No comments yet. Be the first to comment!
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  img={comment.authorAvatar}
-                  name={comment.authorName || "Anonymous"}
-                  isAuthor={comment.authorId === post.authorId}
-                  time={
-                    comment.createdAt?.toDate
-                      ? new Date(comment.createdAt.toDate()).toLocaleString()
-                      : ""
-                  }
-                  text={comment.text}
-                  likes={commentLikes[comment.id] || 0}
-                  commentId={comment.id}
-                  postId={post.id}
-                  userId={comment.authorId}
-                  onToggleLike={toggleCommentLike}
-                  liked={commentLikes[`${comment.id}_liked`] || false}
-                  onAvatarClick={() => navigate(`/profile/${comment.authorId}`)}
-                  onDelete={handleDeleteComment}
-                  onReply={handleReplyComment}
-                />
-              ))}
-            </div>
-          )}
+                {/* Dropdown Menu */}
+                {menuOpen && (
+                  <div className="absolute right-0 top-8 bg-white dark:bg-slate-800 shadow-lg rounded-lg z-50 min-w-[150px] border border-slate-200 dark:border-slate-700">
+                    <button
+                      onClick={handleEditPost}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700"
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        edit
+                      </span>
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        delete
+                      </span>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </article>
 
-    {/* U Burst Animation */}
-    <UBurstAnimation 
-      show={showUBurst} 
-      onComplete={() => setShowUBurst(false)} 
-    />
-  </div>
-);
+        {/* Title and content below - full width */}
+        <div className="text-slate-700 dark:text-slate-300 space-y-2 sm:space-y-3">
+          <h2 className="text-lg sm:text-xl font-bold text-secondary dark:text-white">
+            {post.title}
+          </h2>
+          <div className="prose prose-sm sm:prose max-w-none dark:prose-invert text-sm sm:text-base">
+            {renderFormattedContent(post.content || "")}
+          </div>
+        </div>
+        <PostStats
+          likes={likesCount}
+          comments={comments.length || 0}
+          onToggleLike={toggleLike}
+          liked={liked}
+          onToggleComments={() => setShowComments(!showComments)}
+        />
+
+        {/* Comments Section */}
+        {showComments && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-bold text-secondary dark:text-white mb-4">
+              Comments ({comments.length})
+            </h3>
+
+            {/* Add Comment Input */}
+            <form
+              onSubmit={handlePostComment}
+              className="flex items-start gap-3 mb-6"
+            >
+              <div
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0"
+                style={{
+                  backgroundImage: `url("${auth.currentUser?.photoURL || "/default_avatar.png"}")`,
+                }}
+              ></div>
+              <div className="relative flex-grow">
+                <textarea
+                  data-comment-input={post.id}
+                  className="form-textarea w-full rounded-lg bg-background-light dark:bg-slate-800 border border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary text-secondary dark:text-white placeholder:text-slate-500"
+                  placeholder="Add a comment..."
+                  rows="2"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                ></textarea>
+                <button
+                  type="submit"
+                  disabled={posting || !newComment.trim()}
+                  className="absolute bottom-2 right-2 flex items-center justify-center h-8 px-3 text-sm font-bold text-white bg-primary rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {posting ? "Posting..." : "Post"}
+                </button>
+              </div>
+            </form>
+
+            {/* Comments List */}
+            {commentsLoading ? (
+              <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                Loading comments...
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+                No comments yet. Be the first to comment!
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {comments.map((comment) => (
+                  <Comment
+                    key={comment.id}
+                    img={comment.authorAvatar}
+                    name={comment.authorName || "Anonymous"}
+                    isAuthor={comment.authorId === post.authorId}
+                    time={
+                      comment.createdAt?.toDate
+                        ? new Date(comment.createdAt.toDate()).toLocaleString()
+                        : ""
+                    }
+                    text={comment.text}
+                    likes={commentLikes[comment.id] || 0}
+                    commentId={comment.id}
+                    postId={post.id}
+                    userId={comment.authorId}
+                    onToggleLike={toggleCommentLike}
+                    liked={commentLikes[`${comment.id}_liked`] || false}
+                    onAvatarClick={() =>
+                      navigate(`/profile/${comment.authorId}`)
+                    }
+                    onDelete={handleDeleteComment}
+                    onReply={handleReplyComment}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </article>
+
+      {/* U Burst Animation */}
+      <UBurstAnimation
+        show={showUBurst}
+        onComplete={() => setShowUBurst(false)}
+      />
+    </div>
+  );
 }

@@ -18,7 +18,10 @@ import toast from "react-hot-toast";
 import { useTheme } from "../hooks/useTheme";
 import AppHeader from "./AppHeader";
 import Footer from "./Footer";
-import { notifyPostCreated } from "../services/notificationService";
+import {
+  notifyPostCreated,
+  notifyAllUsersPostCreated,
+} from "../services/notificationService";
 import { getDefaultAvatar } from "../services/avatarService";
 
 // --- Helper Components ---
@@ -138,7 +141,7 @@ const EditorToolbar = ({ content, setContent }) => {
         const toastId = toast.loading("Uploading media...");
         uploadTask.on(
           "state_changed",
-          (snapshot) => {
+          () => {
             // optionally could update progress: snapshot.bytesTransferred / snapshot.totalBytes
           },
           async (err) => {

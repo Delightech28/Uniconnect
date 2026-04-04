@@ -1,8 +1,18 @@
 [
   {
-    "origin": ["http://localhost:5173", "https://uniconnect-981ed.web.app", "https://uniconnect-981ed.firebaseapp.com"],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "origin": [
+      "http://localhost:5173",
+      "https://uniconnect-981ed.web.app",
+      "https://uniconnect-981ed.firebaseapp.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "User-Agent",
+      "x-goog-resumable"
+    ]
   }
 ]
