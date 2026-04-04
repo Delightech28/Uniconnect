@@ -19,6 +19,66 @@ import { db, auth } from "../firebase";
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+// Function to render content with mixed markdown and HTML underline support
+const renderFormattedContent = (content) => {
+  if (!content) return null;
+
+  // First, extract underlined parts and replace with placeholders
+  const underlineRegex = /<u>(.*?)<\/u>/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  let placeholderIndex = 0;
+
+  while ((match = underlineRegex.exec(content)) !== null) {
+    // Add text before the underline
+    if (match.index > lastIndex) {
+      parts.push({
+        type: 'markdown',
+        content: content.slice(lastIndex, match.index)
+      });
+    }
+
+    // Add the underlined text
+    parts.push({
+      type: 'underline',
+      content: match[1]
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push({
+      type: 'markdown',
+      content: content.slice(lastIndex)
+    });
+  }
+
+  // If no underlines found, just render as markdown
+  if (parts.length === 1 && parts[0].type === 'markdown') {
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {content}
+      </ReactMarkdown>
+    );
+  }
+
+  // Render mixed content
+  return parts.map((part, index) => {
+    if (part.type === 'underline') {
+      return <u key={index} className="underline decoration-2 decoration-current">{part.content}</u>;
+    } else {
+      return (
+        <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
+          {part.content}
+        </ReactMarkdown>
+      );
+    }
+  });
+};
 import {
   notifyPostLiked,
   notifyPostCommented,
@@ -854,9 +914,7 @@ function PostItem({ post }) {
           {post.title}
         </h2>
         <div className="prose prose-sm sm:prose max-w-none dark:prose-invert text-sm sm:text-base">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content || ""}
-          </ReactMarkdown>
+          {renderFormattedContent(post.content || "")}
         </div>
       </div>
       <PostStats
