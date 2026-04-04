@@ -73,3 +73,14 @@ export async function* generateContentStream(text, question, mode, signal) {
     throw new Error(error.message || "Failed to generate content.");
   }
 }
+
+export const logUnidocRequest = async (db, data) => {
+  try {
+    await db.collection("unidocRequests").add({
+      ...data,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to log request:", error);
+  }
+};

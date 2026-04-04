@@ -5,6 +5,7 @@ import FileUpload from "./components/FileUpload";
 import ResultDisplay from "./components/ResultDisplay";
 import Footer from "../Footer";
 import { generateContentStream } from "./services/geminiService";
+import { logUnidocRequest } from "./services/geminiService";
 import { ResultMode } from "./types";
 import { useTheme } from "../../hooks/useTheme";
 import { httpsCallable } from "firebase/functions";
