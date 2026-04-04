@@ -122,6 +122,11 @@ const UniConnectLogin = () => {
       }
 
       // Create user document with profile data
+      const incomingRef =
+        typeof window !== "undefined"
+          ? localStorage.getItem("referral_code")
+          : null;
+
       const userData = {
         email: googleUser.email,
         displayName: googleUser.displayName,
@@ -132,13 +137,23 @@ const UniConnectLogin = () => {
         interests: profileData.interests || [],
         registerAs: profileData.registerAs || "student",
         verified: false,
+        referredByCode: incomingRef || null,
         referralCode: googleUser.uid
           ? String(googleUser.uid).slice(0, 8)
           : Math.random().toString(36).slice(2, 10),
+        referralLink: `${window.location.origin}/?ref=${googleUser.uid ? String(googleUser.uid).slice(0, 8) : Math.random().toString(36).slice(2, 10)}`,
+        referralsCount: 0,
         createdAt: new Date(),
       };
 
       await setDoc(doc(db, "users", googleUser.uid), userData);
+
+      // Clean up referral code from localStorage after use
+      if (incomingRef) {
+        try {
+          localStorage.removeItem("referral_code");
+        } catch (e) {}
+      }
 
       // Create welcome notification
       try {

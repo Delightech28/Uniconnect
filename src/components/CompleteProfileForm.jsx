@@ -176,6 +176,11 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
         });
       } else {
         // New user (registered with Gmail), create full document
+        const incomingRef =
+          typeof window !== "undefined"
+            ? localStorage.getItem("referral_code")
+            : null;
+
         await setDoc(userRef, {
           email: currentUser?.email || "",
           displayName: currentUser?.displayName || "",
@@ -186,11 +191,19 @@ const CompleteProfileForm = ({ userId, onComplete }) => {
           registerAs: formData.registerAs,
           bio: formData.bio || "",
           verified: false,
+          referredByCode: incomingRef || null,
           referralCode: userId.slice(0, 8),
           referralLink: `${window.location.origin}/?ref=${userId.slice(0, 8)}`,
           referralsCount: 0,
           createdAt: serverTimestamp(),
         });
+
+        // Clean up referral code from localStorage after use
+        if (incomingRef) {
+          try {
+            localStorage.removeItem("referral_code");
+          } catch (e) {}
+        }
       }
 
       toast.success("Profile completed!");
