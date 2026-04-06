@@ -27,26 +27,6 @@ const navLinks = [
   { label: "CampusFeed", path: "/campusfeed" },
   { label: "Wallet", path: "/uni-wallet" },
 ];
-const marketplaceItems = [
-  {
-    id: 1,
-    name: "Nike Air Max 270",
-    status: "Active",
-    statusColor: "text-green-500",
-    price: "₦25,000",
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB9mXk_qbIXJYUVxnWvbQg_bozBnGEKHRrM8v4t3KcQmZHd-FxDm81WKa7Sjga6pBF5VoxZvEEjD7WxHkR-DpYU-kBAS_JQ3aZOjZDUbu09QoakvbG-jN-BHaJPSPzt0JmZ7cKqJF3_8xN3ykop63r1dxxeepW0l6UN313C0kraBIyJwgjjuR6zyRJNmmuyswyUC0MXK2t5hBQwgo56w1dZUdskGE0AkKY2pzcLLwQC0Q8r_QgnJdJCVMPqCCKl5ZzE8Oc34XLJWDCt",
-  },
-  {
-    id: 2,
-    name: "Beats by Dre Headset",
-    status: "Sold",
-    statusColor: "text-red-500",
-    price: "₦18,500",
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAt2vO4nW3jgysnaq7rVPGh4kxysZPvVF0dgOq5fmj6WjyVAPR1e31WNOWNAllcIDOi5id5virHcgCS2BhAkBV6ga5JIKGnUCh7H3rOM2p9xc1F4hCq-O2Qauvaj6OqGfw7tAZUfsijY9JOu_ngQ8weiLKe0av6rUq92H0XLQdUAU3Pc7dBkeoaqTMTa86L9gxOt9dkQexjL-w7HItHs_vm9o31WwXgq33PfWVg41_O4_Ke6OmFSG83_GAK54tKaGqvADnHvh6JDNj4",
-  },
-];
 
 // --- Sub-components for better organization ---
 const Greeting = () => {
@@ -186,16 +166,33 @@ const UniConnectDashboard = () => {
         setCurrentUserId(user.uid);
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists() && userDoc.data().avatarUrl) {
-            setUserAvatar(userDoc.data().avatarUrl);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+
+            // Check if user has uploaded verification document (only for students)
+            // Redirect to verification page if fileDataUrl/verificationDocumentURL is empty and user is a student
+            if (
+              userData.registerAs === "student" &&
+              !userData.verificationDocumentURL &&
+              !userData.fileDataUrl
+            ) {
+              navigate("/verify-student");
+              return;
+            }
+
+            if (userData.avatarUrl) {
+              setUserAvatar(userData.avatarUrl);
+            }
           }
         } catch (err) {
-          console.error("Error fetching user avatar:", err);
+          console.error("Error fetching user data:", err);
         }
+      } else {
+        navigate("/login");
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   // Subscribe to user's listings from Firestore
   useEffect(() => {
