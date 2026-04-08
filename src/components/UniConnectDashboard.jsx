@@ -145,7 +145,6 @@ const UniConnectDashboard = () => {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userAvatar, setUserAvatar] = useState("/default_avatar.png");
   const [marketplaceTab, setMarketplaceTab] = useState("listings");
   const [userListings, setUserListings] = useState([]);

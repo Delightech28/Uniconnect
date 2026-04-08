@@ -176,14 +176,14 @@ const ContactSupportPage = () => {
                       <span className="material-symbols-outlined text-primary mt-0.5">mail</span>
                       <div className="flex flex-col">
                         <p className="font-medium text-slate-700 dark:text-slate-300">Email Us</p>
-                        <a className="text-primary hover:underline" href="mailto:unispaceinnovationhub@gmail.com">unispaceinnovationhub@gmail.com</a>
+                        <a className="text-primary hover:underline" href="mailto:contact@unispace.com.ng">contact@unispace.com.ng</a>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="material-symbols-outlined text-primary mt-0.5">call</span>
                       <div className="flex flex-col">
                         <p className="font-medium text-slate-700 dark:text-slate-300">Call Us</p>
-                        <p className="text-slate-600 dark:text-slate-400">+234 (0) 123 456 7890</p>
+                        <p className="text-slate-600 dark:text-slate-400">+234 (0) 915 088 7468</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
