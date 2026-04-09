@@ -435,46 +435,40 @@ export const generateQuiz = async (docText, topic, count = 5, signal) => {
   try {
     const prompt = `Generate ${count} multiple choice quiz questions about "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[\n  {\n    "id": "1",\n    "text": "Question text here?",\n    "options": ["Option A", "Option B", "Option C", "Option D"],\n    "correctAnswerIndex": 0,\n    "explanation": "Why this is the correct answer",\n    "pageReference": "Relevant section heading or topic name"\n  }\n]\n\nDocument text (first 3000 chars):\n${docText.substring(0, 3000)}...\n\nRules:\n1. Questions must be answerable from the document only\n2. pageReference should be a specific section heading, chapter, or topic name where the answer is found\n3. Explanations should cite the document\n4. Return ONLY the JSON array with no markdown, code blocks, or plain text`;
 
-    const body = {
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-    };
+    const response = await fetch(CLOUD_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: prompt,
+        question: `Generate quiz questions about ${topic}`,
+      }),
+      signal,
+    });
 
-    console.log(
-      "[generateQuiz] Generating",
-      count,
-      "questions for topic:",
-      topic,
-    );
-    const json = await callGenerate(MODEL_PRO, body, signal);
-    const textOut = extractTextFromResponse(json);
-    console.log("[generateQuiz] Response received, parsing...");
+    if (!response.ok) {
+      const errorDetail = await response.text();
+      throw new Error(`Server Error: ${response.status} - ${errorDetail}`);
+    }
 
-    const questions =
-      parseJsonResponse(textOut) ||
-      parseJsonResponse(
-        json?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("\n"),
-      );
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    if (!reader) throw new Error("Response body is null");
 
+    let fullText = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fullText += decoder.decode(value, { stream: true });
+    }
+
+    const questions = parseJsonResponse(fullText);
     if (Array.isArray(questions)) {
-      console.log(
-        "[generateQuiz] Generated",
-        questions.length,
-        "questions with references",
-      );
-      // Ensure all questions have pageReference
       return questions.map((q) => ({
         ...q,
         pageReference: q.pageReference || "See document",
       }));
     }
 
-    console.warn(
-      "[generateQuiz] Invalid response format, returning empty array",
-    );
     return [];
   } catch (error) {
     console.error("[generateQuiz] Error generating quiz:", error);
