@@ -79,6 +79,7 @@ overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-10
         alt={product.name}
         className="w-full h-48 object-cover"
         src={
+          product.imageUrls?.[0] ||
           product.imageUrl ||
           (product.images && product.images[0]) ||
           "/vite.svg"

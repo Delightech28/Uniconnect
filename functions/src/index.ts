@@ -5,6 +5,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { defineSecret } from "firebase-functions/params";
 import { createHmac, createHash } from "crypto";
 
@@ -1205,3 +1206,72 @@ export const streamGeminiWithText = onRequest(
     }
   },
 );
+
+export const getSecurePDFUrl = onCall(async (request) => {
+  // Check if user is authenticated
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const { listingId, pdfIndex } = request.data;
+
+  if (!listingId || typeof pdfIndex !== "number") {
+    throw new HttpsError("invalid-argument", "Missing listingId or pdfIndex");
+  }
+
+  try {
+    const userId = request.auth.uid;
+
+    // Check if user has purchased the item or is the seller
+    const listingRef = db.collection("listings").doc(listingId);
+    const listingSnap = await listingRef.get();
+
+    if (!listingSnap.exists) {
+      throw new HttpsError("not-found", "Listing not found");
+    }
+
+    const listingData = listingSnap.data();
+    const isSeller = listingData?.sellerId === userId;
+
+    let hasPurchased = false;
+    if (!isSeller) {
+      const purchaseQuery = await db
+        .collection("purchases")
+        .where("buyerId", "==", userId)
+        .where("listingId", "==", listingId)
+        .limit(1)
+        .get();
+
+      hasPurchased = !purchaseQuery.empty;
+    }
+
+    if (!isSeller && !hasPurchased) {
+      throw new HttpsError("permission-denied", "Access denied");
+    }
+
+    // Generate signed URL
+    const storage = getStorage();
+    const fileName = listingData?.pdfUrls?.[pdfIndex];
+
+    if (!fileName) {
+      throw new HttpsError("not-found", "PDF not found");
+    }
+
+    // Extract path from URL
+    const url = new URL(fileName);
+    const path = decodeURIComponent(url.pathname.split("/o/")[1].split("?")[0]);
+
+    const file = storage.bucket().file(path);
+
+    // Generate signed URL valid for 1 hour
+    const [signedUrl] = await file.getSignedUrl({
+      action: "read",
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+    });
+
+    return { signedUrl };
+  } catch (error) {
+    logger.error("Get secure PDF URL error:", error);
+    throw new HttpsError("internal", "Failed to generate secure URL");
+  }
+});

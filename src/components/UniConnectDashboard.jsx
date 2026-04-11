@@ -391,6 +391,7 @@ dark:border-slate-700"
                             className="w-16 h-16 rounded-lg object-cover"
                             alt={item.name}
                             src={
+                              item.imageUrls?.[0] ||
                               item.images?.[0] ||
                               "https://via.placeholder.com/64"
                             }

@@ -8,6 +8,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
+  updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +17,7 @@ import toast from "react-hot-toast";
 import useVerified from "../hooks/useVerified";
 import Footer from "./Footer";
 import { notifyItemListed } from "../services/notificationService";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 // --- Data for UI elements ---
 const navLinks = [
   { name: "Dashboard", href: "#", active: false },
@@ -233,10 +236,29 @@ const ImageUploader = ({ uploadedFiles, setUploadedFiles }) => {
   };
   const processFiles = useCallback(
     (files) => {
-      const newFiles = files.map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-      }));
+      const newFiles = files
+        .filter((file) => {
+          const isImage = file.type.startsWith("image/");
+          const isPdf = file.type === "application/pdf";
+          if (!isImage && !isPdf) {
+            toast.error(
+              `${file.name} is not a supported file type. Only images and PDFs are allowed.`,
+            );
+            return false;
+          }
+          if (file.size > 10 * 1024 * 1024) {
+            toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+            return false;
+          }
+          return true;
+        })
+        .map((file) => ({
+          file,
+          type: file.type.startsWith("image/") ? "image" : "pdf",
+          preview: file.type.startsWith("image/")
+            ? URL.createObjectURL(file)
+            : null,
+        }));
       setUploadedFiles((prev) => [...prev, ...newFiles]);
     },
     [setUploadedFiles],
@@ -260,7 +282,7 @@ const ImageUploader = ({ uploadedFiles, setUploadedFiles }) => {
         className="text-xl font-semibold text-secondary dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3
 mb-6"
       >
-        Upload Images
+        Upload Images and PDFs
       </h2>
       <div
         onDragOver={(e) => {
@@ -296,6 +318,7 @@ hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary/80"
                 name="file-upload"
                 type="file"
                 multiple
+                accept="image/*,application/pdf"
                 className="sr-only"
                 onChange={handleFileChange}
               />
@@ -303,7 +326,7 @@ hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary/80"
             <p className="pl-1">or drag and drop</p>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-500">
-            PNG, JPG, GIF up to 10MB
+            PNG, JPG, GIF, PDF up to 10MB each
           </p>
         </div>
       </div>
@@ -313,12 +336,20 @@ md:grid-cols-5 gap-4"
       >
         {uploadedFiles.map((file, index) => (
           <div key={index} className="relative">
-            <img
-              alt={`preview ${index}`}
-              className="w-full h-24
+            {file.type === "image" ? (
+              <img
+                alt={`preview ${index}`}
+                className="w-full h-24
 object-cover rounded-lg"
-              src={file.preview}
-            />
+                src={file.preview}
+              />
+            ) : (
+              <div className="w-full h-24 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                <span className="material-symbols-outlined text-3xl text-slate-500">
+                  description
+                </span>
+              </div>
+            )}
             <button
               onClick={() => removeFile(index)}
               className="absolute top-1 right-1 bg-black/50 text-white rounded-full
@@ -527,19 +558,13 @@ const SellItemPage = () => {
     try {
       toast.loading("Posting listing...", { id: "posting" });
 
-      // convert up to 3 images to base64 (keep payload small)
-      const images = [];
-      for (let i = 0; i < Math.min(uploadedFiles.length, 3); i++) {
-        const f = uploadedFiles[i];
-        if (f?.file) {
-          try {
-            const dataUrl = await readFileAsDataURL(f.file);
-            images.push(dataUrl);
-          } catch (err) {
-            console.warn("Failed to read file", err);
-          }
-        }
-      }
+      // Separate files into images and pdfs
+      const imageFiles = uploadedFiles
+        .filter((f) => f.type === "image")
+        .map((f) => f.file);
+      const pdfFiles = uploadedFiles
+        .filter((f) => f.type === "pdf")
+        .map((f) => f.file);
 
       // attempt to get seller display name from users collection
       let sellerName = "";
@@ -562,19 +587,57 @@ const SellItemPage = () => {
         sellerName = user.email.split("@")[0] || "Seller";
       }
 
-      const listing = {
+      // Create listing document first
+      const listingData = {
         name: formData.productName,
         price: Number(formData.price) || formData.price,
         category: formData.category,
         description: formData.description,
-        images,
+        imageUrls: [], // to be filled
+        pdfUrls: [], // to be filled
         sellerId: user.uid,
         sellerName,
         sellerAvatarUrl,
         createdAt: serverTimestamp(),
       };
 
-      const listingDocRef = await addDoc(collection(db, "listings"), listing);
+      const listingDocRef = await addDoc(
+        collection(db, "listings"),
+        listingData,
+      );
+
+      // Now upload files to Storage
+      const storage = getStorage();
+      const imageUrls = [];
+      const pdfUrls = [];
+
+      // Upload images
+      for (const file of imageFiles) {
+        const storageRef = ref(
+          storage,
+          `listings/${listingDocRef.id}/images/${file.name}`,
+        );
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        imageUrls.push(downloadURL);
+      }
+
+      // Upload PDFs
+      for (const file of pdfFiles) {
+        const storageRef = ref(
+          storage,
+          `listings/${listingDocRef.id}/pdfs/${file.name}`,
+        );
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        pdfUrls.push(downloadURL);
+      }
+
+      // Update the listing with URLs
+      await updateDoc(listingDocRef, {
+        imageUrls,
+        pdfUrls,
+      });
 
       // Create notification for seller
       await notifyItemListed(user.uid, {
@@ -598,7 +661,7 @@ const SellItemPage = () => {
             likes: [],
             comments: [],
             listingId: listingDocRef.id, // Link to the listing
-            images: images.slice(0, 1), // Use first image for the post
+            images: imageUrls.slice(0, 1), // Use first image for the post
           });
         } catch (shareErr) {
           console.warn("Failed to share on campus feed:", shareErr);
