@@ -82,8 +82,17 @@ overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-10
           product.imageUrls?.[0] ||
           product.imageUrl ||
           (product.images && product.images[0]) ||
-          "/vite.svg"
+          "https://via.placeholder.com/400x300?text=No+Image"
         }
+        onError={(e) => {
+          console.log(
+            "Image failed to load for product:",
+            product.id,
+            product.imageUrls,
+            product.images,
+          );
+          e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
+        }}
       />
       <div className="p-4 flex-grow flex flex-col">
         <p

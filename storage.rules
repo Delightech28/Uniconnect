@@ -1,10 +1,14 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow any authenticated user to read from storage
-    match /{allPaths=**} {
-      allow read: if request.auth != null;
+    // Allow public read access for listing images and PDFs
+    match /listings/{listingId}/{allPaths=**} {
+      allow read: if true; // Public read for marketplace images
       allow write, delete: if request.auth != null;
+    }
+    // Keep other files private
+    match /{allPaths=**} {
+      allow read, write, delete: if request.auth != null;
     }
   }
 }
