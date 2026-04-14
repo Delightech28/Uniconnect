@@ -53,6 +53,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GuestUpgrade from "./components/GuestUpgrade";
 import PricingPage from "./components/PricingPage";
 import GenderSelectionModal from "./components/GenderSelectionModal";
+import GeneralChatPage from "./components/GeneralChatPage";
 function App() {
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -342,6 +343,14 @@ function App() {
             }
           />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <GeneralChatPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/admin-panel" element={<AdminPanel />} />
         </Routes>
       </Router>

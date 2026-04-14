@@ -155,7 +155,30 @@ const UniConnectDashboard = () => {
 
   // Simple markdown renderer for bold text
   const renderMarkdown = (text) => {
-    return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    if (!text) return "";
+
+    let html = text;
+
+    // Convert image markdown: ![alt](url) -> <img alt="alt" src="url" style="...">
+    html = html.replace(
+      /!\[(.*?)\]\((.*?)\)/g,
+      '<img alt="$1" src="$2" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onError="this.style.display=\'none\';" />',
+    );
+
+    // Convert bold markdown: **text** -> <strong>text</strong>
+    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // Convert italic markdown: *text* -> <em>text</em>
+    html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    // Convert links: [text](url) -> <a href="url" target="_blank">text</a>
+    // But avoid matching image syntax we already processed
+    html = html.replace(
+      /\[(.*?)\]\((.*?)\)(?!\()(?<!!\[)/g,
+      '<a href="$2" target="_blank" style="color: #07bc0c; text-decoration: underline;">$1</a>',
+    );
+
+    return html;
   };
 
   // Fetch current user's avatar and set currentUserId from Firestore

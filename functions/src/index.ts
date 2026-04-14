@@ -1275,3 +1275,46 @@ export const getSecurePDFUrl = onCall(async (request) => {
     throw new HttpsError("internal", "Failed to generate secure URL");
   }
 });
+
+export const chatMessage = onCall(
+  { secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    // Check if user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { prompt, systemInstruction } = request.data;
+
+    if (!prompt || typeof prompt !== "string") {
+      throw new HttpsError("invalid-argument", "Missing or invalid prompt");
+    }
+
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        logger.error("GEMINI_API_KEY not configured");
+        throw new HttpsError("internal", "Server configuration error");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction:
+          systemInstruction || "You are a helpful AI assistant.",
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+
+      return { text };
+    } catch (error: any) {
+      logger.error("Chat message error:", error);
+      throw new HttpsError(
+        "internal",
+        error.message || "Failed to generate response",
+      );
+    }
+  },
+);

@@ -25,6 +25,29 @@ import {
 } from "../services/notificationService";
 import { getDefaultAvatar } from "../services/avatarService";
 
+// Custom markdown components for proper image and link rendering
+const markdownComponents = {
+  img: ({ node, ...props }) => (
+    <img
+      {...props}
+      className="max-w-full h-auto rounded-lg my-4 shadow-md"
+      alt={props.alt || "Post image"}
+      onError={(e) => {
+        console.error("Image failed to load:", props.src);
+        e.target.style.display = "none";
+      }}
+    />
+  ),
+  a: ({ node, ...props }) => (
+    <a
+      {...props}
+      className="text-primary dark:text-primary hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    />
+  ),
+};
+
 // Function to render content with mixed markdown and HTML underline support
 const renderFormattedContent = (content) => {
   if (!content) return null;
@@ -63,7 +86,14 @@ const renderFormattedContent = (content) => {
 
   // If no underlines found, just render as markdown
   if (parts.length === 1 && parts[0].type === "markdown") {
-    return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+      >
+        {content}
+      </ReactMarkdown>
+    );
   }
 
   // Render mixed content
@@ -76,7 +106,11 @@ const renderFormattedContent = (content) => {
       );
     } else {
       return (
-        <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown
+          key={index}
+          remarkPlugins={[remarkGfm]}
+          components={markdownComponents}
+        >
           {part.content}
         </ReactMarkdown>
       );
