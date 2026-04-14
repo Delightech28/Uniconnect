@@ -21,6 +21,7 @@ const MultiplayerQuizView = ({
   const [currentPlayerReady, setCurrentPlayerReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [countdown, setCountdown] = useState(null);
   const sessionReadyInitialized = useRef(false);
   const bothReadyTriggered = useRef(false);
 
@@ -62,11 +63,12 @@ const MultiplayerQuizView = ({
           if (data.player1Ready && data.player2Ready) {
             if (!bothReadyTriggered.current) {
               bothReadyTriggered.current = true;
-              setTimeout(() => onBothReady?.(), 500);
+              setCountdown(3);
             }
           } else {
             // Reset the trigger if they're no longer both ready
             bothReadyTriggered.current = false;
+            setCountdown(null);
           }
         }
       },
@@ -79,6 +81,22 @@ const MultiplayerQuizView = ({
 
     return unsubscribe;
   }, [quizSessionId, currentUserId]);
+
+  // Handle countdown when both players are ready
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown === 0) {
+      onBothReady?.();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, onBothReady]);
 
   const handleToggleReady = async () => {
     try {
@@ -210,22 +228,38 @@ const MultiplayerQuizView = ({
       {/* Ready Button */}
       <button
         onClick={handleToggleReady}
+        disabled={countdown !== null}
         className={`w-full py-3 rounded-lg font-bold transition-all ${
-          currentPlayerReady
-            ? "bg-green-500 text-white hover:bg-green-600"
-            : "bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90"
+          countdown !== null
+            ? "bg-slate-400 text-white cursor-not-allowed"
+            : currentPlayerReady
+              ? "bg-green-500 text-white hover:bg-green-600"
+              : "bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90"
         }`}
       >
         {currentPlayerReady ? "✓ Ready" : "I'm Ready - Start Quiz"}
       </button>
 
-      {bothReady && (
+      {countdown !== null && (
+        <div className="text-center mt-4">
+          <p className="text-green-500 font-bold text-lg animate-pulse">
+            Starting in {countdown}...
+          </p>
+          <p
+            className={`text-sm mt-2 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}
+          >
+            Get ready for the quiz!
+          </p>
+        </div>
+      )}
+
+      {bothReady && countdown === null && (
         <p className="text-center text-green-500 font-bold mt-4 animate-pulse">
           All players ready! Starting quiz...
         </p>
       )}
 
-      {!bothReady && (
+      {!bothReady && countdown === null && (
         <p
           className={`text-center text-sm mt-4 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}
         >
