@@ -1,12 +1,18 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
+import { useLocation, Link } from "react-router-dom";
 import Footer from "./Footer";
 import { Users } from "lucide-react";
 import QuizInviteModal from "./QuizInviteModal";
 import MultiplayerQuizView from "./MultiplayerQuizView";
 import { updatePlayerScore } from "../services/quizMultiplayerService";
 import { auth, db } from "../firebase";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../hooks/useTheme";
 // --- Data Layer (No Backend) ---
 // This array holds all the quiz questions and answers.
@@ -162,8 +168,16 @@ function QuizPage() {
   const [quizTitle, setQuizTitle] = useState(
     incomingQuizTitle || "Introduction to Economics Quiz",
   );
+  const [opponentScore, setOpponentScore] = useState(null);
+  const [opponentName, setOpponentName] = useState(null);
+  const initializedFromState = useRef(false);
 
   useEffect(() => {
+    // Only initialize once from location.state, never reset after that
+    if (initializedFromState.current) {
+      return;
+    }
+
     let questionsToUse = null;
     if (incoming && incoming.length) {
       questionsToUse = incoming;
@@ -175,6 +189,7 @@ function QuizPage() {
       setQuestions(questionsToUse);
       setUserAnswers(Array(questionsToUse.length).fill(null));
       setCurrentQuestionIndex(0);
+      initializedFromState.current = true;
     }
   }, [incoming, incomingQuizQuestions]);
 
@@ -224,7 +239,7 @@ function QuizPage() {
     }
   };
   const handleNext = () => {
-    if (currentQuestionIndex < quizData.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -242,21 +257,73 @@ function QuizPage() {
           auth.currentUser?.uid,
           score,
         );
+
+        // Fetch session data to get opponent's score
+        const sessionDoc = await getDoc(
+          doc(db, "quizSessions", multiplayerSessionId),
+        );
+        if (sessionDoc.exists()) {
+          const sessionData = sessionDoc.data();
+          const isPlayer1 = auth.currentUser?.uid === sessionData.player1Id;
+          const opponentScoreValue = isPlayer1
+            ? sessionData.player2Score
+            : sessionData.player1Score;
+          const opponentNameValue = isPlayer1
+            ? sessionData.player2Name
+            : sessionData.player1Name;
+
+          setOpponentScore(opponentScoreValue);
+          setOpponentName(opponentNameValue);
+        }
       } catch (error) {
         console.error("Error updating player score:", error);
       }
     }
     setShowResults(true);
   };
-  const handleMultiplayerReady = () => {
+  const handleMultiplayerReady = useCallback(() => {
     setWaitingForMultiplayer(false);
     setIsMultiplayer(true);
-  };
+  }, []);
   const handleRestart = () => {
     setCurrentQuestionIndex(0);
-    setUserAnswers(Array(quizData.length).fill(null));
+    setUserAnswers(Array(questions.length).fill(null));
     setShowResults(false);
+    setOpponentScore(null);
+    setOpponentName(null);
   };
+
+  // Real-time listener for opponent's score in multiplayer
+  useEffect(() => {
+    if (!isMultiplayer || !multiplayerSessionId || !showResults) {
+      return;
+    }
+
+    const unsubscribe = onSnapshot(
+      doc(db, "quizSessions", multiplayerSessionId),
+      (doc) => {
+        if (doc.exists()) {
+          const sessionData = doc.data();
+          const isPlayer1 = auth.currentUser?.uid === sessionData.player1Id;
+          const opponentScoreValue = isPlayer1
+            ? sessionData.player2Score
+            : sessionData.player1Score;
+          const opponentNameValue = isPlayer1
+            ? sessionData.player2Name
+            : sessionData.player1Name;
+
+          // Only update if opponent has submitted (score is no longer undefined)
+          if (opponentScoreValue !== undefined && opponentScoreValue !== null) {
+            setOpponentScore(opponentScoreValue);
+            setOpponentName(opponentNameValue);
+          }
+        }
+      },
+    );
+
+    return () => unsubscribe();
+  }, [isMultiplayer, multiplayerSessionId, showResults]);
+
   const score = useMemo(() => {
     return userAnswers.reduce((acc, answer, index) => {
       return answer ===
@@ -269,6 +336,13 @@ function QuizPage() {
   const progressPercentage =
     ((currentQuestionIndex + 1) / quizData.length) * 100;
   if (showResults) {
+    const isWinner =
+      isMultiplayer && opponentScore !== null && score > opponentScore;
+    const isLoser =
+      isMultiplayer && opponentScore !== null && score < opponentScore;
+    const isTie =
+      isMultiplayer && opponentScore !== null && score === opponentScore;
+
     return (
       <div>
         <div
@@ -279,34 +353,154 @@ font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col"
           <main className="flex-1 px-4 py-8">
             <div
               className="max-w-2xl mx-auto bg-white
-dark:bg-secondary rounded-xl shadow-lg p-6 sm:p-8 text-center"
+dark:bg-secondary rounded-xl shadow-lg p-6 sm:p-8"
             >
               <h1
                 className="text-xl sm:text-2xl lg:text-3xl font-bold text-secondary
-dark:text-white"
+dark:text-white text-center"
               >
-                Quiz Completed!
+                {isMultiplayer ? "Quiz Battle Complete! 🎯" : "Quiz Completed!"}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
-                You have successfully finished the quiz.
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 text-center">
+                {isMultiplayer && opponentScore !== null
+                  ? "Here are the final scores..."
+                  : isMultiplayer && opponentScore === null
+                    ? "Waiting for other player to finish..."
+                    : "You have successfully finished the quiz."}
               </p>
-              <div className="my-8">
-                <p className="text-lg">Your Score:</p>
-                <p
-                  className="text-5xl font-bold text-primary
-my-2"
-                >
-                  {score} / {quizData.length}
-                </p>
-                <p className="text-xl font-medium">
-                  {((score / quizData.length) * 100).toFixed(0)}%
-                </p>
-              </div>
+
+              {isMultiplayer && opponentScore !== null ? (
+                <div className="my-8">
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {/* Your Score */}
+                    <div
+                      className={`p-6 rounded-lg border-2 transition-all ${
+                        isWinner
+                          ? "bg-success/10 border-success"
+                          : isLoser
+                            ? "bg-error/10 border-error"
+                            : "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
+                        Your Score
+                      </p>
+                      <p
+                        className={`text-4xl font-bold mb-2 ${
+                          isWinner
+                            ? "text-success"
+                            : isLoser
+                              ? "text-error"
+                              : "text-blue-600 dark:text-blue-400"
+                        }`}
+                      >
+                        {score} / {questions.length}
+                      </p>
+                      <p
+                        className={`text-lg font-medium ${
+                          isWinner
+                            ? "text-success"
+                            : isLoser
+                              ? "text-error"
+                              : "text-blue-600 dark:text-blue-400"
+                        }`}
+                      >
+                        {((score / questions.length) * 100).toFixed(0)}%
+                      </p>
+                    </div>
+
+                    {/* Opponent Score */}
+                    <div
+                      className={`p-6 rounded-lg border-2 transition-all ${
+                        isLoser
+                          ? "bg-success/10 border-success"
+                          : isWinner
+                            ? "bg-error/10 border-error"
+                            : "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
+                        {opponentName}'s Score
+                      </p>
+                      <p
+                        className={`text-4xl font-bold mb-2 ${
+                          isLoser
+                            ? "text-success"
+                            : isWinner
+                              ? "text-error"
+                              : "text-orange-600 dark:text-orange-400"
+                        }`}
+                      >
+                        {opponentScore} / {questions.length}
+                      </p>
+                      <p
+                        className={`text-lg font-medium ${
+                          isLoser
+                            ? "text-success"
+                            : isWinner
+                              ? "text-error"
+                              : "text-orange-600 dark:text-orange-400"
+                        }`}
+                      >
+                        {((opponentScore / questions.length) * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Winner Banner */}
+                  <div
+                    className={`p-4 rounded-lg text-center font-bold text-lg mb-6 ${
+                      isWinner
+                        ? "bg-success/20 text-success"
+                        : isLoser
+                          ? "bg-error/20 text-error"
+                          : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+                    }`}
+                  >
+                    {isWinner
+                      ? "🏆 You Won! Congratulations!"
+                      : isLoser
+                        ? "Keep practicing! Better luck next time."
+                        : "It's a Tie! Well played both of you!"}
+                  </div>
+                </div>
+              ) : isMultiplayer && opponentScore === null ? (
+                <div className="my-8">
+                  <p className="text-lg text-center mb-6 font-medium text-slate-600 dark:text-slate-300">
+                    Your Score:
+                  </p>
+                  <p
+                    className="text-5xl font-bold text-primary
+my-2 text-center"
+                  >
+                    {score} / {questions.length}
+                  </p>
+                  <p className="text-xl font-medium text-center mb-6">
+                    {((score / questions.length) * 100).toFixed(0)}%
+                  </p>
+                  <div className="p-4 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-center font-medium animate-pulse">
+                    ⏳ Waiting for {opponentName || "opponent"} to finish...
+                  </div>
+                </div>
+              ) : (
+                <div className="my-8">
+                  <p className="text-lg text-center mb-4">Your Score:</p>
+                  <p
+                    className="text-5xl font-bold text-primary
+my-2 text-center"
+                  >
+                    {score} / {questions.length}
+                  </p>
+                  <p className="text-xl font-medium text-center">
+                    {((score / questions.length) * 100).toFixed(0)}%
+                  </p>
+                </div>
+              )}
+
               <button
                 onClick={handleRestart}
-                className="w-full sm:w-auto flex items-center justify-center
-gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all
-hover:bg-primary/90 transition-colors"
+                className="w-full flex items-center justify-center
+gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined">refresh</span>
                 <span>Take Again</span>
@@ -328,14 +522,13 @@ font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col"
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
           <div className="flex flex-col max-w-4xl mx-auto">
             <div className="flex items-center gap-4 mb-4">
-              <a
-                className="flex items-center gap-1 text-slate-500
-dark:text-slate-400 hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary dark:hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary"
-                href="#"
+              <Link
+                to="/study-hub"
+                className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
                 <span className="text-sm font-medium">Back to Study Hub</span>
-              </a>
+              </Link>
             </div>
             <div
               className="bg-white dark:bg-secondary rounded-xl
@@ -359,7 +552,7 @@ dark:text-white"
 dark:text-white bg-primary/10 dark:bg-primary/20 px-3 py-1.5
 rounded-full"
                   >
-                    Question {currentQuestionIndex + 1} of {quizData.length}
+                    Question {currentQuestionIndex + 1} of {questions.length}
                   </span>
                   <button
                     onClick={() => setShowInviteModal(true)}
@@ -475,7 +668,7 @@ disabled:cursor-not-allowed"
                       </span>
                       <span>Previous</span>
                     </button>
-                    {currentQuestionIndex === quizData.length - 1 ? (
+                    {currentQuestionIndex === questions.length - 1 ? (
                       <button
                         onClick={handleSubmit}
                         disabled={!isAnswered}

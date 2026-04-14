@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Send, Check, Clock, Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import {
   collection,
@@ -26,6 +27,7 @@ const QuizInviteModal = ({
   selectedTopic,
   onInviteSent,
 }) => {
+  const navigate = useNavigate();
   const [connections, setConnections] = useState([]);
   const [selectedConnections, setSelectedConnections] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -105,6 +107,26 @@ const QuizInviteModal = ({
       const currentUserDoc = await getDoc(doc(db, "users", currentUserId));
       const currentUserName = currentUserDoc.data()?.displayName || "Someone";
 
+      // Create quiz session for the host (player 1)
+      const sessionId = `quiz_${currentUserId}_${Date.now()}`;
+      await setDoc(doc(db, "quizSessions", sessionId), {
+        sessionId,
+        player1Id: currentUserId,
+        player1Name: currentUserName,
+        player1Score: 0,
+        player1Ready: true, // Host auto-ready
+        player2Id: null,
+        player2Name: null,
+        player2Score: 0,
+        player2Ready: false,
+        topicId: topicId,
+        quizTitle: quizTitle,
+        quizQuestions: questionsToInvite || [],
+        status: "waiting",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
       for (const selectedId of selectedConnections) {
         // Create quiz invite document
         const inviteId = `${currentUserId}_${selectedId}_${Date.now()}`;
@@ -117,6 +139,7 @@ const QuizInviteModal = ({
           quizTitle: quizTitle,
           topicId: topicId,
           quizQuestions: questionsToInvite || [],
+          sessionId: sessionId, // Link invite to session
           status: "pending", // pending, accepted, declined
           createdAt: serverTimestamp(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
@@ -142,6 +165,15 @@ const QuizInviteModal = ({
       setSelectedConnections([]);
       onInviteSent?.();
       onClose();
+
+      // Auto-redirect host to quiz page with the session
+      navigate(`/quiz?sessionId=${sessionId}`, {
+        state: {
+          quizTitle: quizTitle,
+          topicId: topicId,
+          quizQuestions: questionsToInvite,
+        },
+      });
     } catch (error) {
       console.error("Error sending invites:", error);
       toast.error("Failed to send invites");

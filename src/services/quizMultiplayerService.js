@@ -57,26 +57,39 @@ export const acceptQuizInvite = async (inviteId, player2Id, player2Name) => {
     }
 
     const invite = inviteSnap.data();
-    const sessionId = `quiz_${invite.fromUserId}_${Date.now()}`;
+    // Use existing sessionId from invite if available, otherwise create new one
+    const sessionId =
+      invite.sessionId || `quiz_${invite.fromUserId}_${Date.now()}`;
 
-    // Create new session with both players
-    await setDoc(doc(db, "quizSessions", sessionId), {
-      sessionId,
-      player1Id: invite.fromUserId,
-      player1Name: invite.fromUserName,
-      player1Score: 0,
-      player1Ready: false,
-      player2Id: player2Id,
-      player2Name: player2Name,
-      player2Score: 0,
-      player2Ready: false,
-      topicId: invite.topicId,
-      quizTitle: invite.quizTitle,
-      quizQuestions: invite.quizQuestions || [],
-      status: "waiting",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    // Check if session already exists (host already created it)
+    const sessionDoc = await getDoc(doc(db, "quizSessions", sessionId));
+    if (sessionDoc.exists()) {
+      // Session exists, just update it to add player2
+      await updateDoc(doc(db, "quizSessions", sessionId), {
+        player2Id: player2Id,
+        player2Name: player2Name,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      // Session doesn't exist, create new one (backwards compatibility)
+      await setDoc(doc(db, "quizSessions", sessionId), {
+        sessionId,
+        player1Id: invite.fromUserId,
+        player1Name: invite.fromUserName,
+        player1Score: 0,
+        player1Ready: false,
+        player2Id: player2Id,
+        player2Name: player2Name,
+        player2Score: 0,
+        player2Ready: false,
+        topicId: invite.topicId,
+        quizTitle: invite.quizTitle,
+        quizQuestions: invite.quizQuestions || [],
+        status: "waiting",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
 
     // Update invite status
     await updateDoc(doc(db, "quizInvites", inviteId), {

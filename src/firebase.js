@@ -15,24 +15,24 @@ if (!apiKey) {
   );
 }
 
-// const firebaseConfig = {
-//   apiKey,
-//   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-//   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-//   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-//   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-//   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
-//   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
-// };
-
 const firebaseConfig = {
-  apiKey: "AIzaSyDybrQtHhsfNRtDw-xDkBDwmJbDgGRkHrY",
-  authDomain: "unispacee-cee.firebaseapp.com",
-  projectId: "unispacee-cee",
-  storageBucket: "unispacee-cee.firebasestorage.app",
-  messagingSenderId: "488543975520",
-  appId: "1:488543975520:web:cb00a4ac54d8c94ae5ab05",
+  apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
 };
+
+// const firebaseConfig = {
+//   apiKey: "AIzaSyDybrQtHhsfNRtDw-xDkBDwmJbDgGRkHrY",
+//   authDomain: "unispacee-cee.firebaseapp.com",
+//   projectId: "unispacee-cee",
+//   storageBucket: "unispacee-cee.firebasestorage.app",
+//   messagingSenderId: "488543975520",
+//   appId: "1:488543975520:web:cb00a4ac54d8c94ae5ab05",
+// };
 
 const app = initializeApp(firebaseConfig);
 

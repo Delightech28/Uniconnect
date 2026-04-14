@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Users, Check, Clock } from "lucide-react";
 import { auth, db } from "../firebase";
 import {
@@ -21,6 +21,8 @@ const MultiplayerQuizView = ({
   const [currentPlayerReady, setCurrentPlayerReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const sessionReadyInitialized = useRef(false);
+  const bothReadyTriggered = useRef(false);
 
   const currentUserId = auth.currentUser?.uid;
 
@@ -30,20 +32,41 @@ const MultiplayerQuizView = ({
 
     const unsubscribe = onSnapshot(
       doc(db, "quizSessions", quizSessionId),
-      (snapshot) => {
+      async (snapshot) => {
         if (snapshot.exists()) {
-          setSessionData(snapshot.data());
+          const data = snapshot.data();
+          setSessionData(data);
           // Update current player's ready status
           const playerKey =
-            currentUserId === snapshot.data().player1Id
-              ? "player1Ready"
-              : "player2Ready";
-          setCurrentPlayerReady(snapshot.data()[playerKey] || false);
+            currentUserId === data.player1Id ? "player1Ready" : "player2Ready";
+          setCurrentPlayerReady(data[playerKey] || false);
           setLoading(false);
 
+          // Auto-ready player 1 (quiz creator) on first load
+          if (
+            currentUserId === data.player1Id &&
+            !data.player1Ready &&
+            !sessionReadyInitialized.current
+          ) {
+            try {
+              await updateDoc(doc(db, "quizSessions", quizSessionId), {
+                player1Ready: true,
+              });
+              sessionReadyInitialized.current = true;
+            } catch (err) {
+              console.error("Error auto-readying player 1:", err);
+            }
+          }
+
           // Check if both players are ready
-          if (snapshot.data().player1Ready && snapshot.data().player2Ready) {
-            setTimeout(() => onBothReady?.(), 500);
+          if (data.player1Ready && data.player2Ready) {
+            if (!bothReadyTriggered.current) {
+              bothReadyTriggered.current = true;
+              setTimeout(() => onBothReady?.(), 500);
+            }
+          } else {
+            // Reset the trigger if they're no longer both ready
+            bothReadyTriggered.current = false;
           }
         }
       },
@@ -55,7 +78,7 @@ const MultiplayerQuizView = ({
     );
 
     return unsubscribe;
-  }, [quizSessionId, currentUserId, onBothReady]);
+  }, [quizSessionId, currentUserId]);
 
   const handleToggleReady = async () => {
     try {
@@ -193,12 +216,12 @@ const MultiplayerQuizView = ({
             : "bg-[#07bc0c] text-white hover:bg-[#07bc0c]/90"
         }`}
       >
-        {currentPlayerReady ? "✓ Ready" : "Click to Ready"}
+        {currentPlayerReady ? "✓ Ready" : "I'm Ready - Start Quiz"}
       </button>
 
       {bothReady && (
         <p className="text-center text-green-500 font-bold mt-4 animate-pulse">
-          Both players ready! Quiz starting...
+          All players ready! Starting quiz...
         </p>
       )}
 

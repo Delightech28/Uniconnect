@@ -623,32 +623,17 @@ const QuizSection = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {topics &&
           topics.map((topic, index) => {
-            const isLocked =
-              lockedTopic &&
-              lockedTopic !== topic &&
-              (topicScores[lockedTopic] || 0) < 70;
-            const isCurrentlyLocked =
-              topic === lockedTopic && (topicScores[lockedTopic] || 0) < 70;
             const handleTopicClick = () => {
-              if (isLocked) {
-                alert(
-                  `You must score at least 70% on "${lockedTopic}" before switching topics.`,
-                );
-                return;
-              }
               setSelectedTopic(topic);
             };
             return (
               <button
                 key={topic || index}
                 onClick={handleTopicClick}
-                disabled={isLocked}
                 className={`p-6 sm:p-8 rounded-3xl sm:rounded-[40px] border-2 transition-all text-left space-y-4 sm:space-y-6 relative group ${
-                  isLocked
-                    ? "opacity-50 cursor-not-allowed border-gray-300 dark:border-zinc-700"
-                    : selectedTopic === topic
-                      ? "border-unispace bg-unispace/5"
-                      : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? "dark:border-zinc-800" : ""}`
+                  selectedTopic === topic
+                    ? "border-unispace bg-unispace/5"
+                    : `bg-white dark:bg-zinc-900 border-gray-50 ${isDarkMode ? "dark:border-zinc-800" : ""}`
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -657,9 +642,6 @@ const QuizSection = ({
                   >
                     {index + 1}
                   </div>
-                  {isCurrentlyLocked && (
-                    <Lock size={16} className="text-red-500" />
-                  )}
                 </div>
                 <div className="space-y-1 sm:space-y-2">
                   <h3
