@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useTheme } from "../hooks/useTheme";
 import AppHeader from "./AppHeader";
 import Footer from "./Footer";
+import QuizInviteNotifications from "./QuizInviteNotifications";
 import {
   subscribeToNotifications,
   markAsRead,
@@ -245,6 +246,11 @@ const NotificationsPage = () => {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Quiz Invite Notifications Section */}
+          <div className="mb-6">
+            <QuizInviteNotifications />
           </div>
 
           <div className="bg-white dark:bg-black rounded-xl shadow-md overflow-hidden">
