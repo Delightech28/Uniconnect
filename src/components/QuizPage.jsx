@@ -79,6 +79,7 @@ const QuizOption = ({
   correctAnswer,
   onSelect,
   isAnswered,
+  showAnswerFeedback = true, // For multiplayer, hide feedback until both done
 }) => {
   const isSelected = selectedAnswer === index;
 
@@ -88,7 +89,8 @@ const QuizOption = ({
     "w-full text-left p-4 rounded-lg border-2 transition-colors flex items-center gap-4 ";
   let letterClasses =
     "flex items-center justify-center size-6 rounded-full font-bold ";
-  if (isAnswered) {
+  if (isAnswered && showAnswerFeedback) {
+    // Only show correct/incorrect feedback if answering is allowed to be shown
     if (isSelected && isCorrect) {
       buttonClasses += "border-success bg-success/10 ring-2 ring-success";
       letterClasses += "bg-success text-white";
@@ -99,6 +101,17 @@ const QuizOption = ({
       buttonClasses += "border-success bg-success/10";
       // Show correct answer if wrong one was picked
       letterClasses += "bg-success text-white";
+    } else {
+      buttonClasses +=
+        "border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60";
+      letterClasses +=
+        "bg-slate-200 dark:bg-slate-600 text-secondary dark:text-white";
+    }
+  } else if (isAnswered && !showAnswerFeedback) {
+    // In multiplayer before both are done, show selected answer but no feedback
+    if (isSelected) {
+      buttonClasses += "border-primary bg-primary/10";
+      letterClasses += "bg-primary text-white";
     } else {
       buttonClasses +=
         "border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60";
@@ -614,37 +627,53 @@ dark:text-white"
                         correctAnswer={currentQuestion.correctAnswerIndex}
                         onSelect={handleSelectAnswer}
                         isAnswered={isAnswered}
+                        showAnswerFeedback={
+                          !isMultiplayer ||
+                          (isMultiplayer && opponentScore !== null)
+                        }
                       />
                     ))}
                   </div>
-                  {isAnswered && (
-                    <div
-                      className={`mt-6 p-4 rounded-lg border-l-4
+                  {isAnswered &&
+                    (!isMultiplayer ||
+                      (isMultiplayer && opponentScore !== null)) && (
+                      <div
+                        className={`mt-6 p-4 rounded-lg border-l-4
 ${
   selectedAnswer === currentQuestion.correctAnswerIndex
     ? "bg-success/10 border-success"
     : "bg-error/10 border-error"
 }`}
-                    >
-                      <h3
-                        className={`font-bold ${
-                          selectedAnswer === currentQuestion.correctAnswerIndex
-                            ? "text-success"
-                            : "text-error"
-                        }`}
                       >
-                        {selectedAnswer === currentQuestion.correctAnswerIndex
-                          ? "Correct!"
-                          : "Incorrect."}
-                      </h3>
-                      <p
-                        className={`text-sm mt-1 ${
-                          selectedAnswer === currentQuestion.correctAnswerIndex
-                            ? "text-success/80 dark:text-success/90"
-                            : "text-error/80 dark:text-error/90"
-                        }`}
-                      >
-                        {currentQuestion.explanation}
+                        <h3
+                          className={`font-bold ${
+                            selectedAnswer ===
+                            currentQuestion.correctAnswerIndex
+                              ? "text-success"
+                              : "text-error"
+                          }`}
+                        >
+                          {selectedAnswer === currentQuestion.correctAnswerIndex
+                            ? "Correct!"
+                            : "Incorrect."}
+                        </h3>
+                        <p
+                          className={`text-sm mt-1 ${
+                            selectedAnswer ===
+                            currentQuestion.correctAnswerIndex
+                              ? "text-success/80 dark:text-success/90"
+                              : "text-error/80 dark:text-error/90"
+                          }`}
+                        >
+                          {currentQuestion.explanation}
+                        </p>
+                      </div>
+                    )}
+                  {isAnswered && isMultiplayer && opponentScore === null && (
+                    <div className="mt-6 p-4 rounded-lg bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 border-l-4">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                        ⏳ Waiting for opponent to finish before showing
+                        answers...
                       </p>
                     </div>
                   )}
