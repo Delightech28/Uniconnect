@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Send, Check, Clock } from "lucide-react";
+import { X, Send, Check, Clock, Loader } from "lucide-react";
 import { auth, db } from "../firebase";
 import {
   collection,
@@ -12,6 +12,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { getConnections } from "../services/profileService";
+import { generateQuiz } from "./StudyHub/services/geminiService";
 import toast from "react-hot-toast";
 
 const QuizInviteModal = ({
@@ -19,18 +20,53 @@ const QuizInviteModal = ({
   onClose,
   quizTitle,
   topicId,
+  quizQuestions,
+  docText,
+  numQuestions,
+  selectedTopic,
   onInviteSent,
 }) => {
   const [connections, setConnections] = useState([]);
   const [selectedConnections, setSelectedConnections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [questionsToInvite, setQuestionsToInvite] = useState(
+    quizQuestions || [],
+  );
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadConnections();
     }
   }, [isOpen]);
+
+  // Auto-generate questions if not provided
+  useEffect(() => {
+    if (
+      isOpen &&
+      (!questionsToInvite || questionsToInvite.length === 0) &&
+      docText &&
+      selectedTopic &&
+      numQuestions
+    ) {
+      const generateQuestionsForInvite = async () => {
+        try {
+          setIsGeneratingQuestions(true);
+          const qs = await generateQuiz(docText, selectedTopic, numQuestions);
+          setQuestionsToInvite(qs);
+        } catch (error) {
+          console.error("Error generating questions for invite:", error);
+          toast.error(
+            "Failed to generate questions. Try starting the quiz first.",
+          );
+        } finally {
+          setIsGeneratingQuestions(false);
+        }
+      };
+      generateQuestionsForInvite();
+    }
+  }, [isOpen, docText, selectedTopic, numQuestions]);
 
   const loadConnections = async () => {
     try {
@@ -80,6 +116,7 @@ const QuizInviteModal = ({
           toUserId: selectedId,
           quizTitle: quizTitle,
           topicId: topicId,
+          quizQuestions: questionsToInvite || [],
           status: "pending", // pending, accepted, declined
           createdAt: serverTimestamp(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
@@ -152,6 +189,14 @@ const QuizInviteModal = ({
 
         {/* Connections List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {isGeneratingQuestions && (
+            <div className="text-center text-slate-500 py-8">
+              <div className="flex items-center justify-center gap-2">
+                <Loader className="w-5 h-5 animate-spin" />
+                <span>Generating {numQuestions} questions...</span>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="text-center text-slate-500 py-8">
               Loading connections...
@@ -204,11 +249,24 @@ const QuizInviteModal = ({
           </button>
           <button
             onClick={handleSendInvites}
-            disabled={selectedConnections.length === 0 || loading}
+            disabled={
+              selectedConnections.length === 0 ||
+              loading ||
+              isGeneratingQuestions
+            }
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#07bc0c] text-white font-medium hover:bg-[#07bc0c]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Send className="w-4 h-4" />
-            Invite ({selectedConnections.length})
+            {isGeneratingQuestions ? (
+              <>
+                <Loader className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Invite ({selectedConnections.length})
+              </>
+            )}
           </button>
         </div>
       </div>

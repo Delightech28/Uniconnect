@@ -43,6 +43,33 @@ import {
 import { getProfileStats } from "../services/profileStatsService";
 import { notifyUserLiked } from "../services/notificationService";
 
+// Markdown renderer for posts
+const renderMarkdown = (text) => {
+  if (!text) return "";
+
+  let html = text;
+
+  // Convert image markdown: ![alt](url) -> <img alt="alt" src="url" style="...">
+  html = html.replace(
+    /!\[(.*?)\]\((.*?)\)/g,
+    '<img alt="$1" src="$2" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onError="this.style.display=\'none\';" />',
+  );
+
+  // Convert bold markdown: **text** -> <strong>text</strong>
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // Convert italic markdown: *text* -> <em>text</em>
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  // Convert links: [text](url) -> <a href="url" target="_blank">text</a>
+  html = html.replace(
+    /\[(.*?)\]\((.*?)\)(?!\()(?<!!\[)/g,
+    '<a href="$2" target="_blank" style="color: #07bc0c; text-decoration: underline;">$1</a>',
+  );
+
+  return html;
+};
+
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
@@ -415,6 +442,31 @@ const ProfilePage = () => {
     };
   }, [currentUser]);
 
+  // Real-time listener for connection status when viewing another user's profile
+  useEffect(() => {
+    if (!currentUser || !userId || userId === currentUser.uid) return;
+
+    const connectionDocRef = doc(
+      db,
+      "users",
+      currentUser.uid,
+      "connections",
+      userId,
+    );
+
+    const unsubscribe = onSnapshot(
+      connectionDocRef,
+      (snapshot) => {
+        setIsConnected(snapshot.exists());
+      },
+      (err) => {
+        console.warn("Error listening to connection status:", err);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [currentUser?.uid, userId]);
+
   const handleSendConnectionRequest = async () => {
     if (!currentUser) {
       toast.error("Please log in to connect");
@@ -428,9 +480,9 @@ const ProfilePage = () => {
         setHasPendingRequest(true);
         toast.success("Connection request sent!");
       } else if (result === "already_connected") {
-        toast.info("You are already connected");
+        toast.success("You are already connected");
       } else if (result === "already_pending") {
-        toast.info("Connection request already pending");
+        toast.success("Connection request already pending");
       }
     } catch (err) {
       console.error("Connection request error:", err);
@@ -921,9 +973,12 @@ const ProfilePage = () => {
                     <h3 className="font-bold text-secondary dark:text-white mb-2">
                       {post.title}
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-                      {post.content}
-                    </p>
+                    <div
+                      className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3"
+                      dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(post.content),
+                      }}
+                    />
                   </div>
                 ))}
               </div>

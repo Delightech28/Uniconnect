@@ -758,6 +758,10 @@ const QuizSection = ({
         onClose={() => setShowInviteModal(false)}
         quizTitle={`${selectedTopic || "Quiz"}`}
         topicId={selectedTopic}
+        quizQuestions={questions}
+        docText={docText}
+        numQuestions={numQuestions}
+        selectedTopic={selectedTopic}
         onInviteSent={() => {
           setShowInviteModal(false);
         }}

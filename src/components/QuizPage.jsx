@@ -5,7 +5,9 @@ import { Users } from "lucide-react";
 import QuizInviteModal from "./QuizInviteModal";
 import MultiplayerQuizView from "./MultiplayerQuizView";
 import { updatePlayerScore } from "../services/quizMultiplayerService";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { getDoc, doc } from "firebase/firestore";
+import { useTheme } from "../hooks/useTheme";
 // --- Data Layer (No Backend) ---
 // This array holds all the quiz questions and answers.
 const quizData = [
@@ -138,10 +140,17 @@ ml-auto"
 // --- Main Page Component ---
 function QuizPage() {
   const location = useLocation();
+  const { darkMode, toggleTheme } = useTheme();
   const incoming = location.state && location.state.questions;
+  const incomingQuizTitle = location.state && location.state.quizTitle;
+  const incomingQuizQuestions = location.state && location.state.quizQuestions;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questions, setQuestions] = useState(
-    incoming && incoming.length ? incoming : quizData,
+    incoming && incoming.length
+      ? incoming
+      : incomingQuizQuestions && incomingQuizQuestions.length
+        ? incomingQuizQuestions
+        : quizData,
   );
   const [userAnswers, setUserAnswers] = useState(
     Array(questions.length).fill(null),
@@ -150,14 +159,59 @@ function QuizPage() {
   const [multiplayerSessionId, setMultiplayerSessionId] = useState(null);
   const [isMultiplayer, setIsMultiplayer] = useState(false);
   const [waitingForMultiplayer, setWaitingForMultiplayer] = useState(false);
+  const [quizTitle, setQuizTitle] = useState(
+    incomingQuizTitle || "Introduction to Economics Quiz",
+  );
 
   useEffect(() => {
+    let questionsToUse = null;
     if (incoming && incoming.length) {
-      setQuestions(incoming);
-      setUserAnswers(Array(incoming.length).fill(null));
+      questionsToUse = incoming;
+    } else if (incomingQuizQuestions && incomingQuizQuestions.length) {
+      questionsToUse = incomingQuizQuestions;
+    }
+
+    if (questionsToUse) {
+      setQuestions(questionsToUse);
+      setUserAnswers(Array(questionsToUse.length).fill(null));
       setCurrentQuestionIndex(0);
     }
-  }, [incoming]);
+  }, [incoming, incomingQuizQuestions]);
+
+  // Handle sessionId from URL parameters for multiplayer quiz
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get("sessionId");
+    if (sessionId) {
+      setMultiplayerSessionId(sessionId);
+      setWaitingForMultiplayer(true);
+      // If we have the quiz title from state, use it
+      if (incomingQuizTitle) {
+        setQuizTitle(incomingQuizTitle);
+      }
+      // Fetch session data to get quiz questions
+      const fetchSessionData = async () => {
+        try {
+          const sessionDoc = await getDoc(doc(db, "quizSessions", sessionId));
+          if (sessionDoc.exists()) {
+            const sessionData = sessionDoc.data();
+            if (
+              sessionData.quizQuestions &&
+              sessionData.quizQuestions.length > 0
+            ) {
+              setQuestions(sessionData.quizQuestions);
+            }
+            if (sessionData.quizTitle) {
+              setQuizTitle(sessionData.quizTitle);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching session data:", err);
+        }
+      };
+      fetchSessionData();
+    }
+  }, [location.search, incomingQuizTitle]);
   const [showResults, setShowResults] = useState(false);
   const currentQuestion = questions[currentQuestionIndex];
   const selectedAnswer = userAnswers[currentQuestionIndex];
@@ -296,14 +350,8 @@ sm:items-center gap-4 mb-6"
                     className="text-2xl font-bold text-secondary
 dark:text-white"
                   >
-                    Introduction to Economics Quiz
+                    {quizTitle}
                   </h1>
-                  <p
-                    className="text-slate-500 dark:text-slate-400
-mt-1"
-                  >
-                    Based on "ECON101_Chapter1.pdf"
-                  </p>
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-3">
                   <span
@@ -338,9 +386,9 @@ rounded-full h-2.5 mb-8"
                 <div className="mb-8">
                   <MultiplayerQuizView
                     quizSessionId={multiplayerSessionId}
-                    quizTitle="Introduction to Economics Quiz"
+                    quizTitle={quizTitle}
                     onBothReady={handleMultiplayerReady}
-                    isDarkMode={false}
+                    isDarkMode={darkMode}
                   />
                 </div>
               )}
@@ -469,7 +517,7 @@ disabled:cursor-not-allowed"
       <QuizInviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        quizTitle="Introduction to Economics Quiz"
+        quizTitle={quizTitle}
         topicId="economics_101"
         onInviteSent={() => {
           setShowInviteModal(false);

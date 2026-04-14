@@ -52,11 +52,16 @@ const QuizInviteNotifications = () => {
       // Accept the invite and create session
       const sessionId = await acceptQuizInvite(invite.id, userId, userName);
 
-      toast.success("Invite accepted!");
+      toast.success("Invite accepted! Redirecting to quiz...");
 
-      // Navigate to quiz with multiplayer session
-      // In a real app, you'd navigate to quiz with the sessionId
-      console.log("Quiz session created:", sessionId);
+      // Navigate to quiz with multiplayer session and quiz info
+      navigate(`/quiz?sessionId=${sessionId}`, {
+        state: {
+          quizTitle: invite.quizTitle,
+          topicId: invite.topicId,
+          quizQuestions: invite.quizQuestions,
+        },
+      });
     } catch (error) {
       console.error("Error accepting invite:", error);
       toast.error("Failed to accept invite");

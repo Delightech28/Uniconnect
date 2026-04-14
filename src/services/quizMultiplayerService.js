@@ -72,6 +72,7 @@ export const acceptQuizInvite = async (inviteId, player2Id, player2Name) => {
       player2Ready: false,
       topicId: invite.topicId,
       quizTitle: invite.quizTitle,
+      quizQuestions: invite.quizQuestions || [],
       status: "waiting",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

@@ -35,7 +35,10 @@ const NotificationItem = ({
   const isConnectionRequest = notification.type === "connection_request";
 
   return (
-    <li className="p-4 sm:p-6 flex items-start gap-4 hover:bg-background-light/50 dark:hover:bg-slate-800/50 transition-colors group">
+    <li
+      onClick={handleClick}
+      className="p-4 sm:p-6 flex items-start gap-4 hover:bg-background-light/50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+    >
       <div
         className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notification.iconBg}`}
       >

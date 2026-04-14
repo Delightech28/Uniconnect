@@ -18,8 +18,8 @@ import {
   getDocs,
   limit,
   getDoc,
-} from 'firebase/firestore';
-import { db } from '../firebase';
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 /**
  * Track active conversation views in memory
@@ -32,40 +32,40 @@ const activeConversationViews = new Map();
  */
 export const NOTIFICATION_TYPES = {
   // Marketplace
-  ITEM_LISTED: 'item_listed',
-  OFFER_RECEIVED: 'offer_received',
-  OFFER_ACCEPTED: 'offer_accepted',
-  ITEM_SOLD: 'item_sold',
-  ITEM_PURCHASE: 'item_purchase',
-  
+  ITEM_LISTED: "item_listed",
+  OFFER_RECEIVED: "offer_received",
+  OFFER_ACCEPTED: "offer_accepted",
+  ITEM_SOLD: "item_sold",
+  ITEM_PURCHASE: "item_purchase",
+
   // Messaging
-  NEW_MESSAGE: 'new_message',
-  MESSAGE_READ: 'message_read',
-  
+  NEW_MESSAGE: "new_message",
+  MESSAGE_READ: "message_read",
+
   // Verification
-  VERIFICATION_SUBMITTED: 'verification_submitted',
-  VERIFICATION_APPROVED: 'verification_approved',
-  VERIFICATION_REJECTED: 'verification_rejected',
-  VERIFICATION_REMINDER: 'verification_reminder',
-  
+  VERIFICATION_SUBMITTED: "verification_submitted",
+  VERIFICATION_APPROVED: "verification_approved",
+  VERIFICATION_REJECTED: "verification_rejected",
+  VERIFICATION_REMINDER: "verification_reminder",
+
   // Study
-  NEW_QUIZ: 'new_quiz',
-  QUIZ_RESULTS: 'quiz_results',
-  DOCUMENT_UPLOADED: 'document_uploaded',
-  
+  NEW_QUIZ: "new_quiz",
+  QUIZ_RESULTS: "quiz_results",
+  DOCUMENT_UPLOADED: "document_uploaded",
+
   // Social
-  NEW_FOLLOWER: 'new_follower',
-  POST_LIKED: 'post_liked',
-  POST_COMMENTED: 'post_commented',
-  USER_LIKED_YOU: 'user_liked_you',
-  CONNECTION_REQUEST: 'connection_request',
-  
+  NEW_FOLLOWER: "new_follower",
+  POST_LIKED: "post_liked",
+  POST_COMMENTED: "post_commented",
+  USER_LIKED_YOU: "user_liked_you",
+  CONNECTION_REQUEST: "connection_request",
+
   // Referral
-  REFERRAL_JOINED: 'referral_joined',
-  REFERRAL_REWARD: 'referral_reward',
-  
+  REFERRAL_JOINED: "referral_joined",
+  REFERRAL_REWARD: "referral_reward",
+
   // System
-  SYSTEM_ANNOUNCEMENT: 'system_announcement',
+  SYSTEM_ANNOUNCEMENT: "system_announcement",
 };
 
 /**
@@ -73,104 +73,104 @@ export const NOTIFICATION_TYPES = {
  */
 const NOTIFICATION_CONFIG = {
   item_listed: {
-    icon: 'shopping_bag',
-    iconBg: 'bg-blue-500/10 dark:bg-blue-400/20',
-    iconColor: 'text-blue-500 dark:text-blue-400',
+    icon: "shopping_bag",
+    iconBg: "bg-blue-500/10 dark:bg-blue-400/20",
+    iconColor: "text-blue-500 dark:text-blue-400",
   },
   offer_received: {
-    icon: 'local_offer',
-    iconBg: 'bg-orange-500/10 dark:bg-orange-400/20',
-    iconColor: 'text-orange-500 dark:text-orange-400',
+    icon: "local_offer",
+    iconBg: "bg-orange-500/10 dark:bg-orange-400/20",
+    iconColor: "text-orange-500 dark:text-orange-400",
   },
   offer_accepted: {
-    icon: 'check_circle',
-    iconBg: 'bg-green-500/10 dark:bg-green-400/20',
-    iconColor: 'text-green-500 dark:text-green-400',
+    icon: "check_circle",
+    iconBg: "bg-green-500/10 dark:bg-green-400/20",
+    iconColor: "text-green-500 dark:text-green-400",
   },
   item_sold: {
-    icon: 'receipt_long',
-    iconBg: 'bg-green-500/10 dark:bg-green-400/20',
-    iconColor: 'text-green-500 dark:text-green-400',
+    icon: "receipt_long",
+    iconBg: "bg-green-500/10 dark:bg-green-400/20",
+    iconColor: "text-green-500 dark:text-green-400",
   },
   item_purchase: {
-    icon: 'shopping_cart_checkout',
-    iconBg: 'bg-green-500/10 dark:bg-green-400/20',
-    iconColor: 'text-green-500 dark:text-green-400',
+    icon: "shopping_cart_checkout",
+    iconBg: "bg-green-500/10 dark:bg-green-400/20",
+    iconColor: "text-green-500 dark:text-green-400",
   },
   new_message: {
-    icon: 'chat',
-    iconBg: 'bg-purple-500/10 dark:bg-purple-400/20',
-    iconColor: 'text-purple-500 dark:text-purple-400',
+    icon: "chat",
+    iconBg: "bg-purple-500/10 dark:bg-purple-400/20",
+    iconColor: "text-purple-500 dark:text-purple-400",
   },
   verification_submitted: {
-    icon: 'hourglass_empty',
-    iconBg: 'bg-yellow-500/10 dark:bg-yellow-400/20',
-    iconColor: 'text-yellow-500 dark:text-yellow-400',
+    icon: "hourglass_empty",
+    iconBg: "bg-yellow-500/10 dark:bg-yellow-400/20",
+    iconColor: "text-yellow-500 dark:text-yellow-400",
   },
   verification_approved: {
-    icon: 'verified_user',
-    iconBg: 'bg-green-500/10 dark:bg-green-400/20',
-    iconColor: 'text-green-500 dark:text-green-400',
+    icon: "verified_user",
+    iconBg: "bg-green-500/10 dark:bg-green-400/20",
+    iconColor: "text-green-500 dark:text-green-400",
   },
   verification_rejected: {
-    icon: 'block',
-    iconBg: 'bg-red-500/10 dark:bg-red-400/20',
-    iconColor: 'text-red-500 dark:text-red-400',
+    icon: "block",
+    iconBg: "bg-red-500/10 dark:bg-red-400/20",
+    iconColor: "text-red-500 dark:text-red-400",
   },
   verification_reminder: {
-    icon: 'warning',
-    iconBg: 'bg-red-500/10 dark:bg-red-400/20',
-    iconColor: 'text-red-500 dark:text-red-400',
+    icon: "warning",
+    iconBg: "bg-red-500/10 dark:bg-red-400/20",
+    iconColor: "text-red-500 dark:text-red-400",
   },
   new_quiz: {
-    icon: 'school',
-    iconBg: 'bg-purple-500/10 dark:bg-purple-400/20',
-    iconColor: 'text-purple-500 dark:text-purple-400',
+    icon: "school",
+    iconBg: "bg-purple-500/10 dark:bg-purple-400/20",
+    iconColor: "text-purple-500 dark:text-purple-400",
   },
   quiz_results: {
-    icon: 'assignment',
-    iconBg: 'bg-blue-500/10 dark:bg-blue-400/20',
-    iconColor: 'text-blue-500 dark:text-blue-400',
+    icon: "assignment",
+    iconBg: "bg-blue-500/10 dark:bg-blue-400/20",
+    iconColor: "text-blue-500 dark:text-blue-400",
   },
   new_follower: {
-    icon: 'person_add',
-    iconBg: 'bg-pink-500/10 dark:bg-pink-400/20',
-    iconColor: 'text-pink-500 dark:text-pink-400',
+    icon: "person_add",
+    iconBg: "bg-pink-500/10 dark:bg-pink-400/20",
+    iconColor: "text-pink-500 dark:text-pink-400",
   },
   post_liked: {
-    icon: 'favorite',
-    iconBg: 'bg-red-500/10 dark:bg-red-400/20',
-    iconColor: 'text-red-500 dark:text-red-400',
+    icon: "favorite",
+    iconBg: "bg-red-500/10 dark:bg-red-400/20",
+    iconColor: "text-red-500 dark:text-red-400",
   },
   post_commented: {
-    icon: 'comment',
-    iconBg: 'bg-cyan-500/10 dark:bg-cyan-400/20',
-    iconColor: 'text-cyan-500 dark:text-cyan-400',
+    icon: "comment",
+    iconBg: "bg-cyan-500/10 dark:bg-cyan-400/20",
+    iconColor: "text-cyan-500 dark:text-cyan-400",
   },
   user_liked_you: {
-    icon: 'favorite',
-    iconBg: 'bg-red-500/10 dark:bg-red-400/20',
-    iconColor: 'text-red-500 dark:text-red-400',
+    icon: "favorite",
+    iconBg: "bg-red-500/10 dark:bg-red-400/20",
+    iconColor: "text-red-500 dark:text-red-400",
   },
   connection_request: {
-    icon: 'person_add',
-    iconBg: 'bg-blue-500/10 dark:bg-blue-400/20',
-    iconColor: 'text-blue-500 dark:text-blue-400',
+    icon: "person_add",
+    iconBg: "bg-blue-500/10 dark:bg-blue-400/20",
+    iconColor: "text-blue-500 dark:text-blue-400",
   },
   referral_joined: {
-    icon: 'person_add',
-    iconBg: 'bg-indigo-500/10 dark:bg-indigo-400/20',
-    iconColor: 'text-indigo-500 dark:text-indigo-400',
+    icon: "person_add",
+    iconBg: "bg-indigo-500/10 dark:bg-indigo-400/20",
+    iconColor: "text-indigo-500 dark:text-indigo-400",
   },
   referral_reward: {
-    icon: 'card_giftcard',
-    iconBg: 'bg-amber-500/10 dark:bg-amber-400/20',
-    iconColor: 'text-amber-500 dark:text-amber-400',
+    icon: "card_giftcard",
+    iconBg: "bg-amber-500/10 dark:bg-amber-400/20",
+    iconColor: "text-amber-500 dark:text-amber-400",
   },
   system_announcement: {
-    icon: 'campaign',
-    iconBg: 'bg-slate-500/10 dark:bg-slate-400/20',
-    iconColor: 'text-slate-500 dark:text-slate-400',
+    icon: "campaign",
+    iconBg: "bg-slate-500/10 dark:bg-slate-400/20",
+    iconColor: "text-slate-500 dark:text-slate-400",
   },
 };
 
@@ -217,8 +217,10 @@ export const untrackConversationView = (conversationId, userId) => {
  * @returns {boolean} - True if user is actively viewing
  */
 export const isUserViewingConversation = (conversationId, userId) => {
-  return activeConversationViews.has(conversationId) && 
-         activeConversationViews.get(conversationId).has(userId);
+  return (
+    activeConversationViews.has(conversationId) &&
+    activeConversationViews.get(conversationId).has(userId)
+  );
 };
 
 /**
@@ -235,14 +237,19 @@ export const createNotification = async (
   type,
   title,
   description,
-  metadata = {}
+  metadata = {},
 ) => {
   try {
-    console.log(`Creating ${type} notification for user ${userId}:`, { title, description, metadata });
-    const config = NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG.system_announcement;
+    console.log(`Creating ${type} notification for user ${userId}:`, {
+      title,
+      description,
+      metadata,
+    });
+    const config =
+      NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG.system_announcement;
 
     const notificationRef = await addDoc(
-      collection(db, 'users', userId, 'notifications'),
+      collection(db, "users", userId, "notifications"),
       {
         type,
         title,
@@ -251,13 +258,13 @@ export const createNotification = async (
         metadata,
         unread: true,
         createdAt: serverTimestamp(),
-      }
+      },
     );
 
     console.log(`Notification created with ID: ${notificationRef.id}`);
     return notificationRef.id;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error("Error creating notification:", error);
     throw error;
   }
 };
@@ -282,7 +289,7 @@ export const notifyItemSold = async (sellerId, buyerId, productData, price) => {
         productName: productData.name,
         buyerId,
         price,
-      }
+      },
     );
 
     // Notify buyer
@@ -296,10 +303,10 @@ export const notifyItemSold = async (sellerId, buyerId, productData, price) => {
         productName: productData.name,
         sellerId,
         price,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying item sold:', error);
+    console.error("Error notifying item sold:", error);
   }
 };
 
@@ -320,10 +327,10 @@ export const notifyItemListed = async (userId, itemData) => {
         productName: itemData.name,
         price: itemData.price,
         category: itemData.category,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying item listed:', error);
+    console.error("Error notifying item listed:", error);
   }
 };
 
@@ -345,10 +352,10 @@ export const notifyOfferReceived = async (sellerId, offerData) => {
         buyerId: offerData.buyerId,
         offerPrice: offerData.offerPrice,
         offerId: offerData.offerId,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying offer received:', error);
+    console.error("Error notifying offer received:", error);
   }
 };
 
@@ -363,27 +370,40 @@ export const notifyNewMessage = async (recipientId, messageData) => {
     // If recipient is actively viewing this conversation, skip notification
     const convoId = messageData.conversationId;
     if (isUserViewingConversation(convoId, recipientId)) {
-      console.log(`Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`);
+      console.log(
+        `Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`,
+      );
       return;
     }
 
     // Check Firestore presence doc at conversations/{convoId}/views/{recipientId}
     try {
-      const presenceRef = doc(db, 'conversations', convoId, 'views', recipientId);
+      const presenceRef = doc(
+        db,
+        "conversations",
+        convoId,
+        "views",
+        recipientId,
+      );
       const presenceSnap = await getDoc(presenceRef);
       if (presenceSnap.exists()) {
         const lastActive = presenceSnap.data()?.lastActive;
         // Accept either Firestore Timestamp or millis
-        const lastMillis = lastActive && lastActive.toMillis ? lastActive.toMillis() : (lastActive || 0);
+        const lastMillis =
+          lastActive && lastActive.toMillis
+            ? lastActive.toMillis()
+            : lastActive || 0;
         const now = Date.now();
         // If user was active in last 10 seconds, skip notification
-        if (lastMillis && (now - lastMillis) < 10000) {
-          console.log(`Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`);
+        if (lastMillis && now - lastMillis < 10000) {
+          console.log(
+            `Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`,
+          );
           return;
         }
       }
     } catch (presenceErr) {
-      console.warn('Failed to check conversation presence doc:', presenceErr);
+      console.warn("Failed to check conversation presence doc:", presenceErr);
       // Fall through and send notification (safer than silently ignoring)
     }
 
@@ -391,17 +411,19 @@ export const notifyNewMessage = async (recipientId, messageData) => {
       recipientId,
       NOTIFICATION_TYPES.NEW_MESSAGE,
       `New Message from ${messageData.senderName}`,
-      `"${messageData.messagePreview || 'New message'}"`,
+      `"${messageData.messagePreview || "New message"}"`,
       {
         conversationId: messageData.conversationId,
         senderId: messageData.senderId,
         senderName: messageData.senderName,
         senderAvatar: messageData.senderAvatar,
-      }
+      },
     );
-    console.log(`Notification sent to ${recipientId} for new message in conversation ${messageData.conversationId}`);
+    console.log(
+      `Notification sent to ${recipientId} for new message in conversation ${messageData.conversationId}`,
+    );
   } catch (error) {
-    console.error('Error notifying new message:', error);
+    console.error("Error notifying new message:", error);
   }
 };
 
@@ -414,12 +436,12 @@ export const notifyVerificationSubmitted = async (userId) => {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.VERIFICATION_SUBMITTED,
-      'Verification Submitted',
-      'Your student verification has been submitted. Our team will review it within 24-48 hours.',
-      { userId }
+      "Verification Submitted",
+      "Your student verification has been submitted. Our team will review it within 24-48 hours.",
+      { userId },
     );
   } catch (error) {
-    console.error('Error notifying verification submitted:', error);
+    console.error("Error notifying verification submitted:", error);
   }
 };
 
@@ -432,12 +454,12 @@ export const notifyVerificationApproved = async (userId) => {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.VERIFICATION_APPROVED,
-      'Verification Complete',
-      'Congratulations! Your student account has been verified. You now have full access to CampusFeed and marketplace features.',
-      { userId }
+      "Verification Complete",
+      "Congratulations! Your student account has been verified. You now have full access to CampusFeed and marketplace features.",
+      { userId },
     );
   } catch (error) {
-    console.error('Error notifying verification approved:', error);
+    console.error("Error notifying verification approved:", error);
   }
 };
 
@@ -446,17 +468,17 @@ export const notifyVerificationApproved = async (userId) => {
  * @param {string} userId - User ID
  * @param {string} reason - Rejection reason
  */
-export const notifyVerificationRejected = async (userId, reason = '') => {
+export const notifyVerificationRejected = async (userId, reason = "") => {
   try {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.VERIFICATION_REJECTED,
-      'Verification Failed',
-      `Your verification was not approved. Reason: ${reason || 'Document quality or information issues. Please resubmit.'}`,
-      { userId, reason }
+      "Verification Failed",
+      `Your verification was not approved. Reason: ${reason || "Document quality or information issues. Please resubmit."}`,
+      { userId, reason },
     );
   } catch (error) {
-    console.error('Error notifying verification rejected:', error);
+    console.error("Error notifying verification rejected:", error);
   }
 };
 
@@ -476,10 +498,10 @@ export const notifyNewQuiz = async (userId, quizData) => {
         quizId: quizData.id,
         quizTitle: quizData.title,
         module: quizData.module,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying new quiz:', error);
+    console.error("Error notifying new quiz:", error);
   }
 };
 
@@ -499,10 +521,10 @@ export const notifyReferralJoined = async (userId, referralData) => {
         referralId: referralData.id,
         refereeName: referralData.referreeName,
         refereeId: referralData.refereeId,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying referral joined:', error);
+    console.error("Error notifying referral joined:", error);
   }
 };
 
@@ -516,12 +538,12 @@ export const notifyReferralReward = async (userId, reward) => {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.REFERRAL_REWARD,
-      'Referral Reward Earned',
+      "Referral Reward Earned",
       `You've earned ₦${reward.toLocaleString()} from a referral bonus!`,
-      { reward, userId }
+      { reward, userId },
     );
   } catch (error) {
-    console.error('Error notifying referral reward:', error);
+    console.error("Error notifying referral reward:", error);
   }
 };
 
@@ -534,19 +556,21 @@ export const notifyReferralReward = async (userId, reward) => {
 export const getNotifications = async (userId, limitCount = 50) => {
   try {
     const q = query(
-      collection(db, 'users', userId, 'notifications'),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
+      collection(db, "users", userId, "notifications"),
+      orderBy("createdAt", "desc"),
+      limit(limitCount),
     );
 
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      time: doc.data().createdAt ? new Date(doc.data().createdAt.toDate()).toLocaleString() : 'Just now',
+      time: doc.data().createdAt
+        ? new Date(doc.data().createdAt.toDate()).toLocaleString()
+        : "Just now",
     }));
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error("Error fetching notifications:", error);
     return [];
   }
 };
@@ -561,35 +585,43 @@ export const subscribeToNotifications = (userId, callback) => {
   try {
     console.log(`Subscribing to notifications for user: ${userId}`);
     const q = query(
-      collection(db, 'users', userId, 'notifications'),
-      orderBy('createdAt', 'desc')
+      collection(db, "users", userId, "notifications"),
+      orderBy("createdAt", "desc"),
     );
 
     return onSnapshot(
       q,
       (snapshot) => {
-        console.log(`Received ${snapshot.size} notifications for user ${userId}`);
+        console.log(
+          `Received ${snapshot.size} notifications for user ${userId}`,
+        );
         const notifications = snapshot.docs.map((doc) => {
           const data = doc.data();
-          console.log(`Notification ${doc.id}:`, { type: data.type, title: data.title });
+          console.log(`Notification ${doc.id}:`, {
+            type: data.type,
+            title: data.title,
+          });
           return {
             id: doc.id,
             ...data,
             time: data.createdAt
               ? getTimeAgo(new Date(data.createdAt.toDate()))
-              : 'Just now',
+              : "Just now",
           };
         });
         callback(notifications);
       },
       (error) => {
-        console.error(`Error listening to notifications for user ${userId}:`, error);
+        console.error(
+          `Error listening to notifications for user ${userId}:`,
+          error,
+        );
         // Call callback with empty array on error to prevent UI from hanging
         callback([]);
-      }
+      },
     );
   } catch (error) {
-    console.error('Error setting up notification subscription:', error);
+    console.error("Error setting up notification subscription:", error);
     return () => {};
   }
 };
@@ -603,28 +635,31 @@ export const fetchNotificationsOnce = async (userId) => {
   try {
     console.log(`Fetching notifications for user: ${userId}`);
     const q = query(
-      collection(db, 'users', userId, 'notifications'),
-      orderBy('createdAt', 'desc')
+      collection(db, "users", userId, "notifications"),
+      orderBy("createdAt", "desc"),
     );
-    
+
     const snapshot = await getDocs(q);
     console.log(`Found ${snapshot.size} notifications`);
-    
+
     const notifications = snapshot.docs.map((doc) => {
       const data = doc.data();
-      console.log(`Notification ${doc.id}:`, { type: data.type, title: data.title });
+      console.log(`Notification ${doc.id}:`, {
+        type: data.type,
+        title: data.title,
+      });
       return {
         id: doc.id,
         ...data,
         time: data.createdAt
           ? getTimeAgo(new Date(data.createdAt.toDate()))
-          : 'Just now',
+          : "Just now",
       };
     });
-    
+
     return notifications;
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error("Error fetching notifications:", error);
     throw error;
   }
 };
@@ -638,15 +673,15 @@ export const fetchNotificationsOnce = async (userId) => {
 export const subscribeToUnreadCount = (userId, callback) => {
   try {
     const q = query(
-      collection(db, 'users', userId, 'notifications'),
-      where('unread', '==', true)
+      collection(db, "users", userId, "notifications"),
+      where("unread", "==", true),
     );
 
     return onSnapshot(q, (snapshot) => {
       callback(snapshot.size);
     });
   } catch (error) {
-    console.error('Error subscribing to unread count:', error);
+    console.error("Error subscribing to unread count:", error);
     return () => {};
   }
 };
@@ -658,10 +693,10 @@ export const subscribeToUnreadCount = (userId, callback) => {
  */
 export const markAsRead = async (userId, notificationId) => {
   try {
-    const notifRef = doc(db, 'users', userId, 'notifications', notificationId);
+    const notifRef = doc(db, "users", userId, "notifications", notificationId);
     await updateDoc(notifRef, { unread: false });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error("Error marking notification as read:", error);
   }
 };
 
@@ -672,18 +707,18 @@ export const markAsRead = async (userId, notificationId) => {
 export const markAllAsRead = async (userId) => {
   try {
     const q = query(
-      collection(db, 'users', userId, 'notifications'),
-      where('unread', '==', true)
+      collection(db, "users", userId, "notifications"),
+      where("unread", "==", true),
     );
 
     const snapshot = await getDocs(q);
     const updates = snapshot.docs.map((doc) =>
-      updateDoc(doc.ref, { unread: false })
+      updateDoc(doc.ref, { unread: false }),
     );
 
     await Promise.all(updates);
   } catch (error) {
-    console.error('Error marking all as read:', error);
+    console.error("Error marking all as read:", error);
   }
 };
 
@@ -694,10 +729,10 @@ export const markAllAsRead = async (userId) => {
  */
 export const deleteNotification = async (userId, notificationId) => {
   try {
-    const notifRef = doc(db, 'users', userId, 'notifications', notificationId);
+    const notifRef = doc(db, "users", userId, "notifications", notificationId);
     await deleteDoc(notifRef);
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    console.error("Error deleting notification:", error);
   }
 };
 
@@ -707,13 +742,13 @@ export const deleteNotification = async (userId, notificationId) => {
  */
 export const deleteAllNotifications = async (userId) => {
   try {
-    const q = collection(db, 'users', userId, 'notifications');
+    const q = collection(db, "users", userId, "notifications");
     const snapshot = await getDocs(q);
 
     const deletes = snapshot.docs.map((doc) => deleteDoc(doc.ref));
     await Promise.all(deletes);
   } catch (error) {
-    console.error('Error deleting all notifications:', error);
+    console.error("Error deleting all notifications:", error);
   }
 };
 
@@ -729,10 +764,10 @@ export const getTimeAgo = (date) => {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
-  if (seconds < 60) return 'just now';
-  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (seconds < 60) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
 
   return date.toLocaleDateString();
 };
@@ -750,16 +785,16 @@ export const notifyPostCreated = async (userId, postData) => {
   try {
     await createNotification(
       userId,
-      'system_announcement',
+      "system_announcement",
       `Post Published: "${postData.title}"`,
       `Your post "${postData.title}" has been published on CampusFeed. Check out the engagement!`,
       {
         postId: postData.id,
         postTitle: postData.title,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying post created:', error);
+    console.error("Error notifying post created:", error);
   }
 };
 
@@ -769,26 +804,29 @@ export const notifyPostCreated = async (userId, postData) => {
  * @param {Object} postData - { id, title }
  * @param {string} [excludeUserId] - optional userId to exclude (e.g., author)
  */
-export const notifyAllUsersPostCreated = async (postData, excludeUserId = null) => {
+export const notifyAllUsersPostCreated = async (
+  postData,
+  excludeUserId = null,
+) => {
   try {
-    const usersSnap = await getDocs(collection(db, 'users'));
+    const usersSnap = await getDocs(collection(db, "users"));
     const promises = [];
     usersSnap.forEach((u) => {
       if (excludeUserId && u.id === excludeUserId) return; // skip author if requested
       promises.push(
         createNotification(
           u.id,
-          'system_announcement',
+          "system_announcement",
           `New Post: "${postData.title}"`,
           `${postData.title} — A new post was published on CampusFeed.`,
-          { postId: postData.id, postTitle: postData.title }
-        )
+          { postId: postData.id, postTitle: postData.title },
+        ),
       );
     });
 
     await Promise.all(promises);
   } catch (error) {
-    console.error('Error notifying all users about new post:', error);
+    console.error("Error notifying all users about new post:", error);
   }
 };
 
@@ -810,10 +848,10 @@ export const notifyPostLiked = async (postAuthorId, likeData) => {
         likerId: likeData.likerId,
         likerName: likeData.likerName,
         likerAvatar: likeData.likerAvatar,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying post liked:', error);
+    console.error("Error notifying post liked:", error);
   }
 };
 
@@ -837,10 +875,10 @@ export const notifyPostCommented = async (postAuthorId, commentData) => {
         commenterName: commentData.commenterName,
         commenterAvatar: commentData.commenterAvatar,
         commentText: commentData.commentText,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying post commented:', error);
+    console.error("Error notifying post commented:", error);
   }
 };
 
@@ -860,10 +898,10 @@ export const notifyNewFollower = async (userId, followerData) => {
         followerId: followerData.followerId,
         followerName: followerData.followerName,
         followerAvatar: followerData.followerAvatar,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying new follower:', error);
+    console.error("Error notifying new follower:", error);
   }
 };
 
@@ -874,24 +912,24 @@ export const notifyNewFollower = async (userId, followerData) => {
  */
 export const notifyWalletTransaction = async (userId, transactionData) => {
   try {
-    const isDeposit = transactionData.type === 'deposit';
-    const icon = isDeposit ? 'card_giftcard' : 'withdraw';
-    const action = isDeposit ? 'Deposit' : 'Withdrawal';
+    const isDeposit = transactionData.type === "deposit";
+    const icon = isDeposit ? "card_giftcard" : "withdraw";
+    const action = isDeposit ? "Deposit" : "Withdrawal";
 
     await createNotification(
       userId,
-      'system_announcement',
+      "system_announcement",
       `${action}: ₦${transactionData.amount.toLocaleString()}`,
-      `${action} of ₦${transactionData.amount.toLocaleString()} has been ${isDeposit ? 'added to' : 'withdrawn from'} your wallet. Balance: ₦${transactionData.newBalance.toLocaleString()}`,
+      `${action} of ₦${transactionData.amount.toLocaleString()} has been ${isDeposit ? "added to" : "withdrawn from"} your wallet. Balance: ₦${transactionData.newBalance.toLocaleString()}`,
       {
         transactionId: transactionData.id,
         amount: transactionData.amount,
         type: transactionData.type,
         newBalance: transactionData.newBalance,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying wallet transaction:', error);
+    console.error("Error notifying wallet transaction:", error);
   }
 };
 
@@ -904,7 +942,7 @@ export const notifyPaymentReceived = async (userId, paymentData) => {
   try {
     await createNotification(
       userId,
-      'receipt_long',
+      "receipt_long",
       `Payment Received: ₦${paymentData.amount.toLocaleString()}`,
       `You have received ₦${paymentData.amount.toLocaleString()} from ${paymentData.senderName}. Your new balance: ₦${paymentData.newBalance.toLocaleString()}`,
       {
@@ -913,10 +951,10 @@ export const notifyPaymentReceived = async (userId, paymentData) => {
         senderName: paymentData.senderName,
         amount: paymentData.amount,
         newBalance: paymentData.newBalance,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying payment received:', error);
+    console.error("Error notifying payment received:", error);
   }
 };
 
@@ -930,16 +968,16 @@ export const notifyPaymentFailed = async (userId, failureData) => {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.VERIFICATION_REJECTED,
-      'Payment Failed',
-      `Payment of ₦${failureData.amount.toLocaleString()} failed. Reason: ${failureData.reason || 'Insufficient funds or connection issue'}. Please try again.`,
+      "Payment Failed",
+      `Payment of ₦${failureData.amount.toLocaleString()} failed. Reason: ${failureData.reason || "Insufficient funds or connection issue"}. Please try again.`,
       {
         paymentId: failureData.id,
         amount: failureData.amount,
         reason: failureData.reason,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying payment failed:', error);
+    console.error("Error notifying payment failed:", error);
   }
 };
 
@@ -953,14 +991,14 @@ export const notifyLowBalance = async (userId, balance) => {
     await createNotification(
       userId,
       NOTIFICATION_TYPES.VERIFICATION_REMINDER,
-      'Low Wallet Balance',
+      "Low Wallet Balance",
       `Your UniWallet balance is low (₦${balance.toLocaleString()}). Top up to continue using marketplace features.`,
       {
         balance,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying low balance:', error);
+    console.error("Error notifying low balance:", error);
   }
 };
 
@@ -979,10 +1017,10 @@ export const notifyItemExpiring = async (userId, itemData) => {
       {
         productId: itemData.id,
         productName: itemData.name,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying item expiring:', error);
+    console.error("Error notifying item expiring:", error);
   }
 };
 
@@ -1001,10 +1039,10 @@ export const notifySystemAnnouncement = async (userId, announcementData) => {
       {
         announcementId: announcementData.id,
         link: announcementData.link,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying system announcement:', error);
+    console.error("Error notifying system announcement:", error);
   }
 };
 
@@ -1023,35 +1061,40 @@ export const notifySecurityAlert = async (userId, alertData) => {
       {
         alertType: alertData.type,
         timestamp: serverTimestamp(),
-      }
+      },
     );
   } catch (error) {
-    console.error('Error notifying security alert:', error);
+    console.error("Error notifying security alert:", error);
   }
 };
 
 /**
-* Notify when someone likes the user's profile
-* @param {string} userId - User whose profile was liked
-* @param {Object} likerData - Liker's details
-*/
+ * Notify when someone likes the user's profile
+ * @param {string} userId - User whose profile was liked
+ * @param {Object} likerData - Liker's details
+ */
 export const notifyUserLiked = async (userId, likerData) => {
   try {
-    console.log(`Creating user_liked_you notification for user: ${userId}`, likerData);
+    console.log(
+      `Creating user_liked_you notification for user: ${userId}`,
+      likerData,
+    );
     await createNotification(
       userId,
-      'user_liked_you',
+      "user_liked_you",
       `${likerData.likerName} liked your profile!`,
       `${likerData.likerName} just liked your profile. Check it out!`,
       {
         userId: likerData.likerId,
         likerName: likerData.likerName,
         likerAvatar: likerData.likerAvatar,
-      }
+      },
     );
-    console.log(`User liked notification created successfully for user: ${userId}`);
+    console.log(
+      `User liked notification created successfully for user: ${userId}`,
+    );
   } catch (error) {
-    console.error('Error notifying user liked:', error);
+    console.error("Error notifying user liked:", error);
     throw error;
   }
 };
@@ -1063,21 +1106,26 @@ export const notifyUserLiked = async (userId, likerData) => {
  */
 export const notifyConnectionRequest = async (userId, requesterData) => {
   try {
-    console.log(`Creating connection request notification for user: ${userId}`, requesterData);
+    console.log(
+      `Creating connection request notification for user: ${userId}`,
+      requesterData,
+    );
     await createNotification(
       userId,
-      'connection_request',
+      "connection_request",
       `${requesterData.requesterName} sent you a connection request`,
       `${requesterData.requesterName} wants to connect with you. Accept or decline their request.`,
       {
         userId: requesterData.requesterId,
         requesterName: requesterData.requesterName,
         requesterAvatar: requesterData.requesterAvatar,
-      }
+      },
     );
-    console.log(`Connection request notification created successfully for user: ${userId}`);
+    console.log(
+      `Connection request notification created successfully for user: ${userId}`,
+    );
   } catch (error) {
-    console.error('Error notifying connection request:', error);
+    console.error("Error notifying connection request:", error);
     throw error;
   }
 };
@@ -1091,36 +1139,43 @@ export const notifyConnectionAccepted = async (userId, acceptorData) => {
   try {
     await createNotification(
       userId,
-      'new_follower',
+      "new_follower",
       `${acceptorData.acceptorName} accepted your connection request`,
       `You are now connected with ${acceptorData.acceptorName}. Start engaging!`,
       {
+        userId: acceptorData.acceptorId,
         acceptorId: acceptorData.acceptorId,
         acceptorName: acceptorData.acceptorName,
         acceptorAvatar: acceptorData.acceptorAvatar,
-        type: 'connection_accepted',
-      }
+        type: "connection_accepted",
+      },
     );
   } catch (error) {
-    console.error('Error notifying connection accepted:', error);
+    console.error("Error notifying connection accepted:", error);
   }
 };
 
 /**
-* Bulk notify multiple users
-* @param {Array<string>} userIds - Array of user IDs
-* @param {string} type - Notification type
-* @param {string} title - Notification title
-* @param {string} description - Notification description
-* @param {Object} metadata - Additional metadata
-*/
-export const bulkNotify = async (userIds, type, title, description, metadata = {}) => {
+ * Bulk notify multiple users
+ * @param {Array<string>} userIds - Array of user IDs
+ * @param {string} type - Notification type
+ * @param {string} title - Notification title
+ * @param {string} description - Notification description
+ * @param {Object} metadata - Additional metadata
+ */
+export const bulkNotify = async (
+  userIds,
+  type,
+  title,
+  description,
+  metadata = {},
+) => {
   try {
-    const promises = userIds.map(userId =>
-      createNotification(userId, type, title, description, metadata)
+    const promises = userIds.map((userId) =>
+      createNotification(userId, type, title, description, metadata),
     );
     await Promise.all(promises);
   } catch (error) {
-    console.error('Error bulk notifying users:', error);
+    console.error("Error bulk notifying users:", error);
   }
 };
