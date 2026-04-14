@@ -567,14 +567,16 @@ rounded-full"
                   >
                     Question {currentQuestionIndex + 1} of {questions.length}
                   </span>
-                  <button
-                    onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-[#07bc0c]/10 text-[#07bc0c] rounded-full hover:bg-[#07bc0c]/20 transition-colors text-sm font-medium"
-                    title="Invite others to take quiz"
-                  >
-                    <Users className="w-4 h-4" />
-                    Invite
-                  </button>
+                  {!isMultiplayer && !waitingForMultiplayer && (
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-[#07bc0c]/10 text-[#07bc0c] rounded-full hover:bg-[#07bc0c]/20 transition-colors text-sm font-medium"
+                      title="Invite others to take quiz"
+                    >
+                      <Users className="w-4 h-4" />
+                      Invite
+                    </button>
+                  )}
                 </div>
               </div>
               <div
