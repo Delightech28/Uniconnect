@@ -510,14 +510,14 @@ my-2 text-center"
                 </div>
               )}
 
-              <button
+              {/* <button
                 onClick={handleRestart}
                 className="w-full flex items-center justify-center
 gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all"
               >
                 <span className="material-symbols-outlined">refresh</span>
                 <span>Take Again</span>
-              </button>
+              </button> */}
             </div>
           </main>
         </div>
@@ -567,7 +567,7 @@ rounded-full"
                   >
                     Question {currentQuestionIndex + 1} of {questions.length}
                   </span>
-                  {!isMultiplayer && !waitingForMultiplayer && (
+                  {!isMultiplayer && (
                     <button
                       onClick={() => setShowInviteModal(true)}
                       className="flex items-center gap-2 px-3 py-1.5 bg-[#07bc0c]/10 text-[#07bc0c] rounded-full hover:bg-[#07bc0c]/20 transition-colors text-sm font-medium"
