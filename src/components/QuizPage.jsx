@@ -509,15 +509,6 @@ my-2 text-center"
                   </p>
                 </div>
               )}
-
-              {/* <button
-                onClick={handleRestart}
-                className="w-full flex items-center justify-center
-gap-2 rounded-lg h-10 sm:h-11 px-4 sm:px-6 bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 active:scale-95 transition-all"
-              >
-                <span className="material-symbols-outlined">refresh</span>
-                <span>Take Again</span>
-              </button> */}
             </div>
           </main>
         </div>
