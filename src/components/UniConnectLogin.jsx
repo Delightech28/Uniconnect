@@ -160,7 +160,7 @@ const UniConnectLogin = () => {
         await createNotification(
           googleUser.uid,
           "system_announcement",
-          "Welcome to UniConnect! 🎉",
+          "Welcome to UniSpace! 🎉",
           "You're now part of a vibrant community of students and peers. Explore the marketplace, connect with classmates, and join StudyHub to ace your exams!",
           { type: "welcome" },
         );
@@ -169,7 +169,7 @@ const UniConnectLogin = () => {
       }
 
       setShowCompleteProfile(false);
-      toast.success("Profile completed! Welcome to UniConnect!");
+      toast.success("Profile completed! Welcome to UniSpace!");
       navigate(
         profileData.registerAs === "Guest" ? "/dashboard" : "/dashboard",
       );
@@ -381,7 +381,7 @@ cursor-pointer"
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate("/change-password")}
+                  onClick={() => navigate("/forgot-password")}
                   type="button"
                   className="text-primary text-sm leading-normal pb-3
 pt-1 px-0 text-right underline cursor-pointer hover:text-primary dark:text-[#a8d5a8] dark:hover:text-primary/80"

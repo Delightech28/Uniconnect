@@ -16,6 +16,7 @@ import { useTheme } from "../hooks/useTheme";
 import Footer from "./Footer";
 import { Check, X, Eye, User, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
+import { createNotification } from "../services/notificationService";
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -124,6 +125,20 @@ const AdminPanel = () => {
         verifiedAt: new Date(),
         verifiedBy: auth.currentUser.uid,
       });
+
+      // Send congratulations notification
+      try {
+        await createNotification(
+          userId,
+          "verification_approved",
+          "Congratulations! Your account is approved 🎉",
+          "Welcome to UniSpace! Your account has been verified and approved. You can now access all features and start connecting with the community.",
+          { type: "verification_approved" },
+        );
+      } catch (notifErr) {
+        console.warn("Failed to create approval notification:", notifErr);
+      }
+
       toast.success("User approved successfully!");
     } catch (error) {
       console.error("Error approving user:", error);

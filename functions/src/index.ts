@@ -6,11 +6,13 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getAuth } from "firebase-admin/auth";
 import { defineSecret } from "firebase-functions/params";
 import { createHmac, createHash } from "crypto";
 
 const app = initializeApp();
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
 
@@ -1318,3 +1320,82 @@ export const chatMessage = onCall(
     }
   },
 );
+
+// Password Reset Function
+export const resetPasswordWithCode = onCall(async (request) => {
+  const { email, code, newPassword } = request.data;
+
+  if (!email || !code || !newPassword) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Missing required fields: email, code, newPassword",
+    );
+  }
+
+  if (newPassword.length < 6) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Password must be at least 6 characters",
+    );
+  }
+
+  try {
+    // Verify the reset code is valid and not expired
+    const resetQuery = await db
+      .collection("passwordResets")
+      .where("email", "==", email)
+      .where("code", "==", code)
+      .where("used", "==", false)
+      .limit(1)
+      .get();
+
+    if (resetQuery.empty) {
+      throw new HttpsError("not-found", "Invalid or expired reset code");
+    }
+
+    const resetDoc = resetQuery.docs[0];
+    const resetData = resetDoc.data();
+
+    // Check if code is expired
+    if (resetData.expiresAt && resetData.expiresAt.toDate() < new Date()) {
+      throw new HttpsError("deadline-exceeded", "Reset code has expired");
+    }
+
+    // Get the user by email
+    const user = await auth.getUserByEmail(email);
+
+    // Update the user's password in Firebase Auth
+    await auth.updateUser(user.uid, {
+      password: newPassword,
+    });
+
+    // Mark the reset code as used
+    await resetDoc.ref.update({
+      used: true,
+      completedAt: new Date(),
+    });
+
+    logger.log(`Password reset successful for user: ${user.uid}`);
+
+    return {
+      success: true,
+      message: "Password reset successfully",
+    };
+  } catch (error: any) {
+    logger.error("Password reset error:", error);
+
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
+    // Handle Firebase Auth errors
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "User not found");
+    }
+
+    throw new HttpsError(
+      "internal",
+      error.message || "Failed to reset password",
+    );
+  }
+});

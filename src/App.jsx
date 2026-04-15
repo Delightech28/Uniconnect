@@ -14,6 +14,7 @@ import VerificationFailedPage from "./components/VerificationFailedPage";
 import HelpAndSupportPage from "./components/HelpAndSupportPage";
 import ReuploadVerificationPage from "./components/ReuploadVerificationPage";
 import UniConnectLogin from "./components/UniConnectLogin";
+import ForgotPasswordPage from "./components/ForgotPasswordPage";
 import GuestWelcomePage from "./components/GuestWelcomePage";
 import UniConnectDashboard from "./components/UniConnectDashboard";
 import GuestDashboard from "./components/GuestDashboard";
@@ -111,6 +112,7 @@ function App() {
             element={<ReuploadVerificationPage />}
           />
           <Route path="/login" element={<UniConnectLogin />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/guest-welcome" element={<GuestWelcomePage />} />
           <Route
             path="/dashboard"
