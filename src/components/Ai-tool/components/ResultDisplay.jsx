@@ -173,7 +173,7 @@ const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
     });
 
     addBrandedFooter(doc);
-    const toolName = result.mode === ResultMode.SUMMARY ? 'DetailedSummary' : result.mode === ResultMode.REVIEW ? 'FlashDoc' : 'AIEngine';
+    const toolName = result.mode === ResultMode.SUMMARY ? 'DetailedSummary' : result.mode === ResultMode.DEEP_SUMMARY ? 'DeepSummary' : result.mode === ResultMode.REVIEW ? 'FlashDoc' : 'AIEngine';
     const fileNameBase = (sourceFileName.split('.')[0] || "Synthesis").replace(/[^a-zA-Z0-9]/g, '_');
     doc.save(`${fileNameBase}_UniSpace_${toolName}.pdf`);
   };
@@ -259,9 +259,16 @@ const ResultDisplay = ({ result, onReset, sourceFileName, isStreaming }) => {
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm md:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                  {result.mode === ResultMode.REVIEW ? 'FlashDoc' : result.mode === ResultMode.SUMMARY ? 'Detailed Summary' : 'AI Analysis'}
-                </h2>
+                <div>
+                  <h2 className="text-sm md:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                    {result.mode === ResultMode.REVIEW ? 'FlashDoc' : result.mode === ResultMode.DEEP_SUMMARY ? 'Deep Summary' : result.mode === ResultMode.SUMMARY ? 'Detailed Summary' : 'AI Analysis'}
+                  </h2>
+                  {result.mode === ResultMode.DEEP_SUMMARY && result.strategy && (
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                      Structured by {result.strategy === 'MODULES' ? 'Modules' : 'Units'}
+                    </p>
+                  )}
+                </div>
                 {!isStreaming && (
                   <span className="flex items-center bg-primary/10 text-primary text-[8px] md:text-[10px] font-black px-2 py-0.5 rounded-full border border-primary/20 animate-fade-in">
                     <FileCheck className="w-2.5 h-2.5 mr-1" />

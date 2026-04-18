@@ -72,8 +72,11 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     console.log('[PodcastSection] createPodcast', { selectedTopic, hostCount, duration, hosts });
     if (!selectedTopic) return;
     setLoading(true);
-    const topic = Array.isArray(topics) && topics.length > 0 ? topics[0] : selectedTopic;
+    const topic = selectedTopic || (Array.isArray(topics) && topics.length > 0 ? topics[0] : null);
     try {
+      if (!topic) {
+        throw new Error('Please select a topic before generating the podcast.');
+      }
       setLoadingMessage('Generating podcast content...');
       
       // Prepare hosts with default names if empty

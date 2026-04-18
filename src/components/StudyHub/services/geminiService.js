@@ -507,7 +507,7 @@ ${JSON.stringify(resultsData, null, 2)}
 Return ONLY this valid JSON: { "performanceSummary": "...", "strengths": "...", "weaknesses": "...", "nextSteps": "..." }`;
 
     const response = await fetch(
-      `${FIREBASE_FUNCTIONS_URL}/streamGeminiWithText`,
+      `${CLOUD_FUNCTION_URL}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -669,7 +669,7 @@ RETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):
     );
 
     const response = await fetch(
-      `${FIREBASE_FUNCTIONS_URL}/streamGeminiWithText`,
+      `${CLOUD_FUNCTION_URL}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -774,7 +774,7 @@ export const analyzeDocument = async (docText, signal) => {
 Return ONLY valid JSON: { "summary": "...", "keyPoints": ["p1"], "topics": ["t1"] }`;
 
     const response = await fetch(
-      `${FIREBASE_FUNCTIONS_URL}/streamGeminiWithText`,
+      `${CLOUD_FUNCTION_URL}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

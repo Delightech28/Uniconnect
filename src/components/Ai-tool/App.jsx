@@ -158,8 +158,11 @@ const App = () => {
     return texts.join("\n\n");
   };
 
-  const handleProcess = async (mode) => {
-    if (mode === ResultMode.SUMMARY && summaryFiles.length === 0) {
+  const handleProcess = async (mode, strategy = 'UNITS') => {
+    if (
+      (mode === ResultMode.SUMMARY || mode === ResultMode.DEEP_SUMMARY) &&
+      summaryFiles.length === 0
+    ) {
       setProcessingState((prev) => ({
         ...prev,
         error: "Please upload a document to summarize.",
@@ -198,9 +201,14 @@ const App = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const filesA = mode === ResultMode.SUMMARY ? summaryFiles : courseFiles;
+      const filesA =
+        mode === ResultMode.SUMMARY || mode === ResultMode.DEEP_SUMMARY
+          ? summaryFiles
+          : courseFiles;
       const filesB =
-        mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW
+        mode === ResultMode.SUMMARY ||
+        mode === ResultMode.DEEP_SUMMARY ||
+        mode === ResultMode.REVIEW
           ? []
           : questionFiles;
 
@@ -212,10 +220,15 @@ const App = () => {
       let combinedText = textA;
       let question = "";
 
-      if (mode === ResultMode.SUMMARY || mode === ResultMode.REVIEW) {
+      if (mode === ResultMode.SUMMARY || mode === ResultMode.DEEP_SUMMARY) {
         combinedText = `--- SOURCE MATERIAL ---\n${textA}`;
-        question =
-          "Synthesize an EXHAUSTIVE ACADEMIC SUMMARY. Bold terms strictly before colons.";
+        if (mode === ResultMode.DEEP_SUMMARY) {
+          const structure = strategy === 'MODULES' ? 'modules by modules' : 'units by units';
+          question = `Perform a premium deep academic summary of this document. Analyze every section with full understanding, extract clear topics, and summarize the content ${structure}. Answer any embedded questions, explain unclear concepts, and highlight key ideas in each unit or module.`;
+        } else {
+          question =
+            "Synthesize an EXHAUSTIVE ACADEMIC SUMMARY. Bold terms strictly before colons.";
+        }
       } else {
         combinedText = `--- COURSE MATERIAL ---\n${textA}\n--- QUESTIONS ---\n${textB}`;
         question = "Solve with academic rigor. Bold concepts before colons.";
@@ -246,7 +259,12 @@ const App = () => {
             ...prev,
             isLoading: false,
             loadingMode: null,
-            result: { text: fullText, mode: mode, timestamp: Date.now() },
+            result: {
+              text: fullText,
+              mode: mode,
+              timestamp: Date.now(),
+              strategy: mode === ResultMode.DEEP_SUMMARY ? strategy : null,
+            },
           }));
         } else {
           const newProgress = Math.min(99, 30 + Math.floor(chunkCount / 5));
@@ -265,7 +283,7 @@ const App = () => {
       try {
         const userId = auth.currentUser?.uid || "anonymous";
         const fileNames =
-          mode === ResultMode.SUMMARY
+          mode === ResultMode.SUMMARY || mode === ResultMode.DEEP_SUMMARY
             ? summaryFiles.map((f) => f.name)
             : [
                 ...courseFiles.map((f) => f.name),
@@ -311,7 +329,10 @@ const App = () => {
   };
 
   const getSourceFileName = () => {
-    if (processingState.result?.mode === ResultMode.SUMMARY)
+    if (
+      processingState.result?.mode === ResultMode.SUMMARY ||
+      processingState.result?.mode === ResultMode.DEEP_SUMMARY
+    )
       return summaryFiles[0]?.name || "Summary";
     if (processingState.result?.mode === ResultMode.REVIEW)
       return courseFiles[0]?.name || "FlashDoc";
@@ -474,14 +495,41 @@ const App = () => {
                   />
                 </div>
                 {summaryFiles.length > 0 && (
-                  <button
-                    onClick={() => handleProcess(ResultMode.SUMMARY)}
-                    className="w-full group flex items-center justify-center py-4 md:py-5 text-sm md:text-lg font-bold rounded-2xl text-white bg-primary hover:bg-primary-dark transition-all active:scale-[0.98] shadow-lg shadow-primary/20 animate-unfold-up"
-                  >
-                    <FileText className="w-5 h-5 mr-3" />
-                    Generate Summary
-                    <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => handleProcess(ResultMode.SUMMARY)}
+                      className="w-full group flex items-center justify-center py-4 md:py-5 text-sm md:text-lg font-bold rounded-2xl text-white bg-primary hover:bg-primary-dark transition-all active:scale-[0.98] shadow-lg shadow-primary/20 animate-unfold-up"
+                    >
+                      <FileText className="w-5 h-5 mr-3" />
+                      Generate Summary
+                      <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+
+                    <div className="rounded-3xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm">
+                      <div className="mb-3">
+                        <h3 className="text-xs font-black uppercase tracking-[0.35em] text-gray-500 dark:text-gray-400">
+                          Deep Summarize Document
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                          Choose how to structure the premium deep summary.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          onClick={() => handleProcess(ResultMode.DEEP_SUMMARY, 'UNITS')}
+                          className="w-full py-4 text-sm font-bold rounded-2xl text-white bg-[#07bc0c] hover:bg-[#05a30f] transition-all active:scale-[0.98]"
+                        >
+                          Units by units
+                        </button>
+                        <button
+                          onClick={() => handleProcess(ResultMode.DEEP_SUMMARY, 'MODULES')}
+                          className="w-full py-4 text-sm font-bold rounded-2xl text-white bg-[#0f69ff] hover:bg-[#0c56d6] transition-all active:scale-[0.98]"
+                        >
+                          Modules by modules
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
