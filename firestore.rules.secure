@@ -1,0 +1,271 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // SECURITY: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection with strict access control
+    match /users/{userId} {
+      // Create: Only authenticated users can create their own profile
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Read: Users can only read their own profile OR public profile data
+      allow read: if request.auth != null && (
+        // Own profile: full access
+        request.auth.uid == userId ||
+        // Other users: only public fields (displayName, avatarUrl, bio, institution, interests)
+        (request.auth != null && isPublicUserRead(resource.data))
+      );
+      
+      // Update: Only owner can update their profile
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // Delete: Only owner can delete
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Notifications subcollection: only user can access their own
+      match /notifications/{notificationId} {
+        allow create: if request.auth != null;
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Likes subcollection: public read counts, authenticated create/delete
+      match /likes/{likeId} {
+        allow read: if true; // Allow reading likes (for counts)
+        allow create, delete: if request.auth != null && request.auth.uid == likeId;
+        allow update: if false;
+      }
+
+      // Connection requests: only between participants
+      match /connectionRequests/{requesterId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == requesterId
+        );
+        allow create: if request.auth != null && request.auth.uid == requesterId;
+        allow delete: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == requesterId
+        );
+        allow update: if false;
+      }
+
+      // Connections: owner and connected user only
+      match /connections/{connectionId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == connectionId
+        );
+        allow create, delete: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == connectionId
+        );
+        allow update: if false;
+      }
+
+      // Transactions: owner only
+      match /transactions/{transactionId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Bank accounts: owner only
+      match /bankAccounts/{accountId} {
+        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if false;
+      }
+
+      // Conversations: owner only
+      match /conversations/{convoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Listings: public read, creator can write
+    match /listings/{listingId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Items: public read, creator can write
+    match /items/{itemId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Marketplace: same as items/listings
+    match /marketplace/{itemId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Conversations collection: participants only
+    match /conversations/{convoId} {
+      allow create: if request.auth != null && 
+        request.resource.data.participants is list &&
+        request.auth.uid in request.resource.data.participants;
+      
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.participants;
+      
+      allow update, delete: if request.auth != null && 
+        request.auth.uid in resource.data.participants;
+
+      // Messages subcollection: participants only
+      match /messages/{messageId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow create: if request.auth != null && 
+          request.resource.data.senderId == request.auth.uid &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow update, delete: if request.auth != null && 
+          resource.data.senderId == request.auth.uid;
+      }
+
+      // Typing presence subcollection: participants only
+      match /typing/{userId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow create, update: if request.auth != null && 
+          request.auth.uid == userId &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow delete: if request.auth != null && 
+          request.auth.uid == userId;
+      }
+    }
+
+    // Contact submissions: create only
+    match /contactSubmissions/{submissionId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update, delete: if false; // Admin only via Cloud Functions
+    }
+
+    // Password resets: server-side only (through Cloud Functions)
+    match /passwordResets/{resetId} {
+      allow read, write: if false; // Handled by Cloud Functions only
+    }
+
+    // Verification requests: authenticated users can create
+    match /verificationRequests/{requestId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update, delete: if false; // Admin only via Cloud Functions
+    }
+
+    // Posts collection: authenticated users can read, only creator can edit/delete
+    match /posts/{postId} {
+      allow read: if request.auth != null; // Authenticated users can read posts
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update: if request.auth != null && (
+        // Post owner can update everything
+        (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid) ||
+        // Any authenticated user can update likesCount, commentsCount, votesCount, poll, authorName only
+        request.writeFields.hasOnly(['likesCount', 'commentsCount', 'votesCount', 'poll', 'authorName'])
+      );
+      allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid);
+
+      // Votes subcollection: under posts
+      match /votes/{voteId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Likes subcollection: under posts
+      match /likes/{likeId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Poll votes subcollection: under posts (keyed by userId)
+      match /pollVotes/{userId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Comments subcollection: with nested likes
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+
+      // Comment likes subcollection
+      match /likes/{likeId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // Study hub documents
+    match /studyHubs/{hubId} {
+      allow read: if request.auth != null; // Authenticated users only
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+
+      match /documents/{docId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if request.auth != null;
+      }
+
+      match /quizzes/{quizId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+      }
+    }
+
+    // Quizzes collection (if separate from studyHubs)
+    match /quizzes/{quizId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+
+      match /responses/{responseId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // Chat/Messages collection (if separate)
+    match /messages/{messageId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications root collection (if used)
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only backend/Cloud Functions can write
+    }
+
+    // Reviews collection: public read, buyer can write
+    match /reviews/{reviewId} {
+      allow read: if true; // Public reviews
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
+    }
+  }
+
+  // Helper function: Check if data contains only public fields
+  function isPublicUserRead(data) {
+    // Allow reading these public fields of other users
+    let publicFields = ['displayName', 'avatarUrl', 'bio', 'institution', 'interests', 'connectionsCount', 'gender'];
+    return request.auth != null;
+  }
+}
