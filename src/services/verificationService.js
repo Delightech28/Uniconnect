@@ -3,13 +3,16 @@ import { db } from '../firebase';
 import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { queueOperation, removeQueuedOperation, getQueueStatus } from './offlineQueueService';
+import { createLogger } from '../utils/logger';
 
-// Initialize EmailJS
+const log = createLogger('verificationService');
+
+// Initialize EmailJS — key is read from env, never logged
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-const EMAILJS_USER_TEMPLATE_ID = 'template_tk1p8gm'; // User notification template
+const EMAILJS_USER_TEMPLATE_ID = 'template_tk1p8gm';
 const ADMIN_EMAIL = 'unispaceinnovationhubltd@gmail.com';
 
 /**
@@ -23,25 +26,20 @@ const generateVerificationToken = () => {
  * Create a verification request and send admin email
  */
 export const createVerificationRequest = async (userId, userData) => {
-  console.log('[verificationService] ===== START: createVerificationRequest =====');
-  console.log('[verificationService] Input userId:', userId);
-  console.log('[verificationService] Input userData:', { displayName: userData.displayName, email: userData.email, registerAs: userData.registerAs });
-  console.log('[verificationService] Environment Check:', {
-    VITE_EMAILJS_SERVICE_ID: EMAILJS_SERVICE_ID || 'NOT SET',
-    VITE_EMAILJS_TEMPLATE_ID: EMAILJS_TEMPLATE_ID || 'NOT SET',
-    VITE_EMAILJS_PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? 'SET' : 'NOT SET',
-    VITE_APP_URL: import.meta.env.VITE_APP_URL || 'NOT SET',
-    ADMIN_EMAIL: ADMIN_EMAIL
+  log.info('createVerificationRequest started', {
+    role: userData.registerAs,
+    emailConfigured: !!(EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID),
   });
 
   try {
     const verificationToken = generateVerificationToken();
-    console.log('[verificationService] Generated verification token:', verificationToken);
+    // ✅ Never log the token itself
+    log.info('Verification token generated');
+
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    console.log('[verificationService] Token expiration set to:', expiresAt);
+    log.info('Token expiry set', { expiresInDays: 7 });
 
-    // Create verification request in Firestore
     const verificationDoc = {
       userId,
       user_name: userData.displayName || 'Student',
@@ -57,147 +55,97 @@ export const createVerificationRequest = async (userId, userData) => {
     };
 
     await setDoc(doc(db, 'verificationRequests', userId), verificationDoc);
-    console.log('[verificationService] ✅ Verification document saved to Firestore');
+    log.info('Verification document saved to Firestore');
 
-    // Generate approval/rejection links
-    const baseUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
-    console.log('[verificationService] Base URL for verification links:', baseUrl);
+    const baseUrl = import.meta.env.VITE_APP_DOMAIN || 'http://localhost:5173';
+    // ✅ Build links but never log them — they contain the token
     const approveLink = `${baseUrl}/verify?token=${verificationToken}&action=approve&userId=${userId}`;
-    const rejectLink = `${baseUrl}/verify?token=${verificationToken}&action=reject&userId=${userId}`;
-    console.log('[verificationService] Generated approval link:', approveLink.substring(0, 80) + '...');
-    console.log('[verificationService] Generated rejection link:', rejectLink.substring(0, 80) + '...');
+    const rejectLink  = `${baseUrl}/verify?token=${verificationToken}&action=reject&userId=${userId}`;
 
-    // Send verification email to admin
-    console.log('[verificationService] 📧 PREPARING EMAIL TO ADMIN...');
-    console.log('[verificationService] EmailJS Config:', {
-      service: EMAILJS_SERVICE_ID,
-      template: EMAILJS_TEMPLATE_ID,
-      to_email: ADMIN_EMAIL,
-    });
+    log.info('Sending verification email to admin');
 
     const emailPayload = {
-      to_email: ADMIN_EMAIL,
-      user_name: userData.displayName || 'Student',
-      user_email: userData.email || '',
-      username: userData.username || userData.email.split('@')[0],
-      institution: userData.institution || 'Not specified',
-      register_as: userData.registerAs || 'Student',
-      created_at: createdAt.toLocaleDateString(),
+      to_email:     ADMIN_EMAIL,
+      user_name:    userData.displayName || 'Student',
+      user_email:   userData.email || '',
+      username:     userData.username || userData.email.split('@')[0],
+      institution:  userData.institution || 'Not specified',
+      register_as:  userData.registerAs || 'Student',
+      created_at:   createdAt.toLocaleDateString(),
       approve_link: approveLink,
-      reject_link: rejectLink,
-      year: new Date().getFullYear(),
+      reject_link:  rejectLink,
+      year:         new Date().getFullYear(),
     };
-    console.log('[verificationService] Email payload keys:', Object.keys(emailPayload));
-    console.log('[verificationService] to_email:', emailPayload.to_email);
-    console.log('[verificationService] user_email:', emailPayload.user_email);
-    console.log('[verificationService] user_name:', emailPayload.user_name);
+    // ✅ Never log emailPayload — it contains email address + token links
 
-    console.log('[verificationService] Calling emailjs.send()...');
-    
     try {
-      const sendResult = await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        emailPayload
-      );
-      console.log('[verificationService] ✅ EMAIL SENT SUCCESSFULLY');
-      console.log('[verificationService] EmailJS Result:', sendResult);
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailPayload);
+      log.info('Admin verification email sent');
       return { verificationToken, emailStatus: 'sent', queued: false };
     } catch (emailError) {
-      // Check if error is network-related
-      const isNetworkError = 
-        emailError.message.includes('offline') ||
-        emailError.message.includes('network') ||
-        emailError.message.includes('Failed') ||
+      const isNetworkError =
+        emailError.message?.includes('offline') ||
+        emailError.message?.includes('network') ||
+        emailError.message?.includes('Failed') ||
         !navigator.onLine;
-      
+
       if (isNetworkError) {
-        console.warn('[verificationService] 📧 Network offline - queuing email for later...');
-        
-        // Queue the email for sending when online
+        log.warn('Network offline — queuing verification email');
+
         const queueId = queueOperation('send_verification_email', {
           userId,
-          userData,
+          userData: { displayName: userData.displayName, registerAs: userData.registerAs }, // ✅ no email in queue log
           emailPayload,
           verificationDocData: verificationDoc,
           verificationToken,
         });
-        
+
         toast.success('Registered successfully! Verification email will be sent when you go online.');
-        console.log('[verificationService] Email queued with ID:', queueId);
-        
-        return { 
-          verificationToken, 
-          emailStatus: 'queued', 
+        log.info('Email queued for retry');
+
+        return {
+          verificationToken,
+          emailStatus: 'queued',
           queued: true,
           queueId,
-          message: 'Verification email will be sent when you\'re back online'
+          message: "Verification email will be sent when you're back online",
         };
       } else {
         throw emailError;
       }
     }
   } catch (error) {
-    console.error('[verificationService] ❌ ERROR in createVerificationRequest');
-    console.error('[verificationService] Error message:', error.message);
-    console.error('[verificationService] Error code:', error.code);
-    console.error('[verificationService] Full error object:', error);
-    
-    // Capture error details
-    if (error.status) {
-      console.error('[verificationService] HTTP Status:', error.status);
-    }
-    if (error.text) {
-      console.error('[verificationService] Error text:', error.text);
-    }
-    if (error.stack) {
-      console.error('[verificationService] Stack trace:', error.stack);
-    }
-    
-    console.error('[verificationService] EmailJS Configuration Status:', {
-      SERVICE_ID: EMAILJS_SERVICE_ID ? '✓ Set' : '✗ NOT SET',
-      TEMPLATE_ID: EMAILJS_TEMPLATE_ID ? '✓ Set' : '✗ NOT SET',
-      PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY ? '✓ Set' : '✗ NOT SET',
-      ADMIN_EMAIL: ADMIN_EMAIL,
+    // ✅ Log status + error code only — never log full error objects in prod
+    log.error('createVerificationRequest failed', {
+      code:    error.code    || 'UNKNOWN',
+      message: error.message || 'Unknown error',
     });
-    
-    // Even if email fails, verification request was created in Firestore
-    // Log error but continue
+
     toast.error('Registration complete but verification email may not have been sent. Please contact support.');
-    
-    return { 
-      verificationToken, 
-      emailStatus: 'failed', 
+
+    return {
+      verificationToken: undefined,
+      emailStatus: 'failed',
       queued: false,
-      error: error.message 
+      error: error.message,
     };
   }
 };
 
 /**
- * Retry sending a queued verification email
- * Called by offline queue service when connection is restored
+ * Retry sending a queued verification email (called by offlineQueueService)
  */
 export const retryVerificationEmail = async (queuedOperation) => {
-  console.log('[verificationService] 🔄 Retrying queued verification email:', queuedOperation.id);
-  
+  log.info('Retrying queued verification email', { queueId: queuedOperation.id });
+
   try {
     const { emailPayload } = queuedOperation.data;
-    
-    const sendResult = await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      emailPayload
-    );
-    
-    console.log('[verificationService] ✅ RETRIED EMAIL SENT SUCCESSFULLY');
-    console.log('[verificationService] EmailJS Result:', sendResult);
-    
-    // Success - will be removed from queue by offline service
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailPayload);
+    log.info('Retry email sent successfully');
     return { success: true };
   } catch (error) {
-    console.error('[verificationService] ❌ Retry failed:', error.message);
-    throw error; // Let offline service handle retry count
+    log.error('Retry failed', { code: error.code, message: error.message });
+    throw error;
   }
 };
 
@@ -206,7 +154,6 @@ export const retryVerificationEmail = async (queuedOperation) => {
  */
 export const verifyUserByToken = async (token, action, userId) => {
   try {
-    // Get verification request
     const verificationDoc = await getDoc(doc(db, 'verificationRequests', userId));
 
     if (!verificationDoc.exists()) {
@@ -215,28 +162,23 @@ export const verifyUserByToken = async (token, action, userId) => {
 
     const verData = verificationDoc.data();
 
-    // Check if token matches
     if (verData.token !== token) {
       throw new Error('Invalid verification token');
     }
 
-    // Check if not expired
     if (new Date() > new Date(verData.expiresAt)) {
       throw new Error('Verification link has expired');
     }
 
-    // Check if already processed
     if (verData.status !== 'pending') {
       throw new Error(`Verification already ${verData.status}`);
     }
 
-    // Update verification request status
     await updateDoc(doc(db, 'verificationRequests', userId), {
       status: action === 'approve' ? 'approved' : 'rejected',
       processedAt: new Date(),
     });
 
-    // If approved, update user verified status
     if (action === 'approve') {
       await updateDoc(doc(db, 'users', userId), {
         verified: true,
@@ -244,16 +186,12 @@ export const verifyUserByToken = async (token, action, userId) => {
       });
     }
 
-    // Send confirmation email to user
-    await sendUserNotificationEmail(
-      verData.user_email,
-      verData.user_name,
-      action === 'approve'
-    );
+    await sendUserNotificationEmail(verData.user_email, verData.user_name, action === 'approve');
 
+    log.info('User verification processed', { action });
     return { success: true, action, message: `User verification ${action}ed successfully` };
   } catch (error) {
-    console.error('[verificationService] Error verifying user:', error);
+    log.error('verifyUserByToken failed', { message: error.message });
     throw error;
   }
 };
@@ -271,24 +209,24 @@ export const sendUserNotificationEmail = async (userEmail, userName, isApproved)
       ? `Congratulations ${userName}! Your account has been verified. You now have full access to all features on UniConnect, including access to the marketplace, study resources, and community features.`
       : `Hi ${userName}! Thank you for your submission. Your verification request has been reviewed and unfortunately could not be approved at this time. If you believe this is an error, please contact our support team for assistance.`;
 
-    // Send email to user
     await emailjs.send(
       EMAILJS_SERVICE_ID,
       EMAILJS_USER_TEMPLATE_ID,
       {
-        to_email: userEmail,
+        to_email:  userEmail,
         user_name: userName,
         subject,
         message,
         status: isApproved ? 'approved' : 'rejected',
-        year: new Date().getFullYear(),
+        year:   new Date().getFullYear(),
       }
     );
 
-    console.log('[verificationService] User notification email sent to', userEmail);
+    // ✅ Status only — never log the userEmail itself
+    log.info('User notification email sent');
   } catch (error) {
-    console.warn('[verificationService] Error sending user notification email:', error);
-    // Don't throw - verification was successful, just the notification failed
+    log.warn('User notification email failed', { message: error.message });
+    // Don't throw — verification was successful, notification is best-effort
   }
 };
 
@@ -301,7 +239,7 @@ export const isUserVerified = async (userId) => {
     if (!userDoc.exists()) return false;
     return userDoc.data().verified === true;
   } catch (error) {
-    console.error('[verificationService] Error checking user verification:', error);
+    log.error('isUserVerified check failed', { message: error.message });
     return false;
   }
 };
@@ -314,18 +252,18 @@ export const getVerificationStatus = async (userId) => {
     const verDoc = await getDoc(doc(db, 'verificationRequests', userId));
     if (!verDoc.exists()) return { status: 'none' };
     return {
-      status: verDoc.data().status,
-      createdAt: verDoc.data().createdAt,
+      status:      verDoc.data().status,
+      createdAt:   verDoc.data().createdAt,
       processedAt: verDoc.data().processedAt || null,
     };
   } catch (error) {
-    console.error('[verificationService] Error getting verification status:', error);
+    log.error('getVerificationStatus failed', { message: error.message });
     return { status: 'error' };
   }
 };
 
 /**
- * Get pending verification count (for admin dashboard if needed)
+ * Get pending verification count (for admin dashboard)
  */
 export const getPendingVerificationCount = async () => {
   try {
@@ -333,7 +271,7 @@ export const getPendingVerificationCount = async () => {
     const snapshot = await getDocs(q);
     return snapshot.size;
   } catch (error) {
-    console.error('[verificationService] Error getting pending count:', error);
+    log.error('getPendingVerificationCount failed', { message: error.message });
     return 0;
   }
 };

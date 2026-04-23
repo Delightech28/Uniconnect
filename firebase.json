@@ -1,6 +1,6 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules.secure"
   },
   "storage": {
     "rules": "storage.rules"

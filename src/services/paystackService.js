@@ -2,6 +2,7 @@
 
 
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { enforceClientRateLimit } from '../utils/rateLimit';
 
 
 const PAYSTACK_PUBLIC_KEY = 'pk_live_9a3e74823eb174a31acb13ce91cb855a5f848b14';
@@ -20,6 +21,7 @@ const initiatePaystackTransferFn = httpsCallable(functions, 'initiatePaystackTra
 
 export const fetchBanks = async () => {
   try {
+    enforceClientRateLimit('paystack-fetch-banks', 1500);
     const result = await fetchPaystackBanksFn();
     return result.data;
   } catch (error) {
@@ -31,6 +33,7 @@ export const fetchBanks = async () => {
 
 export const verifyAccountNumber = async (accountNumber, bankCode) => {
   try {
+    enforceClientRateLimit('paystack-verify-account', 2500);
     const result = await verifyPaystackAccountFn({ accountNumber, bankCode });
     return result.data;
   } catch (error) {
@@ -42,6 +45,7 @@ export const verifyAccountNumber = async (accountNumber, bankCode) => {
 
 export const initializePayment = async (email, amount, reference, callbackUrl = null, channels = ['card', 'bank', 'ussd', 'qr']) => {
   try {
+    enforceClientRateLimit('paystack-initialize-payment', 3000);
     const result = await initializePaystackPaymentFn({
       email,
       amount,
@@ -59,6 +63,7 @@ export const initializePayment = async (email, amount, reference, callbackUrl = 
 
 export const verifyPayment = async (reference) => {
   try {
+    enforceClientRateLimit('paystack-verify-payment', 2000);
     const result = await verifyPaystackPaymentFn({ reference });
     return result.data;
   } catch (error) {
@@ -70,6 +75,7 @@ export const verifyPayment = async (reference) => {
 
 export const createTransferRecipient = async (accountNumber, bankCode, recipientName) => {
   try {
+    enforceClientRateLimit('paystack-create-transfer-recipient', 4000);
     const result = await createPaystackRecipientFn({
       accountNumber,
       bankCode,
@@ -85,6 +91,7 @@ export const createTransferRecipient = async (accountNumber, bankCode, recipient
 
 export const initiateTransfer = async (recipient, amount, reference) => {
   try {
+    enforceClientRateLimit('paystack-initiate-transfer', 5000);
     const result = await initiatePaystackTransferFn({
       recipient,
       amount,

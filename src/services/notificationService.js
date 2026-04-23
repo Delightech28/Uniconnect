@@ -20,6 +20,9 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("notificationService");
 
 /**
  * Track active conversation views in memory
@@ -191,7 +194,7 @@ export const trackConversationView = (conversationId, userId) => {
     activeConversationViews.set(conversationId, new Set());
   }
   activeConversationViews.get(conversationId).add(userId);
-  console.log(`User ${userId} now viewing conversation ${conversationId}`);
+  log.debug("User now viewing conversation");
 };
 
 /**
@@ -207,7 +210,7 @@ export const untrackConversationView = (conversationId, userId) => {
       activeConversationViews.delete(conversationId);
     }
   }
-  console.log(`User ${userId} stopped viewing conversation ${conversationId}`);
+  log.debug("User stopped viewing conversation");
 };
 
 /**
@@ -240,11 +243,7 @@ export const createNotification = async (
   metadata = {},
 ) => {
   try {
-    console.log(`Creating ${type} notification for user ${userId}:`, {
-      title,
-      description,
-      metadata,
-    });
+    log.info("Creating notification", { type });
     const config =
       NOTIFICATION_CONFIG[type] || NOTIFICATION_CONFIG.system_announcement;
 
@@ -261,10 +260,10 @@ export const createNotification = async (
       },
     );
 
-    console.log(`Notification created with ID: ${notificationRef.id}`);
+    log.info("Notification created");
     return notificationRef.id;
   } catch (error) {
-    console.error("Error creating notification:", error);
+    log.error("createNotification failed", { message: error.message });
     throw error;
   }
 };
@@ -306,7 +305,7 @@ export const notifyItemSold = async (sellerId, buyerId, productData, price) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying item sold:", error);
+    log.error("notifyItemSold failed", { message: error.message });
   }
 };
 
@@ -330,7 +329,7 @@ export const notifyItemListed = async (userId, itemData) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying item listed:", error);
+    log.error("notifyItemListed failed", { message: error.message });
   }
 };
 
@@ -355,7 +354,7 @@ export const notifyOfferReceived = async (sellerId, offerData) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying offer received:", error);
+    log.error("notifyOfferReceived failed", { message: error.message });
   }
 };
 
@@ -370,9 +369,7 @@ export const notifyNewMessage = async (recipientId, messageData) => {
     // If recipient is actively viewing this conversation, skip notification
     const convoId = messageData.conversationId;
     if (isUserViewingConversation(convoId, recipientId)) {
-      console.log(
-        `Skipping notification (in-memory): User ${recipientId} is actively viewing conversation ${convoId}`,
-      );
+      log.debug("Skipping notification — user actively viewing conversation");
       return;
     }
 
@@ -396,14 +393,12 @@ export const notifyNewMessage = async (recipientId, messageData) => {
         const now = Date.now();
         // If user was active in last 10 seconds, skip notification
         if (lastMillis && now - lastMillis < 10000) {
-          console.log(
-            `Skipping notification (presence): User ${recipientId} recently active in conversation ${convoId}`,
-          );
+          log.debug("Skipping notification — user recently active (presence)");
           return;
         }
       }
     } catch (presenceErr) {
-      console.warn("Failed to check conversation presence doc:", presenceErr);
+      log.warn("Could not check conversation presence", { message: presenceErr.message });
       // Fall through and send notification (safer than silently ignoring)
     }
 
@@ -419,11 +414,9 @@ export const notifyNewMessage = async (recipientId, messageData) => {
         senderAvatar: messageData.senderAvatar,
       },
     );
-    console.log(
-      `Notification sent to ${recipientId} for new message in conversation ${messageData.conversationId}`,
-    );
+    log.info("New message notification sent");
   } catch (error) {
-    console.error("Error notifying new message:", error);
+    log.error("notifyNewMessage failed", { message: error.message });
   }
 };
 
@@ -441,7 +434,7 @@ export const notifyVerificationSubmitted = async (userId) => {
       { userId },
     );
   } catch (error) {
-    console.error("Error notifying verification submitted:", error);
+    log.error("notifyVerificationSubmitted failed", { message: error.message });
   }
 };
 
@@ -459,7 +452,7 @@ export const notifyVerificationApproved = async (userId) => {
       { userId },
     );
   } catch (error) {
-    console.error("Error notifying verification approved:", error);
+    log.error("notifyVerificationApproved failed", { message: error.message });
   }
 };
 
@@ -478,7 +471,7 @@ export const notifyVerificationRejected = async (userId, reason = "") => {
       { userId, reason },
     );
   } catch (error) {
-    console.error("Error notifying verification rejected:", error);
+    log.error("notifyVerificationRejected failed", { message: error.message });
   }
 };
 
@@ -501,7 +494,7 @@ export const notifyNewQuiz = async (userId, quizData) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying new quiz:", error);
+    log.error("notifyNewQuiz failed", { message: error.message });
   }
 };
 
@@ -524,7 +517,7 @@ export const notifyReferralJoined = async (userId, referralData) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying referral joined:", error);
+    log.error("notifyReferralJoined failed", { message: error.message });
   }
 };
 
@@ -543,7 +536,7 @@ export const notifyReferralReward = async (userId, reward) => {
       { reward, userId },
     );
   } catch (error) {
-    console.error("Error notifying referral reward:", error);
+    log.error("notifyReferralReward failed", { message: error.message });
   }
 };
 
@@ -570,7 +563,7 @@ export const getNotifications = async (userId, limitCount = 50) => {
         : "Just now",
     }));
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    log.error("getNotifications failed", { message: error.message });
     return [];
   }
 };
@@ -583,7 +576,7 @@ export const getNotifications = async (userId, limitCount = 50) => {
  */
 export const subscribeToNotifications = (userId, callback) => {
   try {
-    console.log(`Subscribing to notifications for user: ${userId}`);
+    log.info("Subscribing to notifications");
     const q = query(
       collection(db, "users", userId, "notifications"),
       orderBy("createdAt", "desc"),
@@ -592,15 +585,9 @@ export const subscribeToNotifications = (userId, callback) => {
     return onSnapshot(
       q,
       (snapshot) => {
-        console.log(
-          `Received ${snapshot.size} notifications for user ${userId}`,
-        );
+        log.debug("Notifications snapshot received", { count: snapshot.size });
         const notifications = snapshot.docs.map((doc) => {
           const data = doc.data();
-          console.log(`Notification ${doc.id}:`, {
-            type: data.type,
-            title: data.title,
-          });
           return {
             id: doc.id,
             ...data,
@@ -612,16 +599,12 @@ export const subscribeToNotifications = (userId, callback) => {
         callback(notifications);
       },
       (error) => {
-        console.error(
-          `Error listening to notifications for user ${userId}:`,
-          error,
-        );
-        // Call callback with empty array on error to prevent UI from hanging
+        log.error("Notification listener failed", { message: error.message });
         callback([]);
       },
     );
   } catch (error) {
-    console.error("Error setting up notification subscription:", error);
+    log.error("subscribeToNotifications setup failed", { message: error.message });
     return () => {};
   }
 };
@@ -633,21 +616,17 @@ export const subscribeToNotifications = (userId, callback) => {
  */
 export const fetchNotificationsOnce = async (userId) => {
   try {
-    console.log(`Fetching notifications for user: ${userId}`);
+    log.info("Fetching notifications");
     const q = query(
       collection(db, "users", userId, "notifications"),
       orderBy("createdAt", "desc"),
     );
 
     const snapshot = await getDocs(q);
-    console.log(`Found ${snapshot.size} notifications`);
+    log.debug("Notifications fetched", { count: snapshot.size });
 
-    const notifications = snapshot.docs.map((doc) => {
+    return snapshot.docs.map((doc) => {
       const data = doc.data();
-      console.log(`Notification ${doc.id}:`, {
-        type: data.type,
-        title: data.title,
-      });
       return {
         id: doc.id,
         ...data,
@@ -656,10 +635,8 @@ export const fetchNotificationsOnce = async (userId) => {
           : "Just now",
       };
     });
-
-    return notifications;
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    log.error("fetchNotificationsOnce failed", { message: error.message });
     throw error;
   }
 };
@@ -681,7 +658,7 @@ export const subscribeToUnreadCount = (userId, callback) => {
       callback(snapshot.size);
     });
   } catch (error) {
-    console.error("Error subscribing to unread count:", error);
+    log.error("subscribeToUnreadCount failed", { message: error.message });
     return () => {};
   }
 };
@@ -696,7 +673,7 @@ export const markAsRead = async (userId, notificationId) => {
     const notifRef = doc(db, "users", userId, "notifications", notificationId);
     await updateDoc(notifRef, { unread: false });
   } catch (error) {
-    console.error("Error marking notification as read:", error);
+    log.error("markAsRead failed", { message: error.message });
   }
 };
 
@@ -718,7 +695,7 @@ export const markAllAsRead = async (userId) => {
 
     await Promise.all(updates);
   } catch (error) {
-    console.error("Error marking all as read:", error);
+    log.error("markAllAsRead failed", { message: error.message });
   }
 };
 
@@ -732,7 +709,7 @@ export const deleteNotification = async (userId, notificationId) => {
     const notifRef = doc(db, "users", userId, "notifications", notificationId);
     await deleteDoc(notifRef);
   } catch (error) {
-    console.error("Error deleting notification:", error);
+    log.error("deleteNotification failed", { message: error.message });
   }
 };
 
@@ -748,7 +725,7 @@ export const deleteAllNotifications = async (userId) => {
     const deletes = snapshot.docs.map((doc) => deleteDoc(doc.ref));
     await Promise.all(deletes);
   } catch (error) {
-    console.error("Error deleting all notifications:", error);
+    log.error("deleteAllNotifications failed", { message: error.message });
   }
 };
 
@@ -794,7 +771,7 @@ export const notifyPostCreated = async (userId, postData) => {
       },
     );
   } catch (error) {
-    console.error("Error notifying post created:", error);
+    log.error("notifyPostCreated failed", { message: error.message });
   }
 };
 
@@ -809,7 +786,7 @@ export const notifyAllUsersPostCreated = async (
   excludeUserId = null,
 ) => {
   try {
-    const usersSnap = await getDocs(collection(db, "users"));
+    const usersSnap = await getDocs(collection(db, "publicProfiles"));
     const promises = [];
     usersSnap.forEach((u) => {
       if (excludeUserId && u.id === excludeUserId) return; // skip author if requested

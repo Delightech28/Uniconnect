@@ -364,6 +364,7 @@ const UniConnectRegistration = () => {
     institution: "", // selected institution
     documentType: "University ID",
     file: null,
+    filePreviewUrl: null,
     gender: "", // NEW: gender field (male or female)
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -377,32 +378,24 @@ const UniConnectRegistration = () => {
     if (type === "file") {
       const file = files[0];
       if (!file) return;
+      const maxFileSizeBytes = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxFileSizeBytes) {
+        setError("Selected file is too large. Please choose a file smaller than 10MB.");
+        setFormData((prevData) => ({
+          ...prevData,
+          file: null,
+          filePreviewUrl: null,
+        }));
+        return;
+      }
 
-      // Read file as Data URL (base64)
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result;
-        // Check for Firestore document size limit (1MB), leave headroom
-        const maxDataUrlLength = 900000; // ~900KB
-        if (dataUrl && dataUrl.length > maxDataUrlLength) {
-          setError(
-            "Selected file is too large. Please choose a smaller file (max ~900KB).",
-          );
-          setFormData((prevData) => ({
-            ...prevData,
-            file: null,
-            fileDataUrl: null,
-          }));
-        } else {
-          setError(null);
-          setFormData((prevData) => ({
-            ...prevData,
-            file,
-            fileDataUrl: dataUrl,
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setError(null);
+      setFormData((prevData) => ({
+        ...prevData,
+        file,
+        filePreviewUrl: previewUrl,
+      }));
     } else {
       setFormData((prevData) => ({
         ...prevData,
@@ -504,6 +497,7 @@ const UniConnectRegistration = () => {
           institution: null, // Guests don't have institution
           documentType: null,
           documentFileName: null,
+          documentFileUrl: null,
           fileDataUrl: null,
           verified: true,
           referredByCode: incomingRefGuest || null,
@@ -565,7 +559,7 @@ const UniConnectRegistration = () => {
 
     while (exists && counter < 1000) {
       const usernameQuery = query(
-        collection(db, "users"),
+        collection(db, "publicProfiles"),
         where("username", "==", username),
       );
       const snapshot = await getDocs(usernameQuery);
@@ -592,7 +586,7 @@ const UniConnectRegistration = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      console.log("Google Sign-Up successful:", user.uid);
+      console.log("Google Sign-Up successful");
       setGoogleUser(user);
 
       // Check if user already exists in Firestore
@@ -663,22 +657,18 @@ const UniConnectRegistration = () => {
         formData.password,
       );
       const user = userCredential.user;
-      console.log("User created in Auth:", user.uid);
+      console.log("User created in Auth");
 
       // Handle file data if present
-      let fileDataUrlToStore = formData.fileDataUrl || null;
-
-      // Check file size for Firestore limits (1MB limit with some headroom)
-      const maxDataUrlLength = 900000; // ~900KB
-      if (fileDataUrlToStore && fileDataUrlToStore.length > maxDataUrlLength) {
-        console.warn(
-          "File too large for base64 storage in Firestore (max ~900KB)",
+      let documentFileUrl = null;
+      if (formData.file && formData.registerAs === "student") {
+        const safeName = formData.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const fileRef = storageRef(
+          storage,
+          `verificationDocs/${user.uid}/${Date.now()}_${safeName}`,
         );
-        setError(
-          "Selected file is too large. Please choose a smaller file (max ~900KB).",
-        );
-        setLoading(false);
-        return;
+        await uploadBytes(fileRef, formData.file);
+        documentFileUrl = await getDownloadURL(fileRef);
       }
 
       // Generate unique username
@@ -699,7 +689,8 @@ const UniConnectRegistration = () => {
         institution: formData.institution || null,
         documentType: formData.documentType || null,
         documentFileName: formData.file ? formData.file.name : null,
-        fileDataUrl: fileDataUrlToStore,
+        documentFileUrl,
+        fileDataUrl: null,
         verified: false,
         referralCode: user.uid
           ? String(user.uid).slice(0, 8)
@@ -726,7 +717,7 @@ const UniConnectRegistration = () => {
         userData.referredByCode = incomingRef;
         localStorage.removeItem("referral_code");
       }
-      console.log("Saving user data to Firestore...", userData);
+      console.log("Saving user data to Firestore...");
 
       // Save user data to Firestore
       const userDocRef = doc(db, "users", user.uid);
@@ -1345,10 +1336,16 @@ dark:text-slate-400"
                               id="file"
                               type="file"
                               className="hidden"
+                              accept=".png,.jpg,.jpeg,.pdf"
                               onChange={handleInputChange}
                             />
                           </label>
                         </div>
+                        {formData.file && (
+                          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+                            Selected: {formData.file.name} ({Math.round(formData.file.size / 1024)} KB)
+                          </p>
+                        )}
                       </div>
                       <button
                         type="submit"

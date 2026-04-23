@@ -111,17 +111,25 @@ const ProfilePage = () => {
             return;
           }
 
-          const snapshot = await getDoc(doc(db, "users", userId));
+          const snapshot = await getDoc(doc(db, "publicProfiles", userId));
           if (snapshot.exists()) {
             setUserDoc(snapshot.data());
             setIsOwnProfile(false);
 
             // Load profile data
-            const userBadges = await calculateBadges(userId);
-            setBadges(userBadges);
+            try {
+              const userBadges = await calculateBadges(userId);
+              setBadges(userBadges);
+            } catch (err) {
+              setBadges([]);
+            }
 
-            const userStats = await getUserStats(userId);
-            setStats(userStats);
+            try {
+              const userStats = await getUserStats(userId);
+              setStats(userStats);
+            } catch (err) {
+              setStats({ connectionsCount: snapshot.data()?.connectionsCount || 0 });
+            }
 
             const userPosts = await getUserPosts(userId, 5);
             setPosts(userPosts);
@@ -163,7 +171,7 @@ const ProfilePage = () => {
             } catch (err) {
               // fallback to legacy array length if available
               try {
-                const uDoc = await getDoc(doc(db, "users", userId));
+                const uDoc = await getDoc(doc(db, "publicProfiles", userId));
                 const legacy = uDoc.exists()
                   ? uDoc.data().connections || []
                   : [];
@@ -297,7 +305,12 @@ const ProfilePage = () => {
     const targetUserId = userId || currentUser?.uid;
     if (!targetUserId) return;
 
-    const userRef = doc(db, "users", targetUserId);
+    const targetIsOwnProfile = !userId || userId === currentUser?.uid;
+    const userRef = doc(
+      db,
+      targetIsOwnProfile ? "users" : "publicProfiles",
+      targetUserId,
+    );
     const unsubscribeProfile = onSnapshot(
       userRef,
       (snapshot) => {
@@ -319,11 +332,16 @@ const ProfilePage = () => {
 
     const targetUserId = userId || currentUser?.uid;
     if (!targetUserId) return;
+    const targetIsOwnProfile = !userId || userId === currentUser?.uid;
 
     let isMounted = true;
     let postsCountCache = null;
 
-    const userRef = doc(db, "users", targetUserId);
+    const userRef = doc(
+      db,
+      targetIsOwnProfile ? "users" : "publicProfiles",
+      targetUserId,
+    );
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {
       if (!isMounted) return;
 
@@ -356,6 +374,7 @@ const ProfilePage = () => {
               : postsCountCache,
           followerCount: data.followerCount || 0,
           followingCount: data.followingCount || 0,
+          connectionsCount: data.connectionsCount || 0,
           joinDate: data.createdAt || data.joinDate || null,
         };
 
@@ -365,6 +384,7 @@ const ProfilePage = () => {
 
         // If the user doc doesn't have precomputed stats, compute from collections as a fallback
         const needsFallback =
+          targetIsOwnProfile &&
           derived.postsCreated === 0 &&
           derived.itemsSold === 0 &&
           derived.reviews === 0;
@@ -411,7 +431,7 @@ const ProfilePage = () => {
           const ids = snap.docs.map((d) => d.id);
           const list = await Promise.all(
             ids.map(async (id) => {
-              const s = await getDoc(doc(db, "users", id));
+              const s = await getDoc(doc(db, "publicProfiles", id));
               return s.exists() ? { id, ...s.data() } : null;
             }),
           );

@@ -134,7 +134,7 @@ function SettingsPage() {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            console.log("User data from Firestore:", userData);
+            console.log("User data loaded from Firestore");
 
             if (userData.fontSize) {
               setSettings((prev) => ({ ...prev, fontSize: userData.fontSize }));
@@ -298,7 +298,7 @@ function SettingsPage() {
 
       // Check if username is already taken by another user
       const usernameQuery = query(
-        collection(db, "users"),
+        collection(db, "publicProfiles"),
         where("username", "==", newUsername),
       );
       const snapshot = await getDocs(usernameQuery);
