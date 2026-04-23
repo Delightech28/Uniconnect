@@ -1,252 +1,305 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to write their own document in the users collection
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminByClaim() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isAdminByRoleField() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAdmin() {
+      return isAdminByClaim() || isAdminByRoleField();
+    }
+
+    // SECURITY: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection with strict access control
     match /users/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null; // Allow reading any user profile
-      allow update: if request.auth != null && (
-        // Users can update their own full document
-        request.auth.uid == userId ||
-        // Any authenticated user can update specific interaction arrays/fields only
-        // (connection requests, likes, followers/following updates performed via arrayUnion/arrayRemove)
-        // Also allow verification-related fields to be updated
-        request.resource.data.keys().hasAny([
-          'pendingConnections', 'connections', 'likedBy', 'likeCount', 'followers', 'following', 'connectionsCount',
-          'verified', 'verifiedAt'
-        ])
+      // Create: Only authenticated users can create their own profile
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+
+      // Read: any signed-in user can view profiles (needed for social features)
+      // Sensitive data is protected at subcollection level below
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+
+      // Update: owner can update profile but cannot self-promote role/admin flags
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && (
+            !('admin' in resource.data)
+            || request.resource.data.admin == resource.data.admin
+          )
+        )
+        || isAdmin()
       );
 
-      // Notifications subcollection: each user can only access their own notifications
+      // Delete: only owner or admin
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // Notifications subcollection: only user can access their own
       match /notifications/{notificationId} {
-        allow create: if request.auth != null; // Any authenticated user can create notifications for any user
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if isSignedIn();
+        allow read, update, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
 
-      // Likes subcollection under users: one doc per user who liked this user's profile
+      // Likes subcollection: public read counts, authenticated create/delete
       match /likes/{likeId} {
-        // Anyone can read likes (used for counts)
-        allow read: if true;
-        // Only authenticated user may create/delete their own like doc
+        allow read: if true; // Allow reading likes (for counts)
         allow create, delete: if request.auth != null && request.auth.uid == likeId;
         allow update: if false;
       }
 
-      // Connection requests subcollection: pending requests to this user
+      // Connection requests: only between participants
       match /connectionRequests/{requesterId} {
-        // Both the target user and the requester can read the request
-        allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == requesterId);
-        // The requester may create their own request doc; the target or requester may delete it (accept/reject)
-        allow create: if request.auth != null && request.auth.uid == requesterId;
-        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == requesterId);
-        allow update: if false;
-      }
-
-      // Connections subcollection: accepted connections stored as docs (id = otherUserId)
-      match /connections/{connectionId} {
-        // Owner may read their connections; also allow public read for basic listing
-        allow read: if request.auth != null && (request.auth.uid == userId || true);
-        // Allow creating/deleting a connection doc if the caller is either the owner or the connectionId user
-        allow create, delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == connectionId);
-        allow update: if false;
-      }
-
-      // Transactions subcollection: allow users to read and create their own transactions
-      match /transactions/{transactionId} {
-        allow read, create: if request.time > timestamp.date(2020, 9, 10);
-        allow update, delete: if request.time > timestamp.date(2020, 9, 10);
-        allow read, write: if request.time > timestamp.date(2020, 9, 10);
-      }
-
-      // Bank accounts subcollection: allow users to manage their saved bank accounts
-      match /bankAccounts/{accountId} {
-        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
-        allow update: if false; // Re-saving overwrites or just delete and re-add
-      }
-
-      // Conversations subcollection: mirrored conversations for each user
-      match /conversations/{convoId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-    
-    // Public listings collection: anyone can read listings
-    // Authenticated users can create listings. Only the seller can update/delete their listing.
-    match /listings/{listingId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
-    }
-
-    // Items collection (market items). Allow public reads; sellers control their items.
-    match /items/{itemId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
-    }
-
-    // Marketplace collection: same rules as items/listings
-    match /marketplace/{itemId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
-    }
-
-    // Conversations and messages: participants-only access
-    match /conversations/{convoId} {
-      // Allow creating a conversation if requester is authenticated and is one of the participants
-      // Conversation creation typically happens when selecting a connection or starting a new chat
-      allow create: if request.auth != null
-        && request.resource.data.participants is list
-        && request.auth.uid in request.resource.data.participants
-        && request.resource.data.participants.size() >= 2
-        && request.resource.data.participants.size() <= 10;
-
-      // Allow reading a conversation only to its participants
-      allow get: if request.auth != null && request.auth.uid in resource.data.participants;
-      allow list: if request.auth != null && request.auth.uid != null; // limited by client queries (should use array-contains)
-
-      // Allow updating conversation metadata (lastMessage, lastTimestamp, unreadCount with increment(), etc.) only to participants
-      // Prevent changing participants list
-      allow update: if request.auth != null
-        && request.auth.uid in resource.data.participants
-        && request.resource.data.participants == resource.data.participants;
-
-      // Deleting conversations not allowed by clients
-      allow delete: if false;
-
-      // Messages subcollection rules
-      match /messages/{messageId} {
-        // Allow participants to create messages, senderId must equal authenticated user
-        allow create: if request.auth != null
-          && request.resource.data.senderId == request.auth.uid
-          && get(/databases/$(database)/documents/conversations/$(convoId)).data.participants is list
-          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
-
-        // Allow reading messages only to participants
-        allow read: if request.auth != null
-          && get(/databases/$(database)/documents/conversations/$(convoId)).data.participants is list
-          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
-
-        // No updates/deletes from clients
-        allow update, delete: if false;
-      }
-
-      // Typing presence subcollection: ephemeral presence docs for typing indicators
-      // Each user has a doc with their userId as the docId, containing lastActive timestamp
-      match /typing/{userId} {
-        // Allow users to write their own typing presence doc
-        allow create, update: if request.auth != null && request.auth.uid == userId;
-        // Allow participants to read typing presence to show indicators
-        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
-        // Allow auto-cleanup: users can delete their own doc or system can delete old ones
-        allow delete: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-
-    // Contact submissions: allow any authenticated user to create a submission
-    match /contactSubmissions/{submissionId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if false; // prevent client-side reads/modifications
-    }
-
-    // Posts: feed posts collection
-    // - Public read access so the campus feed can be viewed by anyone
-    // - Only authenticated users can create posts and authorId must match the caller
-    // - Only the post author may update or delete their post
-    // - Any authenticated user can update likesCount
-    match /posts/{postId} {
-      // Change `if true` to `if request.auth != null` to restrict reads to authenticated users
-      allow read: if true;
-
-      allow create: if request.auth != null
-        && request.resource.data.authorId == request.auth.uid
-        && (
-          (request.resource.data.title is string && request.resource.data.content is string) ||
-          (request.resource.data.poll is map && request.resource.data.poll.options is list && request.resource.data.poll.options.size() >= 2)
+        allow read: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == requesterId
         );
-
-      allow update: if request.auth != null && (
-        (resource.data.authorId == request.auth.uid) || 
-        ('likesCount' in request.resource.data.diff(resource.data).affectedKeys()) ||
-        ('poll' in request.resource.data.diff(resource.data).affectedKeys())
-      );
-      
-      allow delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
-    }
-
-    // Likes subcollection under posts: one doc per user who liked the post
-    match /posts/{postId}/likes/{likeId} {
-      // Anyone can read likes (used for counts)
-      allow read: if true;
-      // Only authenticated user may create/delete their own like doc
-      allow create, delete: if request.auth != null && request.auth.uid == likeId;
-      allow update: if false;
-    }
-
-    // Poll votes subcollection under posts: one doc per user who voted on the poll
-    match /posts/{postId}/pollVotes/{userId} {
-      // Anyone can read poll votes (used for counts and preventing double voting)
-      allow read: if true;
-      // Only authenticated user may create/update their own vote doc
-      allow create, update: if request.auth != null && request.auth.uid == userId;
-      // Users can delete their own vote (change vote)
-      allow delete: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Comments subcollection under posts
-    match /posts/{postId}/comments/{commentId} {
-      // Anyone can read comments
-      allow read: if true;
-      // Authenticated users can create comments
-      allow create: if request.auth != null
-        && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.text is string;
-      // Only comment author can update/delete their comment
-      // Any authenticated user can update likesCount
-      allow update: if request.auth != null && (
-        (resource.data.authorId == request.auth.uid) ||
-        ('likesCount' in request.resource.data.diff(resource.data).affectedKeys())
-      );
-      allow delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
-
-      // Likes subcollection under comments: one doc per user who liked the comment
-      match /likes/{likeId} {
-        // Anyone can read comment likes (used for counts)
-        allow read: if true;
-        // Only authenticated user may create/delete their own like doc
-        allow create: if request.auth != null && request.auth.uid == likeId;
-        allow delete: if request.auth != null && request.auth.uid == likeId;
+        allow create: if request.auth != null && request.auth.uid == requesterId;
+        allow delete: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == requesterId
+        );
         allow update: if false;
       }
 
-      // Poll votes subcollection under posts: one doc per user who voted on the poll
+      // Connections: owner and connected user only
+      match /connections/{connectionId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == connectionId
+        );
+        allow create, delete: if request.auth != null && (
+          request.auth.uid == userId || 
+          request.auth.uid == connectionId
+        );
+        allow update: if false;
+      }
+
+      // Transactions: owner only
+      match /transactions/{transactionId} {
+        allow read, create, update, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      }
+
+      // Bank accounts: owner only
+      match /bankAccounts/{accountId} {
+        allow read, create, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow update: if false;
+      }
+
+      // Conversations: owner only
+      match /conversations/{convoId} {
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      }
+    }
+
+    // Public profile projection for social/profile browsing.
+    // This collection must only contain non-sensitive fields.
+    match /publicProfiles/{userId} {
+      // Any signed-in user can view public profiles.
+      allow read: if isSignedIn();
+
+      // Owner can manage their public profile document.
+      allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
+
+      // Admins can also manage/repair public profiles.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Listings: public read, creator can write
+    match /listings/{listingId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Items: public read, creator can write
+    match /items/{itemId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Marketplace: same as items/listings
+    match /marketplace/{itemId} {
+      allow read: if true; // Public marketplace
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+
+    // Conversations collection: participants only
+    match /conversations/{convoId} {
+      allow create: if request.auth != null && 
+        request.resource.data.participants is list &&
+        request.auth.uid in request.resource.data.participants;
+      
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.participants;
+      
+      allow update, delete: if request.auth != null && 
+        request.auth.uid in resource.data.participants;
+
+      // Messages subcollection: participants only
+      match /messages/{messageId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow create: if request.auth != null && 
+          request.resource.data.senderId == request.auth.uid &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow update, delete: if request.auth != null && 
+          resource.data.senderId == request.auth.uid;
+      }
+
+      // Typing presence subcollection: participants only
+      match /typing/{userId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow create, update: if request.auth != null && 
+          request.auth.uid == userId &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participants;
+        
+        allow delete: if request.auth != null && 
+          request.auth.uid == userId;
+      }
+    }
+
+    // Contact submissions: create only
+    match /contactSubmissions/{submissionId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false; // Admin only via Cloud Functions
+    }
+
+    // Password resets: server-side only (through Cloud Functions)
+    match /passwordResets/{resetId} {
+      allow read, write: if false; // Handled by Cloud Functions only
+    }
+
+    // Verification requests: authenticated users can create
+    match /verificationRequests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false; // Admin only via Cloud Functions
+    }
+
+    // Posts collection: authenticated users can read, only creator can edit/delete
+    match /posts/{postId} {
+      allow read: if request.auth != null; // Authenticated users can read posts
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update: if request.auth != null && (
+        // Post owner can update everything
+        (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid) ||
+        // Any authenticated user can update likesCount, commentsCount, votesCount, poll, authorName only
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount', 'votesCount', 'poll', 'authorName'])
+      );
+      allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid);
+
+      // Votes subcollection: under posts
+      match /votes/{voteId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Likes subcollection: under posts
+      match /likes/{likeId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+
+      // Poll votes subcollection: under posts (keyed by userId)
       match /pollVotes/{userId} {
-        // Anyone can read poll votes (used for counts and preventing double voting)
-        allow read: if true;
-        // Only authenticated user may create/update their own vote doc
+        allow read: if request.auth != null;
         allow create, update: if request.auth != null && request.auth.uid == userId;
-        // Users can delete their own vote (change vote)
         allow delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Verification Requests collection: tracks student verification requests
-    match /verificationRequests/{userId} {
-      // Authenticated users can create their own verification request
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // User can read their own request
-      allow read: if request.auth != null && request.auth.uid == userId;
-      // Allow users to update their own verification requests (status updates from verification backend)
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+    // Comments subcollection: with nested likes
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+
+      // Comment likes subcollection
+      match /likes/{likeId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
     }
 
-    // Default deny all other access
-    match /{document=**} {
-      allow read, write: if false;
+    // Study hub documents
+    match /studyHubs/{hubId} {
+      allow read: if request.auth != null; // Authenticated users only
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+
+      match /documents/{docId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if request.auth != null;
+      }
+
+      match /quizzes/{quizId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+      }
+    }
+
+    // Quizzes collection (if separate from studyHubs)
+    match /quizzes/{quizId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+
+      match /responses/{responseId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // Chat/Messages collection (if separate)
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Notifications root collection (if used)
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false; // Only backend/Cloud Functions can write
+    }
+
+    // Reviews collection: public read, buyer can write
+    match /reviews/{reviewId} {
+      allow read: if true; // Public reviews
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
     }
   }
 }

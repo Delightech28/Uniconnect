@@ -28,11 +28,10 @@ import {
  */
 
 const getProfileDocRef = (userId) => {
-  const currentUid = auth.currentUser?.uid;
-  if (currentUid && currentUid === userId) {
-    return doc(db, 'users', userId);
-  }
-  return doc(db, 'publicProfiles', userId);
+  // Always read from 'users' — Firestore rules allow any signed-in user to
+  // read profile documents. The 'publicProfiles' collection is reserved for
+  // future use when a dedicated public-only projection is needed.
+  return doc(db, 'users', userId);
 };
 
 const getProfileById = async (userId) => {

@@ -111,7 +111,7 @@ const ProfilePage = () => {
             return;
           }
 
-          const snapshot = await getDoc(doc(db, "publicProfiles", userId));
+          const snapshot = await getDoc(doc(db, "users", userId));
           if (snapshot.exists()) {
             setUserDoc(snapshot.data());
             setIsOwnProfile(false);
@@ -171,7 +171,7 @@ const ProfilePage = () => {
             } catch (err) {
               // fallback to legacy array length if available
               try {
-                const uDoc = await getDoc(doc(db, "publicProfiles", userId));
+                const uDoc = await getDoc(doc(db, "users", userId));
                 const legacy = uDoc.exists()
                   ? uDoc.data().connections || []
                   : [];
@@ -308,7 +308,7 @@ const ProfilePage = () => {
     const targetIsOwnProfile = !userId || userId === currentUser?.uid;
     const userRef = doc(
       db,
-      targetIsOwnProfile ? "users" : "publicProfiles",
+      "users",
       targetUserId,
     );
     const unsubscribeProfile = onSnapshot(
@@ -339,7 +339,7 @@ const ProfilePage = () => {
 
     const userRef = doc(
       db,
-      targetIsOwnProfile ? "users" : "publicProfiles",
+      "users",
       targetUserId,
     );
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {

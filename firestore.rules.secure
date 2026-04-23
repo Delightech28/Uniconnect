@@ -30,8 +30,9 @@ service cloud.firestore {
         && request.auth.uid == userId
         && (!('role' in request.resource.data) || request.resource.data.role == 'user');
 
-      // Read: only owner or admin
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Read: any signed-in user can view profiles (needed for social features)
+      // Sensitive data is protected at subcollection level below
+      allow get: if isSignedIn();
       allow list: if isAdmin();
 
       // Update: owner can update profile but cannot self-promote role/admin flags
