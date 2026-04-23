@@ -16,6 +16,7 @@ import {
   ExternalLink,
   X,
   Users,
+  RotateCcw,
 } from "lucide-react";
 import { generateQuiz, getQuizFeedback } from "../services/geminiService";
 import QuizInviteModal from "../../QuizInviteModal";
@@ -404,16 +405,33 @@ const QuizSection = ({
               ))}
             </div>
 
-            <button
-              onClick={() => {
-                setIsQuizRunning(false);
-                setIsShowingResults(false);
-                setSelectedTopic(null);
-              }}
-              className="w-full py-4 sm:py-5 bg-gray-900 text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl shadow-gray-200 active:scale-95 transition-all"
-            >
-              Exit Assessment
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <button
+                onClick={() => {
+                  setIsQuizRunning(false);
+                  setIsShowingResults(false);
+                  setSelectedTopic(null);
+                  setAiFeedback(null);
+                }}
+                className="flex-1 py-4 sm:py-5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <ArrowLeft size={18} />
+                Back to Topics
+              </button>
+              <button
+                onClick={() => {
+                  setIsShowingResults(false);
+                  setUserAnswers(new Array(questions.length).fill(-1));
+                  setCurrentIdx(0);
+                  setTimeLeft(timePerQuestion);
+                  setAiFeedback(null);
+                }}
+                className="flex-1 py-4 sm:py-5 bg-unispace text-white rounded-2xl sm:rounded-[24px] font-bold text-base sm:text-lg shadow-xl shadow-unispace/20 active:scale-95 hover:shadow-2xl transition-all flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={18} />
+                Retake Quiz
+              </button>
+            </div>
           </div>
 
           {validationRef && (
@@ -441,7 +459,7 @@ const QuizSection = ({
                 </div>
                 <div
                   ref={validationScrollRef}
-                  className="h-[50vh] sm:h-72 overflow-y-auto custom-scrollbar p-6 bg-gray-50 dark:bg-zinc-800 rounded-2xl text-xs sm:text-sm leading-relaxed border dark:border-zinc-700 font-mono whitespace-pre-wrap break-words"
+                  className="h-[50vh] sm:h-80 overflow-y-auto custom-scrollbar p-6 bg-white dark:bg-zinc-900 rounded-2xl text-sm leading-relaxed border dark:border-zinc-700 whitespace-pre-wrap break-words shadow-inner"
                 >
                   {docText && validationRef ? (
                     (() => {

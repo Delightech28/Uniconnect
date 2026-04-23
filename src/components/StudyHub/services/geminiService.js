@@ -433,7 +433,7 @@ export const generateQuiz = async (docText, topic, count = 5, signal) => {
   if (!docText) return [];
 
   try {
-    const prompt = `Generate ${count} multiple choice quiz questions about "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[\n  {\n    "id": "1",\n    "text": "Question text here?",\n    "options": ["Option A", "Option B", "Option C", "Option D"],\n    "correctAnswerIndex": 0,\n    "explanation": "Why this is the correct answer",\n    "pageReference": "Relevant section heading or topic name"\n  }\n]\n\nDocument text (first 3000 chars):\n${docText.substring(0, 3000)}...\n\nRules:\n1. Questions must be answerable from the document only\n2. pageReference should be a specific section heading, chapter, or topic name where the answer is found\n3. Explanations should cite the document\n4. Return ONLY the JSON array with no markdown, code blocks, or plain text`;
+    const prompt = `Generate ${count} multiple choice quiz questions STRICTLY about the topic "${topic}".\n\nIMPORTANT - Return ONLY valid JSON array with this exact format:\n[\n  {\n    "id": "1",\n    "text": "Question text here?",\n    "options": ["Option A", "Option B", "Option C", "Option D"],\n    "correctAnswerIndex": 0,\n    "explanation": "Why this is the correct answer",\n    "pageReference": "Relevant section heading or topic name"\n  }\n]\n\nDocument text (first 5000 chars):\n${docText.substring(0, 5000)}...\n\nRules:\n1. Each question MUST be directly answerable from a section explicitly about "${topic}"\n2. Focus on the MAIN concepts, key definitions, and core ideas of "${topic}" — avoid trivial or peripheral details\n3. pageReference should be a specific section heading, chapter, or topic name where the answer is found\n4. Explanations should cite the document and explain WHY the answer is correct\n5. Return ONLY the JSON array with no markdown, code blocks, or plain text`;
 
     const response = await fetch(CLOUD_FUNCTION_URL, {
       method: "POST",
@@ -602,7 +602,7 @@ export const generatePodcastContent = async (
     // Different prompt structure for single vs multi-host
     const hostInstructions =
       hostCount === 1
-        ? `The podcast is hosted by a single host named "${hosts[0]?.name || "Alex"}". The host should introduce themselves by name at the beginning.`
+        ? `The podcast is hosted by a single host named "${hosts[0]?.name || "Alex"}". The host should introduce themselves by name at the beginning. Speak in a warm, conversational tone like a friendly tutor.`
         : `The podcast is hosted by multiple hosts: ${hosts.map((h) => h.name || "Host").join(", ")}.
          START with an INTRODUCTION segment where the hosts introduce themselves conversationally:
          - First host introduces themselves and their name clearly
@@ -612,6 +612,8 @@ export const generatePodcastContent = async (
          In the MAIN CONTENT segments, hosts should alternate speaking and hand off naturally:
          - When one host finishes, they should transition to the next host (e.g., "Let me hand this over to [name]" or "[name], what do you think?")
          - Keep the conversation natural and dynamic
+         - Add brief verbal fillers like "So", "You know", "I mean" naturally between thoughts
+         - Include natural pauses and transitions like "Alright", "Let me think about this", "Here's the thing"
 
          END with a CONCLUSION segment where all hosts wrap up together:
          - All hosts should participate in the conclusion
@@ -625,11 +627,14 @@ Tone: ${getToneInstruction(tone)}
 Target duration: ${durationMinutes} minutes
 ${hostInstructions}
 
+IMPORTANT: Use these exact host names in the "speaker" field:
+${hosts.map((h, i) => `Host ${i + 1}: "${h.name || (i === 0 ? 'Alex' : 'Jordan')}"`).join(', ')}
+
 The podcast MUST include:
 1. An INTRODUCTION segment at the start
 2. Multiple CONTENT segments covering the topic
 3. A CONCLUSION segment at the end
-4. Each segment must have a clear "speaker" field with the host name
+4. Each segment must have a clear "speaker" field with the EXACT host name (e.g., "Alex", "Jordan" - NOT "Host 1" or "Host 2")
 5. Natural transitions between hosts when needed
 
 RETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):
@@ -641,7 +646,7 @@ RETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):
       "duration": 20,
       "topic": "Introduction",
       "segment_type": "introduction",
-      "speaker": "Host Name",
+      "speaker": "Alex",
       "text": "Host introduces themselves and the topic..."
     },
     {
@@ -649,7 +654,7 @@ RETURN ONLY VALID JSON (no markdown, no code blocks, just raw JSON):
       "duration": 60,
       "topic": "Main Content",
       "segment_type": "content",
-      "speaker": "Host Name",
+      "speaker": "Jordan",
       "text": "Main podcast content with smooth transitions between hosts..."
     },
     {

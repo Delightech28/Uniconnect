@@ -223,8 +223,26 @@ const App = () => {
       if (mode === ResultMode.SUMMARY || mode === ResultMode.DEEP_SUMMARY) {
         combinedText = `--- SOURCE MATERIAL ---\n${textA}`;
         if (mode === ResultMode.DEEP_SUMMARY) {
-          const structure = strategy === 'MODULES' ? 'modules by modules' : 'units by units';
-          question = `Perform a premium deep academic summary of this document. Analyze every section with full understanding, extract clear topics, and summarize the content ${structure}. Answer any embedded questions, explain unclear concepts, and highlight key ideas in each unit or module.`;
+          // Auto-detect document structure for deep summary
+          let structure = strategy || 'UNITS';
+          if (!strategy) {
+            // Analyze document for chapter/section patterns
+            const hasChapterMarkers = /chapter\s+\d+|section\s+\d+|unit\s+\d+|module\s+\d+/i.test(textA);
+            const hasModuleHeaders = /^MODULE\s+\d+|^UNIT\s+\d+|^CHAPTER\s+\d+/im.test(textA);
+            const sectionCount = (textA.match(/^#{1,3}\s+/gm) || []).length;
+            
+            if (hasModuleHeaders || /module\s+\d+/i.test(textA)) {
+              structure = 'MODULES';
+            } else if (hasChapterMarkers || sectionCount > 5) {
+              structure = 'UNITS';
+            } else {
+              // Default to units if unclear
+              structure = 'UNITS';
+            }
+            console.log('[DeepSummary] Auto-detected structure:', structure, { hasChapterMarkers, hasModuleHeaders, sectionCount });
+          }
+          const structureLabel = structure === 'MODULES' ? 'modules by modules' : 'units by units';
+          question = `Perform a premium deep academic summary of this document. Analyze every section with full understanding, extract clear topics, and summarize the content ${structureLabel}. Answer any embedded questions, explain unclear concepts, and highlight key ideas in each unit or module.`;
         } else {
           question =
             "Synthesize an EXHAUSTIVE ACADEMIC SUMMARY. Bold terms strictly before colons.";

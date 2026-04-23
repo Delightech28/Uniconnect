@@ -526,13 +526,13 @@ font-display text-secondary dark:text-slate-200 min-h-screen flex flex-col"
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8">
           <div className="flex flex-col max-w-4xl mx-auto">
             <div className="flex items-center gap-4 mb-4">
-              <Link
-                to="/study-hub"
+              <button
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
-                <span className="text-sm font-medium">Back to Study Hub</span>
-              </Link>
+                <span className="text-sm font-medium">Back</span>
+              </button>
             </div>
             <div
               className="bg-white dark:bg-secondary rounded-xl

@@ -200,15 +200,32 @@ const StudyHubApp = ({ darkMode, toggleDarkMode }) => {
     }
 
     setLoading(true);
-    setLoadingMessage("Opening chat...");
+    setLoadingMessage("Re-analyzing document...");
 
     try {
-      // Load document and go directly to tutor/chat view without re-analyzing
-      setStudyDoc(doc);
-      setTopics([]); // Clear topics, user will go to tutor chat
-      setCurrentView("tutor"); // Open the chat directly
+      // Re-extract topics from the stored document text (full reload)
+      console.log("[App] Re-analyzing document:", doc.name);
+      const extractedTopics = await generateTopics(
+        doc.text,
+        abortRef.current?.signal,
+      );
+      console.log("[App] Topics re-extracted:", extractedTopics);
+
+      // Update document with new timestamp and topics
+      const updatedDoc = {
+        ...doc,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      setStudyDoc(updatedDoc);
+      setTopics(extractedTopics);
+      setCurrentView("analysis"); // Go to dashboard/topics view
     } catch (error) {
-      alert("Error loading document: " + error.message);
+      console.error("[App] Error re-analyzing document:", error);
+      // Fallback: just load the document without re-analyzing
+      setStudyDoc(doc);
+      setTopics([]);
+      setCurrentView("analysis");
     } finally {
       setLoading(false);
     }
