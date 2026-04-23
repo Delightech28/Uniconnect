@@ -15,7 +15,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
-const EMAILJS_PRIVATE_KEY  = defineSecret("EMAILJS_PRIVATE_KEY");
+// EMAILJS_PRIVATE_KEY secret — uncomment when ready to store in Secret Manager:
+// const EMAILJS_PRIVATE_KEY = defineSecret("EMAILJS_PRIVATE_KEY");
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -79,100 +80,13 @@ const enforceRateLimit = (
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// sendVerificationEmail — callable Cloud Function
-//
-// WHY: EmailJS private key must never live in the frontend bundle.
-//      The frontend calls this function; the function uses the secret
-//      key stored in Firebase Secret Manager.
-//
-// HOW TO STORE THE SECRET (one-time):
-//   firebase functions:secrets:set EMAILJS_PRIVATE_KEY
-//   → paste your EmailJS private key when prompted
-//
-// HOW TO DEPLOY:
-//   cd functions && npm run deploy
+// sendVerificationEmail — DISABLED until EMAILJS_PRIVATE_KEY is stored.
+// To enable:
+//   1. firebase functions:secrets:set EMAILJS_PRIVATE_KEY
+//   2. Uncomment the EMAILJS_PRIVATE_KEY defineSecret above (line ~18)
+//   3. Uncomment this entire function block
+//   4. Run: firebase deploy --only functions
 // ─────────────────────────────────────────────────────────────────────────────
-export const sendVerificationEmail = onCall(
-  {
-    secrets: [EMAILJS_PRIVATE_KEY],
-    maxInstances: 10,
-  },
-  async (request) => {
-    if (!request.auth) {
-      throw new HttpsError("unauthenticated", "Must be signed in.");
-    }
-
-    const {
-      serviceId,
-      templateId,
-      publicKey,
-      toEmail,
-      userName,
-      institution,
-      registerAs,
-      createdAt,
-      approveLink,
-      rejectLink,
-    } = request.data as {
-      serviceId:   string;
-      templateId:  string;
-      publicKey:   string;
-      toEmail:     string;
-      userName:    string;
-      institution: string;
-      registerAs:  string;
-      createdAt:   string;
-      approveLink: string;
-      rejectLink:  string;
-    };
-
-    if (!serviceId || !templateId || !toEmail || !approveLink) {
-      throw new HttpsError("invalid-argument", "Missing required email fields.");
-    }
-
-    const privateKey = EMAILJS_PRIVATE_KEY.value();
-    if (!privateKey) {
-      logger.error("EMAILJS_PRIVATE_KEY not set in Secret Manager");
-      throw new HttpsError("internal", "Email service not configured.");
-    }
-
-    const payload = {
-      service_id:  serviceId,
-      template_id: templateId,
-      user_id:     publicKey,
-      accessToken: privateKey,
-      template_params: {
-        to_email:     toEmail,
-        user_name:    userName,
-        institution:  institution  || "Not specified",
-        register_as:  registerAs   || "Student",
-        created_at:   createdAt    || new Date().toLocaleDateString(),
-        approve_link: approveLink,
-        reject_link:  rejectLink,
-        year:         new Date().getFullYear(),
-      },
-    };
-
-    try {
-      const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload),
-      });
-
-      if (!resp.ok) {
-        logger.error("EmailJS API returned error", { status: resp.status });
-        throw new HttpsError("internal", "Email send failed.");
-      }
-
-      logger.log("Verification email sent via Cloud Function");
-      return { success: true };
-    } catch (err: any) {
-      logger.error("sendVerificationEmail error", { message: err.message });
-      throw new HttpsError("internal", err.message || "Email send failed.");
-    }
-  },
-);
 
 export const streamGemini = onRequest(
   {
