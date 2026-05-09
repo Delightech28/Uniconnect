@@ -233,28 +233,21 @@ function ProductDetailsPage() {
       });
 
       if (existingConvoId) {
-        console.log("Found existing conversation:", existingConvoId); // Debug
+      console.log("Found existing conversation");
         navigate(`/inbox?convo=${existingConvoId}`);
         return;
       }
 
-      console.log("No existing conversation, creating new one"); // Debug
+      console.log("No existing conversation, creating new one");
       // Fetch seller's current display name and avatar from their user doc
       let sellerName = seller.name || "Seller";
       let sellerAvatarUrl = seller.avatarUrl || "/default_avatar.png";
-      console.log(
-        "Initial seller state - name:",
-        sellerName,
-        "avatar:",
-        sellerAvatarUrl,
-      ); // Debug
 
       try {
-        console.log("Fetching seller user doc for sellerId:", sellerId); // Debug
+        console.log("Fetching seller profile for conversation");
         const sellerUserDoc = await getDoc(doc(db, "users", sellerId));
         if (sellerUserDoc.exists()) {
           const sellerData = sellerUserDoc.data();
-          console.log("Seller user doc data:", sellerData); // Debug log
           // Priority: displayName > email prefix > email > fallback to 'Seller'
           const displayName = sellerData.displayName?.trim();
           const emailPrefix = sellerData.email?.split("@")[0];
@@ -264,14 +257,8 @@ function ProductDetailsPage() {
           if (sellerData.avatarUrl) {
             sellerAvatarUrl = sellerData.avatarUrl;
           }
-          console.log(
-            "Computed sellerName:",
-            sellerName,
-            "sellerAvatarUrl:",
-            sellerAvatarUrl,
-          ); // Debug log
         } else {
-          console.log("Seller user doc does not exist"); // Debug
+          console.log("Seller profile not found, using fallback values");
         }
       } catch (userErr) {
         // Permission denied or other error; use fallback values
@@ -281,7 +268,7 @@ function ProductDetailsPage() {
         );
       }
 
-      console.log("Creating conversation with sellerName:", sellerName); // Debug
+      console.log("Creating conversation");
       // Create a new conversation
       const convoPayload = {
         participants: [buyerId, sellerId],
@@ -299,12 +286,11 @@ function ProductDetailsPage() {
         },
       };
 
-      console.log("Conversation payload:", convoPayload); // Debug
       const convRef = await addDoc(
         collection(db, "conversations"),
         convoPayload,
       );
-      console.log("Conversation created with ID:", convRef.id); // Debug
+      console.log("Conversation created");
       navigate(`/inbox?convo=${convRef.id}`);
     } catch (err) {
       console.error("Error opening conversation:", err);

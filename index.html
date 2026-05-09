@@ -157,6 +157,33 @@ font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   <body>
     <div id="root"></div>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!--
+      App Check Debug Token — LOCAL DEVELOPMENT ONLY
+      ================================================
+      This tells App Check to use a debug token instead of reCAPTCHA
+      so your local dev server still works after you enable enforcement.
+
+      HOW TO SET IT UP:
+        1. Run the app locally (npm run dev)
+        2. Open DevTools Console — you'll see:
+           "AppCheck: Debug token: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        3. Go to Firebase Console → App Check → Your web app → Debug tokens
+        4. Click "Add debug token" and paste that token
+        5. Replace "PASTE_YOUR_DEBUG_TOKEN_HERE" below with the same token
+
+      This script ONLY runs in development (Vite sets import.meta.env.DEV).
+      It is completely harmless in production because:
+        - Vite strips it out during the production build
+        - The debug token only works if it's registered in YOUR Firebase Console
+    -->
+    <script>
+      // Only activate the debug token in local dev
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = 'D0D08864-1C4C-4285-9DF4-3AF00480F938';
+      }
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

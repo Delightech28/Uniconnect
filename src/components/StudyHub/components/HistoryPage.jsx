@@ -130,7 +130,7 @@ const HistoryPage = ({ history, documents = [], onLoadDocument, isDarkMode }) =>
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-unispace hover:bg-unispace/90 text-white font-bold rounded-lg transition-colors text-sm"
                   >
                     <RotateCcw size={16} />
-                    Reuse Document
+                    Reload Document
                   </button>
                 </div>
               ))}

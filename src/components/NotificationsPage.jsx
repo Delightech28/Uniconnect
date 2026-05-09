@@ -13,6 +13,7 @@ import {
   deleteNotification,
   deleteAllNotifications,
 } from "../services/notificationService";
+import { acceptConnectionRequest } from "../services/profileService";
 import toast from "react-hot-toast";
 
 // --- Sub-components for better organization ---
@@ -188,8 +189,7 @@ const NotificationsPage = () => {
 
   const handleAcceptConnection = async (notificationId, userId) => {
     try {
-      // Here you would add the connection to a 'connections' collection
-      // For now, just delete the notification
+      await acceptConnectionRequest(user.uid, userId);
       await deleteNotification(user.uid, notificationId);
       toast.success("Connection accepted!", { duration: 2000 });
     } catch (error) {

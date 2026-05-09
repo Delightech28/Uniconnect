@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as logger from "firebase-functions/logger";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -15,6 +15,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const PAYSTACK_SECRET_KEY = defineSecret("PAYSTACK_SECRET_KEY");
+// EMAILJS_PRIVATE_KEY secret — uncomment when ready to store in Secret Manager:
+// const EMAILJS_PRIVATE_KEY = defineSecret("EMAILJS_PRIVATE_KEY");
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -25,6 +27,67 @@ const ALLOWED_ORIGINS = [
   "https://uniconnect-main.vercel.app",
 ];
 
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+const getClientIpFromHeaders = (headers: any): string => {
+  const forwarded = headers?.["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+  return "unknown";
+};
+
+const buildRateLimitKey = (
+  scope: string,
+  authUid?: string,
+  rawRequest?: any,
+): string => {
+  if (authUid) return `${scope}:uid:${authUid}`;
+  const ip = getClientIpFromHeaders(rawRequest?.headers ?? {});
+  return `${scope}:ip:${ip}`;
+};
+
+const enforceRateLimit = (
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): { allowed: boolean; retryAfterSeconds?: number } => {
+  const now = Date.now();
+  const current = rateLimitBuckets.get(key);
+
+  if (!current || now > current.resetAt) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true };
+  }
+
+  if (current.count >= maxRequests) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((current.resetAt - now) / 1000),
+    );
+    return { allowed: false, retryAfterSeconds };
+  }
+
+  current.count += 1;
+  return { allowed: true };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendVerificationEmail — DISABLED until EMAILJS_PRIVATE_KEY is stored.
+// To enable:
+//   1. firebase functions:secrets:set EMAILJS_PRIVATE_KEY
+//   2. Uncomment the EMAILJS_PRIVATE_KEY defineSecret above (line ~18)
+//   3. Uncomment this entire function block
+//   4. Run: firebase deploy --only functions
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const streamGemini = onRequest(
   {
     secrets: ["GEMINI_API_KEY"],
@@ -33,6 +96,20 @@ export const streamGemini = onRequest(
     memory: "256MiB",
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("streamGemini", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     const origin = req.headers.origin || "";
 
     if (ALLOWED_ORIGINS.includes(origin) || origin.includes("localhost")) {
@@ -124,6 +201,20 @@ export const unidocStandardAPI = onRequest(
     memory: "256MiB",
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("unidocStandardAPI", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     const origin = req.headers.origin || "";
 
     // Set CORS headers
@@ -189,6 +280,20 @@ export const createVirtualAccount = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("createVirtualAccount", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed" });
       return;
@@ -296,6 +401,20 @@ export const transferMoney = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("transferMoney", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
@@ -455,6 +574,20 @@ export const verifyAccount = onRequest(
     maxInstances: 10,
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("verifyAccount", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
       return;
@@ -726,6 +859,48 @@ export const onUserCreated = onDocumentCreated(
   },
 );
 
+// Keep a sanitized public profile in sync with users/{uid}.
+// Only non-sensitive fields are copied into publicProfiles/{uid}.
+export const syncPublicProfile = onDocumentWritten(
+  {
+    document: "users/{userId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const userId = event.params.userId;
+    const afterData = event.data?.after?.data();
+    const publicRef = db.collection("publicProfiles").doc(userId);
+
+    // If user doc deleted, remove public profile projection.
+    if (!afterData) {
+      await publicRef.delete().catch(() => undefined);
+      logger.info(`Removed public profile for deleted user ${userId}`);
+      return;
+    }
+
+    const publicProfile = {
+      userId,
+      username: afterData.username ?? "",
+      displayName: afterData.displayName ?? "",
+      avatarUrl: afterData.avatarUrl ?? "",
+      bio: afterData.bio ?? "",
+      institution: afterData.institution ?? "",
+      interests: Array.isArray(afterData.interests) ? afterData.interests : [],
+      linkedinUrl: afterData.linkedinUrl ?? "",
+      githubUrl: afterData.githubUrl ?? "",
+      instagramUrl: afterData.instagramUrl ?? "",
+      connectionsCount:
+        typeof afterData.connectionsCount === "number"
+          ? afterData.connectionsCount
+          : 0,
+      gender: afterData.gender ?? "",
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    await publicRef.set(publicProfile, { merge: true });
+  },
+);
+
 const getPaystackSecret = () => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) {
@@ -740,6 +915,22 @@ export const fetchPaystackBanks = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "fetchPaystackBanks",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     try {
       const PAYSTACK_SECRET = PAYSTACK_SECRET_KEY.value();
 
@@ -784,6 +975,22 @@ export const verifyPaystackAccount = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "verifyPaystackAccount",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     const { accountNumber, bankCode } = request.data;
 
     if (!accountNumber || !bankCode) {
@@ -825,6 +1032,22 @@ export const initializePaystackPayment = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "initializePaystackPayment",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     const { email, amount, reference, callbackUrl, channels } = request.data;
 
     if (!email || !amount || !reference) {
@@ -880,6 +1103,22 @@ export const verifyPaystackPayment = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "verifyPaystackPayment",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     const { reference } = request.data;
 
     if (!reference) {
@@ -918,6 +1157,22 @@ export const createPaystackRecipient = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "createPaystackRecipient",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     const { accountNumber, bankCode, recipientName } = request.data;
 
     if (!accountNumber || !bankCode || !recipientName) {
@@ -963,6 +1218,22 @@ export const initiatePaystackTransfer = onCall(
     cors: true,
   },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "initiatePaystackTransfer",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     const { recipient, amount, reference } = request.data;
 
     if (!recipient || !amount || !reference) {
@@ -1132,6 +1403,20 @@ export const streamGeminiWithText = onRequest(
     memory: "256MiB",
   },
   async (req, res) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey("streamGeminiWithText", undefined, req),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds));
+      res.status(429).json({
+        error: "Too many requests",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     const origin = req.headers.origin || "";
 
     if (ALLOWED_ORIGINS.includes(origin) || origin.includes("localhost")) {
@@ -1281,6 +1566,22 @@ export const getSecurePDFUrl = onCall(async (request) => {
 export const chatMessage = onCall(
   { secrets: ["GEMINI_API_KEY"] },
   async (request) => {
+    const rateLimit = enforceRateLimit(
+      buildRateLimitKey(
+        "chatMessage",
+        request.auth?.uid,
+        (request as any).rawRequest,
+      ),
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rateLimit.allowed) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Too many requests. Try again in ${rateLimit.retryAfterSeconds}s.`,
+      );
+    }
+
     // Check if user is authenticated
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");

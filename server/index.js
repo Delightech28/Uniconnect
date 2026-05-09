@@ -37,12 +37,68 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const app = express();
 
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+};
+
+const createRateLimiter = ({ windowMs, maxRequests }) => {
+  const buckets = new Map();
+
+  // Keep memory bounded in long-running processes.
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of buckets.entries()) {
+      if (now > bucket.resetAt) buckets.delete(key);
+    }
+  }, Math.max(windowMs, 30 * 1000)).unref?.();
+
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = `${getClientIp(req)}:${req.path}`;
+    const current = buckets.get(key);
+
+    if (!current || now > current.resetAt) {
+      buckets.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (current.count >= maxRequests) {
+      const retryAfterSeconds = Math.ceil((current.resetAt - now) / 1000);
+      res.set('Retry-After', String(Math.max(retryAfterSeconds, 1)));
+      return res.status(429).json({
+        error: 'Too many requests. Please try again shortly.',
+        retryAfterSeconds: Math.max(retryAfterSeconds, 1),
+      });
+    }
+
+    current.count += 1;
+    return next();
+  };
+};
+
 // Allow configuring the allowed frontend origin via env (e.g. https://yourdomain.com)
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 app.use(cors({ origin: FRONTEND_ORIGIN }));
 
 // Parse JSON bodies
 app.use(express.json());
+
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 5;
+
+// Strict 5 requests per 10 minutes policy
+const apiRateLimit = createRateLimiter({ windowMs: TEN_MINUTES_MS, maxRequests: MAX_REQUESTS_PER_WINDOW });
+const strictRateLimit = createRateLimiter({ windowMs: TEN_MINUTES_MS, maxRequests: MAX_REQUESTS_PER_WINDOW });
+const authRateLimit = createRateLimiter({ windowMs: TEN_MINUTES_MS, maxRequests: MAX_REQUESTS_PER_WINDOW });
+
+app.use('/verify-account', authRateLimit);
+app.use('/create-virtual-account', strictRateLimit);
+app.use('/transfer', strictRateLimit);
+app.use('/api', apiRateLimit);
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 if (!PAYSTACK_SECRET) {

@@ -26,11 +26,14 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
   const [showSpeedDropdown, setShowSpeedDropdown] = useState(false);
 
+  const [isPlayLoading, setIsPlayLoading] = useState(false);
+
   useEffect(() => {
     return () => {
       // Stop speech synthesis when component unmounts
       window.speechSynthesis.cancel();
       setIsPlaying(false);
+      setIsPlayLoading(false);
     };
   }, []);
 
@@ -72,8 +75,11 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     console.log('[PodcastSection] createPodcast', { selectedTopic, hostCount, duration, hosts });
     if (!selectedTopic) return;
     setLoading(true);
-    const topic = Array.isArray(topics) && topics.length > 0 ? topics[0] : selectedTopic;
+    const topic = selectedTopic || (Array.isArray(topics) && topics.length > 0 ? topics[0] : null);
     try {
+      if (!topic) {
+        throw new Error('Please select a topic before generating the podcast.');
+      }
       setLoadingMessage('Generating podcast content...');
       
       // Prepare hosts with default names if empty
@@ -134,12 +140,17 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
   const [currentSpeaker, setCurrentSpeaker] = useState(null);
   const [segmentIndex, setSegmentIndex] = useState(0);
 
-  const getVoiceForHostName = (hostName) => {
+  const getVoiceForHostName = (hostName, excludeVoiceName = null) => {
     if (!hostName || !activePodcast?.hosts) return null;
     
-    // Find host by name
+    // Find host by name from the hosts array
     const host = activePodcast.hosts.find(h => h.name?.toLowerCase() === hostName.toLowerCase());
-    if (!host) return null;
+    if (!host) {
+      // Try partial match
+      const matchedHost = activePodcast.hosts.find(h => hostName.toLowerCase().includes(h.name?.toLowerCase() || ''));
+      if (matchedHost) return getVoiceForHostName(matchedHost.name, excludeVoiceName);
+      return null;
+    }
     
     const voices = window.speechSynthesis.getVoices();
     const accentMap = { 'US': 'en-US', 'UK': 'en-GB', 'NG': 'en-NG' };
@@ -147,21 +158,39 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     
     // Detect gender from host name using the imported function
     const gender = detectGenderFromName(hostName);
-    const genderKeywords = gender === 'female' ? ['female', 'woman', 'girl', 'eva', 'victoria', 'zira'] : ['male', 'man', 'boy', 'david', 'james'];
+    console.log('[getVoiceForHostName] Host:', hostName, 'Detected gender:', gender, 'Accent:', host.accent);
     
-    console.log('[getVoiceForHostName] Host:', hostName, 'Gender:', gender, 'Accent:', host.accent, 'Target lang:', targetLang);
+    // Expanded gender keywords for better voice matching
+    const femaleKeywords = ['female', 'woman', 'girl', 'zira', 'victoria', 'eva', 'samantha', 'olivia', 'amy', 'anna', 'sophia', 'hazel', 'julia', 'lily', 'mia', 'isabella', 'elena', 'fatima', 'grace', 'hailey', 'heather', 'irene', 'kate', 'linda', 'marisa', 'nora', 'paula', 'rose', 'sara', 'tina', 'ursula'];
+    const maleKeywords = ['male', 'man', 'boy', 'david', 'james', 'john', 'mark', 'paul', 'tom', 'chris', 'daniel', 'michael', 'richard', 'steve', 'benjamin', 'arthur', 'ethan', 'henry', 'william', 'oliver', 'lucas', 'matthew', 'andrew', 'robert', 'joseph', 'sam'];
     
-    // Try to find gender-specific voice
+    // First, try to find a voice matching both gender and accent
     let voice = voices.find(v => 
-      v.lang === targetLang && 
-      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword))
+      v.lang.startsWith(targetLang.split('-')[0]) && 
+      (gender === 'female' ? femaleKeywords.some(k => v.name.toLowerCase().includes(k)) : maleKeywords.some(k => v.name.toLowerCase().includes(k))) &&
+      v.name !== excludeVoiceName
     );
     
+    // If not found, try gender match with any English accent
     if (!voice) {
-      voice = voices.find(v => v.lang === targetLang) || voices.find(v => v.lang?.startsWith(targetLang.split('-')[0])) || voices.find(v => v.lang?.includes('en')) || voices[0];
+      voice = voices.find(v => 
+        v.lang?.startsWith('en') && 
+        (gender === 'female' ? femaleKeywords.some(k => v.name.toLowerCase().includes(k)) : maleKeywords.some(k => v.name.toLowerCase().includes(k))) &&
+        v.name !== excludeVoiceName
+      );
     }
     
-    console.log('[getVoiceForHostName] Selected voice:', voice?.name);
+    // If still not found, try accent match only (fallback to gender-neutral)
+    if (!voice) {
+      voice = voices.find(v => (v.lang === targetLang || v.lang?.startsWith(targetLang.split('-')[0])) && v.name !== excludeVoiceName);
+    }
+    
+    // Final fallback: any English voice
+    if (!voice) {
+      voice = voices.find(v => v.lang?.includes('en') && v.name !== excludeVoiceName) || voices[0];
+    }
+    
+    console.log('[getVoiceForHostName] Selected voice:', voice?.name, 'for gender:', gender);
     return voice;
   };
 
@@ -169,6 +198,7 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     if (!activePodcast?.segments || index >= activePodcast.segments.length) {
       // Podcast finished
       setIsPlaying(false);
+      setIsPlayLoading(false);
       setCurrentSpeaker(null);
       setCurrentTime(totalDuration);
       console.log('[PodcastSection] Podcast playback completed');
@@ -178,9 +208,10 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     const segment = activePodcast.segments[index];
     let speaker = segment.speaker || 'Host';
     
-    // For "All Hosts", use the first host's voice
+    // For "All Hosts", alternate through actual host voices based on segment index
     if (speaker.toLowerCase().includes('all') || speaker.toLowerCase().includes('hosts')) {
-      speaker = activePodcast.hosts[0]?.name || 'Alex';
+      const hostIndex = index % (activePodcast.hosts?.length || 1);
+      speaker = activePodcast.hosts[hostIndex]?.name || 'Alex';
     }
     
     setCurrentSpeaker(speaker);
@@ -193,20 +224,31 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
     const utterance = new SpeechSynthesisUtterance(segment.text);
     // Apply playback speed to speech rate (0.9 is base rate)
     utterance.rate = Math.max(0.1, Math.min(10, 0.9 * playbackSpeed));
-    utterance.pitch = 1;
+    // Add small random pitch variation for more natural speech (±0.1)
+    utterance.pitch = Math.max(0.8, Math.min(1.2, 1 + (Math.random() * 0.2 - 0.1)));
     utterance.volume = 1;
     
     // Get appropriate voice for this segment's speaker
-    const voice = getVoiceForHostName(speaker);
+    // If we have multiple hosts, try to exclude the other host's voice for variety
+    let excludeVoiceName = null;
+    if (activePodcast.hosts && activePodcast.hosts.length > 1) {
+      const otherHost = activePodcast.hosts.find(h => h.name?.toLowerCase() !== speaker.toLowerCase());
+      if (otherHost) {
+        const otherVoice = getVoiceForHostName(otherHost.name);
+        if (otherVoice) excludeVoiceName = otherVoice.name;
+      }
+    }
+    const voice = getVoiceForHostName(speaker, excludeVoiceName);
     if (voice) {
       utterance.voice = voice;
-      console.log('[PodcastSection] Playing segment', index, 'with speaker:', speaker, 'speed:', playbackSpeed, 'rate:', utterance.rate);
+      console.log('[PodcastSection] Playing segment', index, 'with speaker:', speaker, 'speed:', playbackSpeed, 'rate:', utterance.rate, 'pitch:', utterance.pitch.toFixed(2));
     } else {
       console.warn('[PodcastSection] No voice found for speaker:', speaker);
     }
     
     utterance.onstart = () => {
       setIsPlaying(true);
+      setIsPlayLoading(false);
       console.log('[PodcastSection] Started segment', index, '/', activePodcast.segments.length, 'Speaker:', speaker, 'Duration:', segmentDuration);
     };
     
@@ -228,6 +270,7 @@ const PodcastSection = ({ docText, topics, setLoading, setLoadingMessage, isPaus
       clearInterval(timeUpdateInterval);
       console.error('[PodcastSection] Speech error on segment', index, ':', e);
       setIsPlaying(false);
+      setIsPlayLoading(false);
     };
     
     window.speechSynthesis.cancel();

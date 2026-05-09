@@ -107,7 +107,7 @@ const QuizConfig = ({ topics, onStart, onBack, isDarkMode }) => {
               <input
                 type="range"
                 min="10"
-                max="100"
+                max="70"
                 step="5"
                 value={settings.questionCount}
                 onChange={(e) => setSettings({ ...settings, questionCount: parseInt(e.target.value) })}
@@ -115,8 +115,8 @@ const QuizConfig = ({ topics, onStart, onBack, isDarkMode }) => {
               />
               <div className="flex justify-between text-xs font-bold text-slate-300 mt-2">
                 <span>10</span>
-                <span>50</span>
-                <span>100</span>
+                <span>40</span>
+                <span>70</span>
               </div>
             </div>
 

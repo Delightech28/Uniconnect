@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { auth, db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import MaintenancePage from "./components/MaintenancePage";
 import UniConnectLandingPage from "./components/UniConnectLandingPage";
 import UniConnectRegistration from "./components/UniConnectRegistration";
 import StudentVerificationPage from "./components/StudentVerificationPage";
@@ -91,7 +92,7 @@ function App() {
       <Analytics />
       <Router>
         <Routes>
-          <Route path="/" element={<UniConnectLandingPage />} />
+          <Route path="/" element={<MaintenancePage />} />
           <Route path="/signup" element={<UniConnectRegistration />} />
           <Route path="/verify-student" element={<StudentVerificationPage />} />
           <Route

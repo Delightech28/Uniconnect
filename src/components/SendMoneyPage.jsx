@@ -123,7 +123,7 @@ const SendMoneyPage = () => {
       setRecipientUser(null);
 
       const usernameQuery = query(
-        collection(db, "users"),
+        collection(db, "publicProfiles"),
         where("username", "==", username),
       );
       const snapshot = await getDocs(usernameQuery);

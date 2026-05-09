@@ -1,5 +1,6 @@
 // Virtual Account Service
 // Handles creation and management of Paystack virtual accounts
+import { enforceClientRateLimit } from '../utils/rateLimit';
 
 const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
@@ -11,6 +12,8 @@ const getApiBase = () => {
 
 export const createVirtualAccount = async (firstName, lastName, email, phone = '') => {
   try {
+    enforceClientRateLimit('create-virtual-account', 5000);
+
     const response = await fetch(`${getApiBase()}/create-virtual-account`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,6 +40,8 @@ export const createVirtualAccount = async (firstName, lastName, email, phone = '
 
 export const fetchBankList = async () => {
   try {
+    enforceClientRateLimit('fetch-bank-list', 1500);
+
     const response = await fetch('https://api.paystack.co/bank?currency=NGN', {
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}`,

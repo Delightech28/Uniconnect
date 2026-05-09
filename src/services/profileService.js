@@ -27,6 +27,19 @@ import {
  * Centralized service for all profile-related operations
  */
 
+const getProfileDocRef = (userId) => {
+  // Always read from 'users' — Firestore rules allow any signed-in user to
+  // read profile documents. The 'publicProfiles' collection is reserved for
+  // future use when a dedicated public-only projection is needed.
+  return doc(db, 'users', userId);
+};
+
+const getProfileById = async (userId) => {
+  const snap = await getDoc(getProfileDocRef(userId));
+  if (!snap.exists()) return null;
+  return { id: userId, ...snap.data() };
+};
+
 // ============ PROFILE RETRIEVAL ============
 
 /**
@@ -36,7 +49,7 @@ import {
  */
 export const getUserProfile = async (userId) => {
   try {
-    const userSnap = await getDoc(doc(db, 'users', userId));
+    const userSnap = await getDoc(getProfileDocRef(userId));
     if (!userSnap.exists()) {
       throw new Error('User not found');
     }
@@ -60,12 +73,7 @@ export const getFollowers = async (userId) => {
     const followerIds = userSnap.data().followers || [];
     if (followerIds.length === 0) return [];
 
-    const followers = await Promise.all(
-      followerIds.map(async (id) => {
-        const snap = await getDoc(doc(db, 'users', id));
-        return snap.exists() ? { id, ...snap.data() } : null;
-      })
-    );
+    const followers = await Promise.all(followerIds.map((id) => getProfileById(id)));
 
     return followers.filter((f) => f !== null);
   } catch (err) {
@@ -87,12 +95,7 @@ export const getFollowing = async (userId) => {
     const followingIds = userSnap.data().following || [];
     if (followingIds.length === 0) return [];
 
-    const following = await Promise.all(
-      followingIds.map(async (id) => {
-        const snap = await getDoc(doc(db, 'users', id));
-        return snap.exists() ? { id, ...snap.data() } : null;
-      })
-    );
+    const following = await Promise.all(followingIds.map((id) => getProfileById(id)));
 
     return following.filter((f) => f !== null);
   } catch (err) {
@@ -382,13 +385,7 @@ export const getConnections = async (userId) => {
     // First try connections subcollection
     const qSnap = await getDocs(collection(db, 'users', userId, 'connections'));
     if (qSnap.size > 0) {
-      const connections = await Promise.all(
-        qSnap.docs.map(async (d) => {
-          const id = d.id;
-          const snap = await getDoc(doc(db, 'users', id));
-          return snap.exists() ? { id, ...snap.data() } : null;
-        })
-      );
+      const connections = await Promise.all(qSnap.docs.map((d) => getProfileById(d.id)));
       return connections.filter((c) => c !== null);
     }
 
@@ -399,12 +396,7 @@ export const getConnections = async (userId) => {
     const connectionIds = userSnap.data().connections || [];
     if (connectionIds.length === 0) return [];
 
-    const connections = await Promise.all(
-      connectionIds.map(async (id) => {
-        const snap = await getDoc(doc(db, 'users', id));
-        return snap.exists() ? { id, ...snap.data() } : null;
-      })
-    );
+    const connections = await Promise.all(connectionIds.map((id) => getProfileById(id)));
 
     return connections.filter((c) => c !== null);
   } catch (err) {
@@ -423,11 +415,7 @@ export const getPendingRequests = async (userId) => {
     // First check connectionRequests subcollection
     const qSnap = await getDocs(collection(db, 'users', userId, 'connectionRequests'));
     const pending = await Promise.all(
-      qSnap.docs.map(async (d) => {
-        const requesterId = d.id;
-        const snap = await getDoc(doc(db, 'users', requesterId));
-        return snap.exists() ? { id: requesterId, ...snap.data() } : null;
-      })
+      qSnap.docs.map(async (d) => getProfileById(d.id))
     );
 
     if (pending.length > 0) return pending.filter((p) => p !== null);
@@ -437,12 +425,7 @@ export const getPendingRequests = async (userId) => {
     if (!userSnap.exists()) return [];
     const pendingIds = userSnap.data().pendingConnections || [];
     if (pendingIds.length === 0) return [];
-    const pendingLegacy = await Promise.all(
-      pendingIds.map(async (id) => {
-        const snap = await getDoc(doc(db, 'users', id));
-        return snap.exists() ? { id, ...snap.data() } : null;
-      })
-    );
+    const pendingLegacy = await Promise.all(pendingIds.map((id) => getProfileById(id)));
     return pendingLegacy.filter((p) => p !== null);
   } catch (err) {
     console.error('Error fetching pending requests:', err);

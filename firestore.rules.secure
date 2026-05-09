@@ -1,6 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminByClaim() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isAdminByRoleField() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAdmin() {
+      return isAdminByClaim() || isAdminByRoleField();
+    }
+
     // SECURITY: Default deny all
     match /{document=**} {
       allow read, write: if false;
@@ -9,26 +26,34 @@ service cloud.firestore {
     // Users collection with strict access control
     match /users/{userId} {
       // Create: Only authenticated users can create their own profile
-      allow create: if request.auth != null && request.auth.uid == userId;
-      
-      // Read: Users can only read their own profile OR public profile data
-      allow read: if request.auth != null && (
-        // Own profile: full access
-        request.auth.uid == userId ||
-        // Other users: only public fields (displayName, avatarUrl, bio, institution, interests)
-        (request.auth != null && isPublicUserRead(resource.data))
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+
+      // Read: any signed-in user can view profiles (needed for social features)
+      // Sensitive data is protected at subcollection level below
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+
+      // Update: owner can update profile but cannot self-promote role/admin flags
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && (
+            !('admin' in resource.data)
+            || request.resource.data.admin == resource.data.admin
+          )
+        )
+        || isAdmin()
       );
-      
-      // Update: Only owner can update their profile
-      allow update: if request.auth != null && request.auth.uid == userId;
-      
-      // Delete: Only owner can delete
-      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Delete: only owner or admin
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
 
       // Notifications subcollection: only user can access their own
       match /notifications/{notificationId} {
-        allow create: if request.auth != null;
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if isSignedIn();
+        allow read, update, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
 
       // Likes subcollection: public read counts, authenticated create/delete
@@ -67,19 +92,32 @@ service cloud.firestore {
 
       // Transactions: owner only
       match /transactions/{transactionId} {
-        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow read, create, update, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
 
       // Bank accounts: owner only
       match /bankAccounts/{accountId} {
-        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
+        allow read, create, delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
         allow update: if false;
       }
 
       // Conversations: owner only
       match /conversations/{convoId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       }
+    }
+
+    // Public profile projection for social/profile browsing.
+    // This collection must only contain non-sensitive fields.
+    match /publicProfiles/{userId} {
+      // Any signed-in user can view public profiles.
+      allow read: if isSignedIn();
+
+      // Owner can manage their public profile document.
+      allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
+
+      // Admins can also manage/repair public profiles.
+      allow create, update, delete: if isAdmin();
     }
 
     // Listings: public read, creator can write
@@ -144,9 +182,8 @@ service cloud.firestore {
 
     // Contact submissions: create only
     match /contactSubmissions/{submissionId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
       allow update, delete: if false; // Admin only via Cloud Functions
     }
 
@@ -157,9 +194,8 @@ service cloud.firestore {
 
     // Verification requests: authenticated users can create
     match /verificationRequests/{requestId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
       allow update, delete: if false; // Admin only via Cloud Functions
     }
 
@@ -171,7 +207,7 @@ service cloud.firestore {
         // Post owner can update everything
         (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid) ||
         // Any authenticated user can update likesCount, commentsCount, votesCount, poll, authorName only
-        request.writeFields.hasOnly(['likesCount', 'commentsCount', 'votesCount', 'poll', 'authorName'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount', 'votesCount', 'poll', 'authorName'])
       );
       allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || resource.data.authorId == request.auth.uid);
 
@@ -244,13 +280,18 @@ service cloud.firestore {
 
     // Chat/Messages collection (if separate)
     match /messages/{messageId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Notifications root collection (if used)
     match /notifications/{notificationId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
       allow write: if false; // Only backend/Cloud Functions can write
     }
 
@@ -260,12 +301,5 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.buyerId == request.auth.uid;
     }
-  }
-
-  // Helper function: Check if data contains only public fields
-  function isPublicUserRead(data) {
-    // Allow reading these public fields of other users
-    let publicFields = ['displayName', 'avatarUrl', 'bio', 'institution', 'interests', 'connectionsCount', 'gender'];
-    return request.auth != null;
   }
 }
